@@ -1,0 +1,36 @@
+{
+  "name": "temp-init",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.19.3",
+    "@types/uuid": "^10.0.0",
+    "lucide-react": "^1.24.0",
+    "next": "16.2.10",
+    "prisma": "^6.19.3",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "ts-node": "^10.9.2",
+    "uuid": "^14.0.1"
+  },
+  "devDependencies": {
+    "@next/swc-win32-x64-msvc": "^16.2.10",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20.19.43",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.10",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  },
+  "prisma": {
+    "seed": "npx tsc prisma/seed.ts --module commonjs --target es2022 --moduleResolution node --outDir prisma/dist && node prisma/dist/seed.js && rd /s /q prisma\\dist"
+  }
+}

@@ -1,0 +1,182 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum UserRole {
+  ADMIN
+  CARE_COORDINATOR
+  CAREGIVER
+  FAMILY_MEMBER
+}
+
+enum ShiftStatus {
+  UNCONFIRMED
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  DROPPED
+  NO_SHOW
+}
+
+enum PodRole {
+  PRIMARY
+  SECONDARY_1
+  SECONDARY_2
+}
+
+model User {
+  id           String        @id @default(uuid())
+  email        String        @unique
+  passwordHash String
+  name         String
+  role         UserRole
+  phoneNumber  String?
+  createdAt    DateTime      @default(now())
+  
+  // Relations
+  podAssignments CaregiverPod[]
+  assignedShifts Shift[]
+  familyClients  LinkedFamilyMember[]
+  auditLogs      AuditLog[]
+}
+
+model Client {
+  id                  String        @id @default(uuid())
+  name                String
+  address             String
+  latitude            Float
+  longitude           Float
+  geofenceRadiusMeter Int           @default(150) // Default 150m radius
+  createdAt           DateTime      @default(now())
+
+  // Relations
+  caregiverPods  CaregiverPod[]
+  shifts         Shift[]
+  carePlans      CarePlan[]
+  familyMembers  LinkedFamilyMember[]
+  activityLogs   ActivityLog[]
+}
+
+model CaregiverPod {
+  id          String   @id @default(uuid())
+  clientId    String
+  caregiverId String
+  role        PodRole
+  createdAt   DateTime @default(now())
+
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  caregiver   User     @relation(fields: [caregiverId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, caregiverId])
+  @@unique([clientId, role]) // Ensure only one caregiver per role in the pod
+}
+
+model Shift {
+  id                   String        @id @default(uuid())
+  clientId             String
+  caregiverId          String
+  status               ShiftStatus   @default(UNCONFIRMED)
+  scheduledStart       DateTime
+  scheduledEnd         DateTime
+  actualStart          DateTime?
+  actualEnd            DateTime?
+  
+  // Confirmation Tracking
+  confirmationDeadline DateTime
+  confirmedAt          DateTime?
+
+  // Geofencing & Exceptions
+  clockInLat           Float?
+  clockInLng           Float?
+  isOverrideException  Boolean       @default(false)
+  overrideReason       String?
+  overrideApprovedBy   String?       // Reference to Admin User ID
+
+  // Relations
+  client      Client                     @relation(fields: [clientId], references: [id])
+  caregiver   User                       @relation(fields: [caregiverId], references: [id])
+  locations   CaregiverLocationHistory[]
+  tasks       ShiftTask[]
+  activityLogs ActivityLog[]
+}
+
+model CaregiverLocationHistory {
+  id        String   @id @default(uuid())
+  shiftId   String
+  latitude  Float
+  longitude Float
+  timestamp DateTime @default(now())
+
+  shift     Shift    @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+}
+
+model CarePlan {
+  id        String   @id @default(uuid())
+  clientId  String
+  createdAt DateTime @default(now())
+
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  tasks     CarePlanTask[]
+}
+
+model CarePlanTask {
+  id            String   @id @default(uuid())
+  carePlanId    String
+  taskName      String   // e.g. "Medication reminder"
+  description   String   // e.g. "Take 2 tabs of Lisinopril"
+  scheduledTime String   // e.g. "08:00 AM" or shift-offset
+  isMandatory   Boolean  @default(true)
+
+  carePlan      CarePlan @relation(fields: [carePlanId], references: [id], onDelete: Cascade)
+}
+
+model ShiftTask {
+  id            String    @id @default(uuid())
+  shiftId       String
+  taskName      String
+  description   String
+  scheduledTime String
+  isCompleted   Boolean   @default(false)
+  completedAt   DateTime?
+
+  shift         Shift     @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+}
+
+model LinkedFamilyMember {
+  id       String @id @default(uuid())
+  clientId String
+  userId   String
+
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, userId])
+}
+
+model ActivityLog {
+  id          String   @id @default(uuid())
+  clientId    String
+  shiftId     String?
+  encryptedLog String   // AES-256 encrypted log details
+  mediaUrls   String   // JSON-serialized string of signed URLs or Storage paths
+  createdAt   DateTime @default(now())
+
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  shift       Shift?   @relation(fields: [shiftId], references: [id])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String
+  action    String   // e.g. "VIEW_PATIENT_RECORD", "DELETE_SHIFT"
+  details   String   // Details of data targeted
+  timestamp DateTime @default(now())
+  outcome   String   // "SUCCESS" or "FAILURE"
+
+  user      User     @relation(fields: [userId], references: [id])
+}

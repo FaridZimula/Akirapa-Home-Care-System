@@ -1,0 +1,178 @@
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { logAudit } from '@/lib/audit';
+import { UserRole, PodRole, ShiftStatus } from '@prisma/client';
+
+export async function POST(request: Request) {
+  try {
+    const { email, password, role } = await request.json();
+
+    if (!email || !password) {
+      return NextResponse.json(
+        { error: 'Email and password are required' },
+        { status: 400 }
+      );
+    }
+
+    let user = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      // Determine user role (defaults to CAREGIVER)
+      let finalRole: UserRole = UserRole.CAREGIVER;
+      if (role === 'ADMIN') finalRole = UserRole.ADMIN;
+      else if (role === 'CARE_COORDINATOR') finalRole = UserRole.CARE_COORDINATOR;
+      else if (role === 'CAREGIVER') finalRole = UserRole.CAREGIVER;
+      else if (role === 'CLIENT' || role === 'FAMILY_MEMBER') finalRole = UserRole.FAMILY_MEMBER;
+
+      // Extract username from email
+      const emailName = email.split('@')[0];
+      const name = emailName.charAt(0).toUpperCase() + emailName.slice(1) + ' (Guest)';
+
+      // Register new user dynamically
+      user = await prisma.user.create({
+        data: {
+          email,
+          passwordHash: password, // Plain-text passwords for mock prototype simplicity
+          name,
+          role: finalRole,
+          phoneNumber: '+16045550199',
+        },
+      });
+
+      // Seeding shift, tasks, and pod map if CAREGIVER
+      if (finalRole === UserRole.CAREGIVER) {
+        const client = await prisma.client.findFirst();
+        if (client) {
+          // Add to caregiver pod as PRIMARY or backup
+          await prisma.caregiverPod.create({
+            data: {
+              clientId: client.id,
+              caregiverId: user.id,
+              role: PodRole.PRIMARY,
+            },
+          }).catch(() => {
+            return prisma.caregiverPod.create({
+              data: {
+                clientId: client.id,
+                caregiverId: user.id,
+                role: PodRole.SECONDARY_1,
+              },
+            }).catch(() => {});
+          });
+
+          // Create active shift scheduled for today
+          const start = new Date();
+          start.setMinutes(start.getMinutes() + 15); // Starts in 15 mins
+          const end = new Date(start.getTime() + 8 * 60 * 60 * 1000); // 8-hour shift
+          const confirmationDeadline = new Date(start.getTime() - 24 * 60 * 60 * 1000);
+
+          const shift = await prisma.shift.create({
+            data: {
+              clientId: client.id,
+              caregiverId: user.id,
+              status: ShiftStatus.CONFIRMED,
+              scheduledStart: start,
+              scheduledEnd: end,
+              confirmationDeadline,
+            },
+          });
+
+          // Create tasks for this shift
+          await prisma.shiftTask.createMany({
+            data: [
+              {
+                shiftId: shift.id,
+                taskName: 'Vital Signs Checklist',
+                description: 'Verify temperature and blood pressure. Log in clinical chart.',
+                scheduledTime: '10:00 AM',
+                isCompleted: false,
+              },
+              {
+                shiftId: shift.id,
+                taskName: 'Medication Administration',
+                description: 'Administer Lisinopril 10mg. Document client ingestion.',
+                scheduledTime: '12:00 PM',
+                isCompleted: false,
+              },
+              {
+                shiftId: shift.id,
+                taskName: 'Mobility Walk & Hydration',
+                description: 'Perform 15-minute garden walk support. Provide glass of water.',
+                scheduledTime: '02:30 PM',
+                isCompleted: false,
+              },
+            ],
+          });
+        }
+      }
+
+      // Link client if FAMILY_MEMBER
+      if (finalRole === UserRole.FAMILY_MEMBER) {
+        const client = await prisma.client.findFirst();
+        if (client) {
+          await prisma.linkedFamilyMember.create({
+            data: {
+              clientId: client.id,
+              userId: user.id,
+            },
+          }).catch(() => {});
+        }
+      }
+
+      // Audit dynamic registration
+      await logAudit({
+        userId: user.id,
+        action: 'MOCK_REGISTRATION',
+        details: `Simulated registration of guest account ${email} as ${user.role}`,
+        outcome: 'SUCCESS',
+      });
+    } else if (user.passwordHash !== password) {
+      // Overwrite the password to match input so any credentials work
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: { passwordHash: password },
+      });
+    }
+
+    // Log audit for successful login
+    await logAudit({
+      userId: user.id,
+      action: 'LOGIN_SUCCESS',
+      details: `User logged in: ${email} with role ${user.role}`,
+      outcome: 'SUCCESS',
+    });
+
+    const response = NextResponse.json({
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        phoneNumber: user.phoneNumber,
+      },
+    });
+
+    // Set mock session cookie
+    response.cookies.set('session_user', JSON.stringify({
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      phoneNumber: user.phoneNumber,
+    }), {
+      path: '/',
+      httpOnly: false, // Allow client access for simple state sync
+      maxAge: 60 * 15, // 15 minutes session length matching idle timeout
+    });
+
+    return response;
+  } catch (error) {
+    console.error('Login error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
