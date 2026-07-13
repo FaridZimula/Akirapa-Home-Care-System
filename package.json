@@ -20,7 +20,6 @@
     "uuid": "^14.0.1"
   },
   "devDependencies": {
-    "@next/swc-win32-x64-msvc": "^16.2.10",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20.19.43",
     "@types/react": "^19",
