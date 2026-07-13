@@ -41,6 +41,8 @@ export async function POST(request: Request) {
         },
       });
 
+      const userId = user.id;
+
       // Seeding shift, tasks, and pod map if CAREGIVER
       if (finalRole === UserRole.CAREGIVER) {
         const client = await prisma.client.findFirst();
@@ -49,14 +51,14 @@ export async function POST(request: Request) {
           await prisma.caregiverPod.create({
             data: {
               clientId: client.id,
-              caregiverId: user.id,
+              caregiverId: userId,
               role: PodRole.PRIMARY,
             },
           }).catch(() => {
             return prisma.caregiverPod.create({
               data: {
                 clientId: client.id,
-                caregiverId: user.id,
+                caregiverId: userId,
                 role: PodRole.SECONDARY_1,
               },
             }).catch(() => {});
@@ -71,7 +73,7 @@ export async function POST(request: Request) {
           const shift = await prisma.shift.create({
             data: {
               clientId: client.id,
-              caregiverId: user.id,
+              caregiverId: userId,
               status: ShiftStatus.CONFIRMED,
               scheduledStart: start,
               scheduledEnd: end,

@@ -80,6 +80,9 @@ export default function Home() {
   const [overrideReason, setOverrideReason] = useState('');
   const [showOverrideInput, setShowOverrideInput] = useState(false);
   const [clockInError, setClockInError] = useState<string | null>(null);
+  const [clockOutError, setClockOutError] = useState<string | null>(null);
+  const [showClockOutOverrideInput, setShowClockOutOverrideInput] = useState(false);
+  const [clockOutOverrideReason, setClockOutOverrideReason] = useState('');
   const [shiftNotes, setShiftNotes] = useState('');
   const [redFlags, setRedFlags] = useState({
     cognitiveConfusion: false,
@@ -338,9 +341,16 @@ export default function Home() {
     }
   };
 
-  const handleClockOut = async (shiftId: string) => {
+  const handleClockOut = async (shiftId: string, isOverride = false) => {
+    setClockOutError(null);
     const activeShift = shifts.find(s => s.id === shiftId);
     if (!activeShift) return;
+
+    // Simulate GPS coords based on client location and mock slider offset
+    const clientLat = activeShift.client.latitude;
+    const clientLng = activeShift.client.longitude;
+    const mockLat = clientLat + (distanceOffset / 111111);
+    const mockLng = clientLng + (distanceOffset / (111111 * Math.cos(clientLat * Math.PI / 180)));
 
     // Mock completing all active tasks for simplicity
     const activeShiftTaskIds = activeShift.tasks?.map((t: any) => t.id) || [];
@@ -354,12 +364,16 @@ export default function Home() {
           completedTaskIds: activeShiftTaskIds,
           redFlags,
           notes: shiftNotes,
+          latitude: mockLat,
+          longitude: mockLng,
+          isOverride,
+          overrideReason: isOverride ? clockOutOverrideReason : undefined,
         }),
       });
 
       const data = await res.json();
       if (res.ok) {
-        showNotification(data.hasRedFlags ? 'Clocked out with CLINICAL WARNINGS' : 'Clocked out successfully!');
+        showNotification(isOverride ? 'Manual Override Submitted' : (data.hasRedFlags ? 'Clocked out with CLINICAL WARNINGS' : 'Clocked out successfully!'));
         setShiftNotes('');
         setRedFlags({
           cognitiveConfusion: false,
@@ -367,7 +381,14 @@ export default function Home() {
           behavioralChanges: false,
           mobilityDecline: false,
         });
+        setShowClockOutOverrideInput(false);
+        setClockOutOverrideReason('');
         loadData();
+      } else {
+        setClockOutError(data.error);
+        if (data.allowOverride) {
+          setShowClockOutOverrideInput(true);
+        }
       }
     } catch (err) {
       console.error(err);
@@ -824,7 +845,7 @@ export default function Home() {
         
         {/* Navigation Sidebar Gated by Role */}
         <nav className="flex flex-col gap-2.5 lg:col-span-1">
-          <span className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 pl-3">Authorized Portals</span>
+          <span className="text-[10px] font-bold tracking-widest text-gray-900 pl-3">Authorized Portals</span>
           
           {/* Admin Gated Options */}
           {(user.role === 'ADMIN' || user.role === 'CARE_COORDINATOR') && (
@@ -871,28 +892,28 @@ export default function Home() {
 
           {/* SMS Simulation Alerts Panel - Render for Caregivers and Admins */}
           {(user.role === 'ADMIN' || user.role === 'CARE_COORDINATOR' || user.role === 'CAREGIVER') && (
-            <div className="mt-8 bg-gray-900 text-white rounded-3xl p-5 border border-gray-800 shadow-xl flex flex-col gap-4">
-              <div className="flex justify-between items-center border-b border-gray-800 pb-3">
-                <span className="flex items-center gap-2 text-xs font-bold text-brand-teal">
-                  <Smartphone className="w-4 h-4" />
+            <div className="mt-8 bg-brand-purple text-white rounded-3xl p-5 border border-brand-purple-light/20 shadow-xl flex flex-col gap-4">
+              <div className="flex justify-between items-center border-b border-brand-purple-light/20 pb-3">
+                <span className="flex items-center gap-2 text-xs font-bold text-white">
+                  <Smartphone className="w-4 h-4 text-brand-teal-light" />
                   <span>Simulated SMS Alert Log</span>
                 </span>
-                <span className="bg-gray-800 text-[10px] px-2 py-0.5 rounded-full font-mono text-gray-400">
+                <span className="bg-brand-purple-dark/50 text-[10px] px-2 py-0.5 rounded-full font-mono text-brand-purple-ultra">
                   {smsAlerts.length}
                 </span>
               </div>
               
               <div className="flex flex-col gap-3.5 max-h-60 overflow-y-auto pr-1 text-xs">
                 {smsAlerts.length === 0 ? (
-                  <div className="text-gray-500 py-6 text-center italic">No SMS logs recorded. Try dropping a shift or triggering escalation.</div>
+                  <div className="text-brand-purple-ultra/60 py-6 text-center italic">No SMS logs recorded. Try dropping a shift or triggering escalation.</div>
                 ) : (
                   smsAlerts.map((sms, i) => (
-                    <div key={i} className="bg-gray-800/50 border border-gray-800 p-3 rounded-xl flex flex-col gap-1.5">
-                      <div className="flex justify-between text-[10px] font-bold text-gray-400">
+                    <div key={i} className="bg-brand-purple-dark/30 border border-brand-purple-light/10 p-3 rounded-xl flex flex-col gap-1.5">
+                      <div className="flex justify-between text-[10px] font-bold text-brand-purple-ultra/70">
                         <span>To: {sms.to}</span>
                         <span>{sms.timestamp.toLocaleTimeString()}</span>
                       </div>
-                      <p className="text-gray-300 font-medium leading-relaxed leading-normal">{sms.message}</p>
+                      <p className="text-white font-medium leading-relaxed leading-normal">{sms.message}</p>
                     </div>
                   ))
                 )}
@@ -1205,9 +1226,9 @@ export default function Home() {
                           </div>
 
                           <span className={`px-4 py-1.5 rounded-full text-xs font-bold ${
-                            shift.status === 'IN_PROGRESS' ? 'bg-blue-50 text-blue-700 border border-blue-100 animate-pulse' : 'bg-amber-50 text-amber-700 border border-amber-100'
+                            shift.status === 'IN_PROGRESS' ? 'bg-brand-teal-ultra text-brand-teal-dark border border-brand-teal/20 animate-pulse' : 'bg-brand-purple text-white'
                           }`}>
-                            {shift.status === 'IN_PROGRESS' ? 'IN PROGRESS (Clocked In)' : 'CONFIRMED (Awaiting Clock-In)'}
+                            {shift.status === 'IN_PROGRESS' ? 'In Progress (Clocked In)' : 'Confirmed (Awaiting Clock-In)'}
                           </span>
                         </div>
 
@@ -1352,9 +1373,36 @@ export default function Home() {
                               />
                             </div>
 
+                            {/* Geofenced Clock-out Verification Errors */}
+                            {clockOutError && (
+                              <div className="bg-red-50 text-red-600 border border-red-100 p-4.5 rounded-2xl flex flex-col gap-3 text-xs font-semibold">
+                                <span>{clockOutError}. GPS reports {distanceOffset}m away from center point.</span>
+                                
+                                {showClockOutOverrideInput ? (
+                                  <div className="flex flex-col gap-2.5 mt-1 border-t border-red-100 pt-3">
+                                    <label className="text-[10px] font-bold text-red-500 uppercase">Administrator Override Reason (Clock-Out)</label>
+                                    <textarea 
+                                      rows={2}
+                                      value={clockOutOverrideReason}
+                                      onChange={(e) => setClockOutOverrideReason(e.target.value)}
+                                      placeholder="Explain the technical difficulty or exceptional circumstance..."
+                                      className="bg-white border border-red-200 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-red-500"
+                                    />
+                                    <button 
+                                      onClick={() => handleClockOut(shift.id, true)}
+                                      disabled={!clockOutOverrideReason.trim()}
+                                      className="py-2.5 bg-red-600 hover:bg-red-700 disabled:bg-gray-200 text-white rounded-xl font-bold text-xs uppercase tracking-wider"
+                                    >
+                                      Submit Override Request
+                                    </button>
+                                  </div>
+                                ) : null}
+                              </div>
+                            )}
+
                             {/* Clock Out */}
                             <button 
-                              onClick={() => handleClockOut(shift.id)}
+                              onClick={() => handleClockOut(shift.id, false)}
                               className="py-3 bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
                             >
                               <CheckCircle className="w-4 h-4" />

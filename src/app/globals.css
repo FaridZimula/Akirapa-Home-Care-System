@@ -19,6 +19,8 @@
   --color-status-noshow: #6b7280;
 
   --font-sans: 'Poppins', sans-serif;
+  --font-weight-bold: 600;
+  --font-weight-extrabold: 700;
 }
 
 :root {
