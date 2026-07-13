@@ -42,7 +42,7 @@ async function main() {
   const primaryCaregiver = await prisma.user.create({
     data: {
       email: 'primary@akirapa.com',
-      passwordHash: 'primary123',
+      passwordHash: 'akirapa2634!',
       name: 'Amara Okafor',
       role: UserRole.CAREGIVER,
       phoneNumber: '+16045550103',

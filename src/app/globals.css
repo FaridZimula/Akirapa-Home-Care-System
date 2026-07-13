@@ -17,10 +17,12 @@
   --color-status-completed: #10b981;
   --color-status-dropped: #ef4444;
   --color-status-noshow: #6b7280;
+
+  --font-sans: 'Poppins', sans-serif;
 }
 
 :root {
-  font-family: 'Outfit', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  font-family: 'Poppins', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 }
 
 body {

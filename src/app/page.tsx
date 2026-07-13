@@ -188,7 +188,7 @@ export default function Home() {
     setLoading(true);
     let pass = 'admin123';
     if (email === 'coordinator@akirapa.com') pass = 'coordinator123';
-    if (email === 'primary@akirapa.com') pass = 'primary123';
+    if (email === 'primary@akirapa.com') pass = 'akirapa2634!';
     if (email === 'backup1@akirapa.com') pass = 'backup1123';
     if (email === 'family@akirapa.com') pass = 'family123';
 
@@ -591,7 +591,7 @@ export default function Home() {
       ];
     } else if (selectedRole === 'CAREGIVER') {
       accounts = [
-        { name: 'Amara Okafor (Primary Caregiver)', email: 'primary@akirapa.com', pass: 'primary123' },
+        { name: 'Amara Okafor (Primary Caregiver)', email: 'primary@akirapa.com', pass: 'akirapa2634!' },
         { name: 'Brendan Miller (Secondary Caregiver 1)', email: 'backup1@akirapa.com', pass: 'backup1123' },
         { name: 'Chloe Chen (Secondary Caregiver 2)', email: 'backup2@akirapa.com', pass: 'backup2123' }
       ];
