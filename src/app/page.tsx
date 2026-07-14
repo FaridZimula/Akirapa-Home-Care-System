@@ -107,6 +107,26 @@ export default function Home() {
   const [googleCustomRole, setGoogleCustomRole] = useState<'ADMIN' | 'CAREGIVER' | 'CLIENT'>('CAREGIVER');
   const [googleIsSubmitting, setGoogleIsSubmitting] = useState(false);
 
+  // Caregiver Clock-Out Media Upload States
+  const [selectedMediaFiles, setSelectedMediaFiles] = useState<Array<{ name: string; type: string; preview: string }>>([]);
+
+  const handleMediaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files) return;
+    const files = Array.from(e.target.files);
+    const newFiles = files.map(file => ({
+      name: file.name,
+      type: file.type,
+      preview: URL.createObjectURL(file),
+    }));
+    setSelectedMediaFiles(prev => [...prev, ...newFiles]);
+  };
+
+  const handleRemoveMedia = (index: number) => {
+    const file = selectedMediaFiles[index];
+    if (file) URL.revokeObjectURL(file.preview);
+    setSelectedMediaFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
   // Simulation Alert Logs (Mock SMS Messages Panel)
   const [smsAlerts, setSmsAlerts] = useState<Array<{ timestamp: Date; to: string; message: string }>>([]);
   const [systemNotification, setSystemNotification] = useState<string | null>(null);
@@ -379,6 +399,7 @@ export default function Home() {
           longitude: mockLng,
           isOverride,
           overrideReason: isOverride ? clockOutOverrideReason : undefined,
+          mediaFiles: selectedMediaFiles.map(f => ({ name: f.name, type: f.type })),
         }),
       });
 
@@ -386,6 +407,7 @@ export default function Home() {
       if (res.ok) {
         showNotification(isOverride ? 'Manual Override Submitted' : (data.hasRedFlags ? 'Clocked out with CLINICAL WARNINGS' : 'Clocked out successfully!'));
         setShiftNotes('');
+        setSelectedMediaFiles([]);
         setRedFlags({
           cognitiveConfusion: false,
           fallDetected: false,
@@ -958,7 +980,6 @@ export default function Home() {
         
         {/* Navigation Sidebar Gated by Role */}
         <nav className="flex flex-col gap-2.5 lg:col-span-1">
-          <span className="text-[10px] font-bold tracking-widest text-gray-900 pl-3">Authorized Portals</span>
           
           {/* Admin Gated Options */}
           {(user.role === 'ADMIN' || user.role === 'CARE_COORDINATOR') && (
@@ -1361,7 +1382,6 @@ export default function Home() {
                         {/* Header Details */}
                         <div className="flex justify-between items-start border-b border-gray-100 pb-5">
                           <div>
-                            <span className="text-[10px] font-bold text-brand-teal uppercase tracking-wider">Active Scheduled Shift</span>
                             <h3 className="font-bold text-xl text-gray-800 mt-1">Client: {shift.client.name}</h3>
                             <div className="text-xs text-gray-400 mt-1 flex items-center gap-1.5">
                               <Clock className="w-3.5 h-3.5" />
@@ -1518,6 +1538,62 @@ export default function Home() {
                                 onChange={(e) => setShiftNotes(e.target.value)}
                                 className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-brand-purple"
                               />
+                            </div>
+
+                            {/* Upload Progress Media (Photos & Videos) */}
+                            <div className="flex flex-col gap-2">
+                              <label className="text-[10px] font-bold text-gray-400 uppercase flex items-center gap-1.5">
+                                <i className="fa-solid fa-camera text-brand-teal"></i>
+                                <span>Upload Progress Media (Photos & Videos)</span>
+                              </label>
+                              
+                              {/* Drag/Click Zone */}
+                              <div className="relative border border-dashed border-gray-200 hover:border-brand-purple/40 bg-gray-50/30 rounded-xl p-4 transition-colors flex flex-col items-center justify-center gap-1">
+                                <input 
+                                  type="file" 
+                                  accept="image/*,video/*"
+                                  multiple
+                                  onChange={handleMediaChange}
+                                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
+                                />
+                                <i className="fa-solid fa-cloud-arrow-up text-brand-purple-light text-xl"></i>
+                                <span className="text-[10px] font-bold text-gray-500">Tap to Select Images / Videos</span>
+                                <span className="text-[9px] text-gray-400">Supports JPG, PNG, MP4</span>
+                              </div>
+
+                              {/* Selected Media Previews */}
+                              {selectedMediaFiles.length > 0 && (
+                                <div className="flex flex-wrap gap-2.5 mt-2 bg-gray-50 p-2.5 rounded-xl border border-gray-100">
+                                  {selectedMediaFiles.map((file, idx) => {
+                                    const isImage = file.type.startsWith('image/');
+                                    return (
+                                      <div key={idx} className="relative w-16 h-16 group shrink-0">
+                                        {isImage ? (
+                                          <img 
+                                            src={file.preview} 
+                                            alt={file.name} 
+                                            className="w-full h-full object-cover rounded-lg border border-gray-200 shadow-sm"
+                                          />
+                                        ) : (
+                                          <div className="w-full h-full bg-[#1e0f26] border border-gray-200 rounded-lg shadow-sm flex flex-col items-center justify-center text-white relative overflow-hidden">
+                                            <i className="fa-solid fa-video text-brand-teal text-base"></i>
+                                            <span className="text-[8px] font-mono text-gray-400 mt-1 truncate max-w-full px-1">{file.name.substring(file.name.length - 8)}</span>
+                                          </div>
+                                        )}
+                                        {/* Remove Button */}
+                                        <button
+                                          type="button"
+                                          onClick={() => handleRemoveMedia(idx)}
+                                          className="absolute -top-1.5 -right-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-full w-4.5 h-4.5 flex items-center justify-center text-[9px] font-black shadow-md border border-white cursor-pointer z-20"
+                                          title="Remove attached file"
+                                        >
+                                          &times;
+                                        </button>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
                             </div>
 
                             {/* Geofenced Clock-out Verification Errors */}
