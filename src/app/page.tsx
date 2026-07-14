@@ -1,13 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useAuth } from '@/context/AuthContext';
-import { 
-  Calendar, Users, Clock, ShieldAlert, CheckCircle, MapPin, 
-  UserCheck, AlertCircle, Trash2, Bell, FileText, Camera, 
-  Database, Upload, Activity, LogOut, Lock, RefreshCw, Smartphone,
-  ChevronRight, ChevronLeft
-} from 'lucide-react';
+
 
 export default function Home() {
   const { user, loading: authLoading, login, logout, triggerAudit } = useAuth();
@@ -534,7 +528,7 @@ export default function Home() {
               className="mt-2 px-6 py-2.5 bg-white/5 hover:bg-brand-teal hover:text-brand-purple border border-white/10 hover:border-brand-teal/20 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-300 active:scale-95 flex items-center gap-2 group cursor-pointer"
             >
               <span>Enter Portal</span>
-              <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              <i className="fa-solid fa-chevron-right w-4 h-4 group-hover:translate-x-1 transition-transform"></i>
             </button>
           </div>
         </div>
@@ -612,7 +606,7 @@ export default function Home() {
             onClick={() => { setViewState('splash'); setLoginError(null); }}
             className="flex items-center gap-1.5 text-xs font-bold text-gray-400 hover:text-brand-purple transition-colors w-fit group cursor-pointer"
           >
-            <ChevronLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+            <i className="fa-solid fa-chevron-left w-4 h-4 group-hover:-translate-x-0.5 transition-transform"></i>
             <span>Back to Splash</span>
           </button>
 
@@ -688,7 +682,7 @@ export default function Home() {
 
             {loginError && (
               <div className="bg-rose-50 border border-rose-100 text-rose-700 p-3.5 rounded-xl flex items-center gap-2 text-xs font-semibold">
-                <AlertCircle className="w-4 h-4 shrink-0" />
+                <i className="fa-solid fa-circle-exclamation w-4 h-4 shrink-0"></i>
                 <span>{loginError}</span>
               </div>
             )}
@@ -705,7 +699,7 @@ export default function Home() {
                 </>
               ) : (
                 <>
-                  <Lock className="w-4 h-4" />
+                  <i className="fa-solid fa-lock w-4 h-4"></i>
                   <span>Authenticate & Enter</span>
                 </>
               )}
@@ -892,7 +886,7 @@ export default function Home() {
       {/* Real-time Notification Banner */}
       {systemNotification && (
         <div className="fixed top-4 right-4 bg-brand-purple text-white px-6 py-4 rounded-xl shadow-2xl z-50 flex items-center gap-3 animate-bounce border border-brand-purple-light/20">
-          <Bell className="w-5 h-5 text-brand-teal" />
+          <i className="fa-solid fa-bell w-5 h-5 text-brand-teal"></i>
           <span className="font-semibold text-sm">{systemNotification}</span>
         </div>
       )}
@@ -926,7 +920,7 @@ export default function Home() {
                 title="Logout"
                 className="p-1.5 hover:bg-brand-purple-light/25 rounded-lg text-white/70 hover:text-white transition-colors cursor-pointer"
               >
-                <LogOut className="w-4 h-4" />
+                <i className="fa-solid fa-right-from-bracket w-4 h-4"></i>
               </button>
             </div>
 
@@ -935,7 +929,7 @@ export default function Home() {
               title="Refresh Data"
               className="p-2.5 bg-brand-purple-light/20 hover:bg-brand-purple-light/40 border border-brand-purple-light/10 rounded-2xl text-brand-teal transition-all active:scale-95 cursor-pointer"
             >
-              <RefreshCw className="w-5 h-5" />
+              <i className="fa-solid fa-arrows-rotate w-5 h-5"></i>
             </button>
           </div>
         </div>
@@ -947,7 +941,7 @@ export default function Home() {
           <div className="max-w-7xl mx-auto flex justify-end items-center">
             {/* GPS Simulation Slider */}
             <div className="flex items-center gap-4 bg-brand-teal-ultra border border-brand-teal/20 px-5 py-3 rounded-2xl w-full lg:w-auto">
-              <MapPin className="w-5 h-5 text-brand-teal shrink-0" />
+              <i className="fa-solid fa-map-pin w-5 h-5 text-brand-teal shrink-0"></i>
               <div className="flex-1 lg:w-64">
                 <div className="flex justify-between text-[10px] font-bold text-brand-teal-dark mb-1">
                   <span>Caregiver Mock GPS Distance Tracker:</span>
@@ -988,7 +982,7 @@ export default function Home() {
                 onClick={() => setActiveTab('admin')}
                 className={`flex items-center gap-3.5 px-5 py-4 rounded-2xl text-sm font-bold transition-all border cursor-pointer ${activeTab === 'admin' ? 'bg-brand-purple-ultra border-brand-purple-light/20 text-brand-purple shadow-sm' : 'bg-white border-gray-100 hover:border-gray-200 text-gray-600'}`}
               >
-                <Calendar className="w-5 h-5 shrink-0" />
+                <i className="fa-solid fa-calendar w-5 h-5 shrink-0"></i>
                 <span>Admin & Scheduler</span>
               </button>
               
@@ -996,7 +990,7 @@ export default function Home() {
                 onClick={() => setActiveTab('audits')}
                 className={`flex items-center gap-3.5 px-5 py-4 rounded-2xl text-sm font-bold transition-all border cursor-pointer ${activeTab === 'audits' ? 'bg-brand-purple-ultra border-brand-purple-light/20 text-brand-purple shadow-sm' : 'bg-white border-gray-100 hover:border-gray-200 text-gray-600'}`}
               >
-                <Database className="w-5 h-5 shrink-0" />
+                <i className="fa-solid fa-database w-5 h-5 shrink-0"></i>
                 <span>Live Audit Logging</span>
               </button>
             </>
@@ -1008,7 +1002,7 @@ export default function Home() {
               onClick={() => setActiveTab('caregiver')}
               className={`flex items-center gap-3.5 px-5 py-4 rounded-2xl text-sm font-bold transition-all border cursor-pointer ${activeTab === 'caregiver' ? 'bg-brand-purple-ultra border-brand-purple-light/20 text-brand-purple shadow-sm' : 'bg-white border-gray-100 hover:border-gray-200 text-gray-600'}`}
             >
-              <Clock className="w-5 h-5 shrink-0" />
+              <i className="fa-solid fa-clock w-5 h-5 shrink-0"></i>
               <span>Caregiver Dashboard</span>
             </button>
           )}
@@ -1019,7 +1013,7 @@ export default function Home() {
               onClick={() => setActiveTab('family')}
               className={`flex items-center gap-3.5 px-5 py-4 rounded-2xl text-sm font-bold transition-all border cursor-pointer ${activeTab === 'family' ? 'bg-brand-purple-ultra border-brand-purple-light/20 text-brand-purple shadow-sm' : 'bg-white border-gray-100 hover:border-gray-200 text-gray-600'}`}
             >
-              <Activity className="w-5 h-5 shrink-0" />
+              <i className="fa-solid fa-heart-pulse w-5 h-5 shrink-0"></i>
               <span>Client Activity Feed</span>
             </button>
           )}
@@ -1029,7 +1023,7 @@ export default function Home() {
             <div className="mt-8 bg-brand-purple text-white rounded-3xl p-5 border border-brand-purple-light/20 shadow-xl flex flex-col gap-4">
               <div className="flex justify-between items-center border-b border-brand-purple-light/20 pb-3">
                 <span className="flex items-center gap-2 text-xs font-bold text-white">
-                  <Smartphone className="w-4 h-4 text-brand-teal-light" />
+                  <i className="fa-solid fa-mobile-screen-button w-4 h-4 text-brand-teal-light"></i>
                   <span>Simulated SMS Alert Log</span>
                 </span>
                 <span className="bg-brand-purple-dark/50 text-[10px] px-2 py-0.5 rounded-full font-mono text-brand-purple-ultra">
@@ -1072,7 +1066,7 @@ export default function Home() {
                   {/* Warning Alerts */}
                   {schedulerWarning && (
                     <div className="bg-amber-50 border border-amber-200 text-amber-900 px-5 py-4 rounded-2xl flex items-start gap-3.5">
-                      <ShieldAlert className="w-6 h-6 text-amber-500 shrink-0 mt-0.5" />
+                      <i className="fa-solid fa-shield-halved w-6 h-6 text-amber-500 shrink-0 mt-0.5"></i>
                       <div>
                         <div className="font-bold text-sm">Pod Alignment Warning</div>
                         <p className="text-xs text-amber-800 mt-0.5 leading-relaxed">{schedulerWarning}</p>
@@ -1090,7 +1084,7 @@ export default function Home() {
                       onClick={handleEscalationCheck}
                       className="px-5 py-2.5 bg-brand-teal hover:bg-brand-teal-dark border border-brand-teal/15 text-brand-purple font-extrabold text-xs tracking-wider uppercase rounded-2xl transition-all hover:shadow-lg active:scale-95 flex items-center gap-2 cursor-pointer"
                     >
-                      <RefreshCw className="w-4 h-4" />
+                      <i className="fa-solid fa-arrows-rotate w-4 h-4"></i>
                       <span>Run Auto-Escalation Check</span>
                     </button>
                   </div>
@@ -1102,7 +1096,7 @@ export default function Home() {
                     <div className="bg-white border border-gray-100 p-6 rounded-3xl shadow-sm flex flex-col gap-5">
                       <div className="border-b border-gray-100 pb-3">
                         <h3 className="font-bold text-sm text-brand-purple flex items-center gap-2">
-                          <Users className="w-4 h-4 text-brand-teal" />
+                          <i className="fa-solid fa-users w-4 h-4 text-brand-teal"></i>
                           <span>Caregiver Pod Editor</span>
                         </h3>
                         <p className="text-[11px] text-gray-400 mt-0.5">Assign specialized caregivers to primary and backup roles for linked clients.</p>
@@ -1157,7 +1151,7 @@ export default function Home() {
                     <div className="bg-white border border-gray-100 p-6 rounded-3xl shadow-sm flex flex-col gap-5">
                       <div className="border-b border-gray-100 pb-3">
                         <h3 className="font-bold text-sm text-brand-purple flex items-center gap-2">
-                          <Calendar className="w-4 h-4 text-brand-teal" />
+                          <i className="fa-solid fa-calendar w-4 h-4 text-brand-teal"></i>
                           <span>Schedule New Shift</span>
                         </h3>
                         <p className="text-[11px] text-gray-400 mt-0.5">Assign shifts. System checks pod mapping and triggers consistency warning alerts.</p>
@@ -1274,7 +1268,7 @@ export default function Home() {
                         return (
                           <div key={shift.id} className="border border-gray-100 hover:border-gray-200 rounded-2xl p-5 flex flex-col md:flex-row justify-between md:items-center gap-4 transition-colors">
                             <div className="flex items-start gap-3">
-                              <Calendar className="w-5 h-5 text-brand-purple shrink-0 mt-0.5" />
+                              <i className="fa-solid fa-calendar w-5 h-5 text-brand-purple shrink-0 mt-0.5"></i>
                               <div>
                                 <div className="font-bold text-sm text-gray-800">
                                   {shift.client.name} &larr; {shift.caregiver.name}
@@ -1286,7 +1280,7 @@ export default function Home() {
                                 </div>
                                 {!isCgInPod && (
                                   <span className="mt-1.5 inline-flex items-center gap-1 bg-rose-50 border border-rose-100 text-rose-600 text-[10px] font-bold px-2 py-0.5 rounded">
-                                    <AlertCircle className="w-3 h-3" />
+                                    <i className="fa-solid fa-circle-exclamation w-3 h-3"></i>
                                     <span>Outside Pod Assignment Warning</span>
                                   </span>
                                 )}
@@ -1294,7 +1288,7 @@ export default function Home() {
                                   <div className="mt-2.5 flex flex-wrap gap-2 text-[10px]">
                                     {shift.actualStart && (
                                       <span className="inline-flex items-center gap-1.5 bg-brand-purple-ultra border border-brand-purple-light/10 text-brand-purple px-2.5 py-1.5 rounded-xl font-semibold">
-                                        <Clock className="w-3.5 h-3.5 text-brand-purple-light" />
+                                        <i className="fa-solid fa-clock w-3.5 h-3.5 text-brand-purple-light"></i>
                                         <span>
                                           Clocked In: <span className="font-bold">{new Date(shift.actualStart).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                         </span>
@@ -1309,7 +1303,7 @@ export default function Home() {
                                     )}
                                     {shift.status === 'COMPLETED' && shift.actualEnd && (
                                       <span className="inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-100 text-emerald-700 px-2.5 py-1.5 rounded-xl font-semibold">
-                                        <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
+                                        <i className="fa-solid fa-circle-check w-3.5 h-3.5 text-emerald-500"></i>
                                         <span>
                                           Clocked Out: <span className="font-bold">{new Date(shift.actualEnd).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                         </span>
@@ -1349,7 +1343,7 @@ export default function Home() {
                                   title="Force Drop/Escalate Shift"
                                   className="p-2 hover:bg-rose-50 rounded-xl text-rose-500 border border-transparent hover:border-rose-100 transition-all active:scale-95 cursor-pointer"
                                 >
-                                  <Trash2 className="w-4 h-4" />
+                                  <i className="fa-solid fa-trash-can w-4 h-4"></i>
                                 </button>
                               )}
                             </div>
@@ -1384,10 +1378,10 @@ export default function Home() {
                           <div>
                             <h3 className="font-bold text-xl text-gray-800 mt-1">Client: {shift.client.name}</h3>
                             <div className="text-xs text-gray-400 mt-1 flex items-center gap-1.5">
-                              <Clock className="w-3.5 h-3.5" />
+                              <i className="fa-solid fa-clock w-3.5 h-3.5"></i>
                               <span>{new Date(shift.scheduledStart).toLocaleTimeString()} - {new Date(shift.scheduledEnd).toLocaleTimeString()}</span>
                               <span>&bull;</span>
-                              <MapPin className="w-3.5 h-3.5 text-brand-teal" />
+                              <i className="fa-solid fa-map-pin w-3.5 h-3.5 text-brand-teal"></i>
                               <span>Radius requirement: {shift.client.geofenceRadiusMeter}m</span>
                             </div>
                           </div>
@@ -1411,7 +1405,7 @@ export default function Home() {
 
                             {clockInError && (
                               <div className="bg-rose-50 border border-rose-100 text-rose-700 px-4 py-3 rounded-xl flex items-center gap-2 text-xs font-semibold">
-                                <AlertCircle className="w-4 h-4" />
+                                <i className="fa-solid fa-circle-exclamation w-4 h-4"></i>
                                 <span>{clockInError}. GPS reports {distanceOffset}m away from center point.</span>
                               </div>
                             )}
@@ -1446,7 +1440,7 @@ export default function Home() {
                                 onClick={() => handleClockIn(shift.id, false)}
                                 className="py-3 bg-brand-purple hover:bg-brand-purple-dark text-white font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
                               >
-                                <MapPin className="w-4 h-4" />
+                                <i className="fa-solid fa-map-pin w-4 h-4"></i>
                                 <span>Verify Location & Clock-In</span>
                               </button>
                             )}
@@ -1478,7 +1472,7 @@ export default function Home() {
                             {/* Clinical Red Flags */}
                             <div className="bg-rose-50/50 border border-rose-100 p-5 rounded-2xl flex flex-col gap-4">
                               <div className="flex items-center gap-2 text-rose-800 font-bold text-sm">
-                                <ShieldAlert className="w-4.5 h-4.5 text-rose-500" />
+                                <i className="fa-solid fa-shield-halved w-4.5 h-4.5 text-rose-500"></i>
                                 <span>Clinical Red Flags & Risk Survey</span>
                               </div>
                               <p className="text-[11px] text-rose-900 leading-normal font-sans">
@@ -1628,7 +1622,7 @@ export default function Home() {
                               onClick={() => handleClockOut(shift.id, false)}
                               className="py-3 bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
                             >
-                              <CheckCircle className="w-4 h-4" />
+                              <i className="fa-solid fa-circle-check w-4 h-4"></i>
                               <span>Complete Shift & Clock-Out</span>
                             </button>
                           </div>
@@ -1654,7 +1648,7 @@ export default function Home() {
                     <div className="md:col-span-1 bg-white border border-gray-100 p-6 rounded-3xl shadow-sm flex flex-col gap-4 h-fit">
                       <div className="border-b border-gray-100 pb-3">
                         <h3 className="font-bold text-sm text-brand-purple flex items-center gap-2">
-                          <Camera className="w-4.5 h-4.5 text-brand-teal" />
+                          <i className="fa-solid fa-camera w-4.5 h-4.5 text-brand-teal"></i>
                           <span>Caregiver Media Logger</span>
                         </h3>
                         <p className="text-[10px] text-gray-400 mt-0.5">Simulate caregiver uploading a photo update to the client feed (Private signed URL).</p>
@@ -1719,7 +1713,7 @@ export default function Home() {
                               <div className="flex justify-between items-start">
                                 <div className="flex items-center gap-2">
                                   <div className={`p-1.5 rounded-xl ${hasWarning ? 'bg-rose-50 text-rose-500' : 'bg-brand-teal-ultra text-brand-teal'}`}>
-                                    {hasWarning ? <ShieldAlert className="w-4 h-4" /> : <Activity className="w-4 h-4" />}
+                                    {hasWarning ? <i className="fa-solid fa-shield-halved w-4 h-4"></i> : <i className="fa-solid fa-heart-pulse w-4 h-4"></i>}
                                   </div>
                                   <div>
                                     <div className="text-xs font-bold text-gray-800">Care Log by {log.details?.caregiverName || 'Amara Okafor'}</div>
@@ -1752,7 +1746,7 @@ export default function Home() {
                                   <span className="text-[9px] font-bold text-brand-teal-dark uppercase">Encrypted Private Media (Mock Signed Link)</span>
                                   <div className="flex items-center gap-3">
                                     <div className="bg-brand-teal text-brand-purple p-3 rounded-xl">
-                                      <Camera className="w-5 h-5" />
+                                      <i className="fa-solid fa-camera w-5 h-5"></i>
                                     </div>
                                     <div className="min-w-0 flex-1">
                                       <div className="text-xs font-bold text-gray-800 truncate">{log.details?.mediaName || 'care-photo.png'}</div>
