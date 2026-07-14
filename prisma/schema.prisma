@@ -93,6 +93,8 @@ model Shift {
   // Geofencing & Exceptions
   clockInLat           Float?
   clockInLng           Float?
+  clockOutLat          Float?
+  clockOutLng          Float?
   isOverrideException  Boolean       @default(false)
   overrideReason       String?
   overrideApprovedBy   String?       // Reference to Admin User ID

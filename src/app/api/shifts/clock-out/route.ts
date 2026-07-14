@@ -224,6 +224,8 @@ export async function POST(request: Request) {
       data: {
         status: ShiftStatus.COMPLETED,
         actualEnd: now,
+        clockOutLat: latitude,
+        clockOutLng: longitude,
       },
     });
 

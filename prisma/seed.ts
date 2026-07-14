@@ -189,6 +189,8 @@ async function main() {
       confirmedAt: yesterdayStart,
       clockInLat: 49.2826,
       clockInLng: -123.1206,
+      clockOutLat: 49.2827,
+      clockOutLng: -123.1207,
     },
   });
 
