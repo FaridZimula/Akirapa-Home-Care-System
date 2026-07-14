@@ -30,7 +30,8 @@ export async function POST(request: Request) {
       latitude, 
       longitude, 
       isOverride, 
-      overrideReason 
+      overrideReason,
+      mediaFiles 
     } = await request.json();
 
     if (!shiftId) {
@@ -51,6 +52,16 @@ export async function POST(request: Request) {
     }
 
     const now = new Date();
+
+    // Process media upload simulation
+    const generatedUrls: string[] = [];
+    if (mediaFiles && Array.isArray(mediaFiles)) {
+      for (const file of mediaFiles) {
+        const mockFileId = `file_${Math.random().toString(36).substring(2, 11)}`;
+        const mockSignedUrl = `https://storage.akirapa.local/patient-media/${shift.clientId}/${mockFileId}?token=${Math.random().toString(36).substring(2, 20)}&expires=1893456000`;
+        generatedUrls.push(mockSignedUrl);
+      }
+    }
 
     // 1. Manual Override Path
     if (isOverride) {
@@ -87,6 +98,8 @@ export async function POST(request: Request) {
         activeRedFlags,
         completedTaskCount: completedTaskIds?.length || 0,
         caregiverName: shift.caregiver.name,
+        mediaUrls: generatedUrls,
+        mediaFiles: mediaFiles || [],
       };
 
       const encryptedLog = encrypt(JSON.stringify(logDetails));
@@ -97,7 +110,7 @@ export async function POST(request: Request) {
           clientId: shift.clientId,
           shiftId: shift.id,
           encryptedLog,
-          mediaUrls: JSON.stringify([]),
+          mediaUrls: JSON.stringify(generatedUrls),
         },
       });
 
@@ -206,6 +219,8 @@ export async function POST(request: Request) {
       activeRedFlags,
       completedTaskCount: completedTaskIds?.length || 0,
       caregiverName: shift.caregiver.name,
+      mediaUrls: generatedUrls,
+      mediaFiles: mediaFiles || [],
     };
 
     const encryptedLog = encrypt(JSON.stringify(logDetails));
@@ -215,7 +230,7 @@ export async function POST(request: Request) {
         clientId: shift.clientId,
         shiftId: shift.id,
         encryptedLog,
-        mediaUrls: JSON.stringify([]),
+        mediaUrls: JSON.stringify(generatedUrls),
       },
     });
 
