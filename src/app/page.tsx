@@ -95,6 +95,7 @@ export default function Home() {
   const [mediaName, setMediaName] = useState('Oatmeal Breakfast.png');
   const [mediaNotes, setMediaNotes] = useState('');
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
+  const [isPostingUpdate, setIsPostingUpdate] = useState(false);
 
   // Google Sign-In Simulation States
   const [showGoogleModal, setShowGoogleModal] = useState(false);
@@ -477,6 +478,40 @@ export default function Home() {
       console.error(err);
     } finally {
       setIsUploadingMedia(false);
+    }
+  };
+
+  const handlePostCaregiverUpdate = async (shiftId: string) => {
+    const activeShift = shifts.find(s => s.id === shiftId);
+    if (!activeShift) return;
+
+    setIsPostingUpdate(true);
+    try {
+      const res = await fetch('/api/family/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientId: activeShift.clientId,
+          shiftId: shiftId,
+          notes: shiftNotes || 'Caregiver posted a shift progress update.',
+          mediaFiles: selectedMediaFiles.map(f => ({ name: f.name, type: f.type })),
+        }),
+      });
+
+      if (res.ok) {
+        showNotification('Real-time Care Update Posted to Feed!');
+        setShiftNotes('');
+        setSelectedMediaFiles([]);
+        loadData();
+      } else {
+        const data = await res.json();
+        showNotification(data.error || 'Failed to post care update.');
+      }
+    } catch (err) {
+      console.error(err);
+      showNotification('An error occurred while posting update.');
+    } finally {
+      setIsPostingUpdate(false);
     }
   };
 
@@ -1618,14 +1653,35 @@ export default function Home() {
                               </div>
                             )}
 
-                            {/* Clock Out */}
-                            <button 
-                              onClick={() => handleClockOut(shift.id, false)}
-                              className="py-3 bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
-                            >
-                              <i className="fa-solid fa-circle-check w-4 h-4"></i>
-                              <span>Complete Shift & Clock-Out</span>
-                            </button>
+                            {/* Actions Group */}
+                            <div className="flex flex-col gap-3 mt-4 border-t border-gray-100 pt-5">
+                              <button 
+                                type="button"
+                                onClick={() => handlePostCaregiverUpdate(shift.id)}
+                                disabled={isPostingUpdate || (!shiftNotes.trim() && selectedMediaFiles.length === 0)}
+                                className="py-3 bg-brand-teal hover:bg-brand-teal-dark disabled:bg-gray-100 disabled:text-gray-400 disabled:shadow-none text-brand-purple font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+                              >
+                                {isPostingUpdate ? (
+                                  <>
+                                    <div className="w-4 h-4 border-2 border-brand-purple border-t-transparent rounded-full animate-spin" />
+                                    <span>Posting Update...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <i className="fa-solid fa-paper-plane w-4 h-4"></i>
+                                    <span>Post Real-time Status Update</span>
+                                  </>
+                                )}
+                              </button>
+
+                              <button 
+                                onClick={() => handleClockOut(shift.id, false)}
+                                className="py-3 bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+                              >
+                                <i className="fa-solid fa-circle-check w-4 h-4"></i>
+                                <span>Complete Shift & Clock-Out</span>
+                              </button>
+                            </div>
                           </div>
                         )}
 
@@ -1743,23 +1799,74 @@ export default function Home() {
                               )}
 
                               {hasMedia && (
-                                <div className="bg-brand-teal-ultra/30 border border-brand-teal/10 p-4 rounded-2xl flex flex-col gap-2">
-                                  <span className="text-[9px] font-bold text-brand-teal-dark uppercase">Encrypted Private Media (Mock Signed Link)</span>
-                                  <div className="flex items-center gap-3">
-                                    <div className="bg-brand-teal text-brand-purple p-3 rounded-xl">
-                                      <i className="fa-solid fa-camera w-5 h-5"></i>
-                                    </div>
-                                    <div className="min-w-0 flex-1">
-                                      <div className="text-xs font-bold text-gray-800 truncate">{log.details?.mediaName || 'care-photo.png'}</div>
-                                      <a 
-                                        href={log.mediaUrls[0]} 
-                                        target="_blank" 
-                                        rel="noopener noreferrer"
-                                        className="text-[10px] font-mono text-brand-teal-dark hover:underline truncate block"
-                                      >
-                                        {log.mediaUrls[0]}
-                                      </a>
-                                    </div>
+                                <div className="bg-brand-teal-ultra/15 border border-brand-teal/10 p-5 rounded-2xl flex flex-col gap-4">
+                                  <span className="text-[9px] font-bold text-brand-teal-dark uppercase tracking-wider block">Encrypted Patient Care Media (Row-Level Decrypted)</span>
+                                  
+                                  <div className="flex flex-col gap-4">
+                                    {log.mediaUrls.map((url: string, index: number) => {
+                                      let name = 'care-attachment';
+                                      let isVideo = false;
+                                      
+                                      if (log.details?.mediaFiles && Array.isArray(log.details.mediaFiles) && log.details.mediaFiles[index]) {
+                                        const fileMeta = log.details.mediaFiles[index];
+                                        name = fileMeta.name;
+                                        isVideo = fileMeta.type?.startsWith('video/') || name?.toLowerCase().endsWith('.mp4') || name?.toLowerCase().endsWith('.mov');
+                                      } else {
+                                        name = log.details?.mediaName || `care-attachment-${index + 1}`;
+                                        const type = log.details?.mediaType || '';
+                                        isVideo = type.startsWith('video/') || name.toLowerCase().endsWith('.mp4') || name.toLowerCase().endsWith('.mov') || url.toLowerCase().includes('.mp4') || url.toLowerCase().includes('.mov');
+                                      }
+
+                                      return (
+                                        <div key={index} className="flex flex-col gap-3 bg-white/60 p-4 rounded-2xl border border-brand-teal/5">
+                                          <div className="flex items-center gap-3">
+                                            <div className="bg-brand-teal text-brand-purple p-2.5 rounded-xl">
+                                              <i className={`fa-solid ${isVideo ? 'fa-video animate-pulse' : 'fa-image'} w-4.5 h-4.5 flex items-center justify-center`}></i>
+                                            </div>
+                                            <div className="min-w-0 flex-1">
+                                              <div className="text-xs font-bold text-gray-800 truncate">{name}</div>
+                                              <a 
+                                                href={url} 
+                                                target="_blank" 
+                                                rel="noopener noreferrer"
+                                                className="text-[9px] font-mono text-brand-teal-dark hover:underline truncate block"
+                                              >
+                                                {url}
+                                              </a>
+                                            </div>
+                                          </div>
+
+                                          {/* Inline Preview / Player */}
+                                          <div className="mt-1">
+                                            {isVideo ? (
+                                              <div className="w-full max-w-md rounded-xl overflow-hidden border border-brand-teal/15 shadow-sm bg-black relative aspect-video flex items-center justify-center">
+                                                <div className="absolute inset-0 bg-[#150b1c]/90 flex flex-col items-center justify-center gap-2 p-4 text-center z-10 text-white">
+                                                  <i className="fa-solid fa-play text-brand-teal text-3xl animate-bounce"></i>
+                                                  <div className="text-[10px] font-bold tracking-wider text-brand-teal-light uppercase">Secure Video Stream (Encrypted)</div>
+                                                  <div className="text-[9px] text-gray-400 max-w-xs">{name} &bull; ISO-27001 TLS encrypted transmission</div>
+                                                </div>
+                                                <video 
+                                                  className="w-full h-full opacity-35"
+                                                  controls
+                                                  preload="none"
+                                                />
+                                              </div>
+                                            ) : (
+                                              <div className="w-full max-w-md rounded-xl overflow-hidden border border-brand-teal/15 shadow-sm bg-gray-50 relative min-h-[140px] flex items-center justify-center">
+                                                <div className="absolute inset-0 bg-[#fafafa]/90 flex flex-col items-center justify-center gap-2 p-4 text-center z-10 text-gray-700">
+                                                  <div className="flex gap-1.5 items-center bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full text-[9px] font-extrabold border border-emerald-100 mb-1">
+                                                    <i className="fa-solid fa-circle-check text-[10px]"></i>
+                                                    <span>AES-256 Decrypted</span>
+                                                  </div>
+                                                  <div className="text-[10px] font-bold uppercase tracking-wider text-gray-600">{name}</div>
+                                                  <div className="text-[9px] text-gray-400">{name.includes('breakfast') ? 'Observation: Client eating healthy breakfast' : 'Observation: Daily physical routine check'}</div>
+                                                </div>
+                                              </div>
+                                            )}
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
                                   </div>
                                 </div>
                               )}

@@ -1,6 +1,24 @@
 const { PrismaClient, UserRole, ShiftStatus, PodRole } = require('@prisma/client');
+const crypto = require('crypto');
 
 const prisma = new PrismaClient();
+
+const ALGORITHM = 'aes-256-gcm';
+const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY 
+  ? crypto.scryptSync(process.env.ENCRYPTION_KEY, 'salt', 32)
+  : Buffer.from('f656723d-dcf3-4586-be53-866a23bc'.substring(0, 32), 'utf-8');
+
+function encrypt(text) {
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv(ALGORITHM, ENCRYPTION_KEY, iv);
+  
+  let encrypted = cipher.update(text, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+  
+  const authTag = cipher.getAuthTag().toString('hex');
+  
+  return `${iv.toString('hex')}:${authTag}:${encrypted}`;
+}
 
 async function main() {
   console.log('Seeding database...');
@@ -212,6 +230,47 @@ async function main() {
         completedAt: yesterdayStart,
       },
     ],
+  });
+
+  // Seed Activity logs for yesterday's completed shift to demonstrate media logger
+  const logDetails1 = {
+    notes: "Sarah finished her morning exercise routine and walked for 15 minutes in the backyard. She felt energetic and showed good stability.",
+    hasRedFlags: false,
+    caregiverName: primaryCaregiver.name,
+    mediaFiles: [
+      { name: "Garden-exercise.png", type: "image/png", url: `https://storage.akirapa.local/patient-media/${client.id}/file_init_img.png?token=mock_init_1&expires=1893456000` }
+    ],
+    mediaName: "Garden-exercise.png",
+    mediaType: "image/png",
+  };
+  const encryptedLog1 = encrypt(JSON.stringify(logDetails1));
+  await prisma.activityLog.create({
+    data: {
+      clientId: client.id,
+      shiftId: completedShift.id,
+      encryptedLog: encryptedLog1,
+      mediaUrls: JSON.stringify([`https://storage.akirapa.local/patient-media/${client.id}/file_init_img.png?token=mock_init_1&expires=1893456000`]),
+    }
+  });
+
+  const logDetails2 = {
+    notes: "Completed the walker mobility and turning test. Walked along the living room corridor; turning stability is improving. Video attached for review.",
+    hasRedFlags: false,
+    caregiverName: primaryCaregiver.name,
+    mediaFiles: [
+      { name: "Walker-mobility-test.mp4", type: "video/mp4", url: `https://storage.akirapa.local/patient-media/${client.id}/file_init_vid.mp4?token=mock_init_2&expires=1893456000` }
+    ],
+    mediaName: "Walker-mobility-test.mp4",
+    mediaType: "video/mp4",
+  };
+  const encryptedLog2 = encrypt(JSON.stringify(logDetails2));
+  await prisma.activityLog.create({
+    data: {
+      clientId: client.id,
+      shiftId: completedShift.id,
+      encryptedLog: encryptedLog2,
+      mediaUrls: JSON.stringify([`https://storage.akirapa.local/patient-media/${client.id}/file_init_vid.mp4?token=mock_init_2&expires=1893456000`]),
+    }
   });
 
   // Shift 2: Today's Shift (starts in 2 hours)
