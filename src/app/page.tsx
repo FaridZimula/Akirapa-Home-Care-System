@@ -91,10 +91,7 @@ export default function Home() {
     mobilityDecline: false,
   });
 
-  // Family Feed Upload States
-  const [mediaName, setMediaName] = useState('Oatmeal Breakfast.png');
-  const [mediaNotes, setMediaNotes] = useState('');
-  const [isUploadingMedia, setIsUploadingMedia] = useState(false);
+  // Caregiver Status Update States
   const [isPostingUpdate, setIsPostingUpdate] = useState(false);
 
   // Google Sign-In Simulation States
@@ -452,34 +449,7 @@ export default function Home() {
     }
   };
 
-  const handleUploadMedia = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!clients.length) return;
-    setIsUploadingMedia(true);
 
-    try {
-      const res = await fetch('/api/family/upload', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          clientId: clients[0].id,
-          mediaName,
-          mediaType: 'image/png',
-          notes: mediaNotes || 'Weekly review and mobility exercise session completed.',
-        }),
-      });
-
-      if (res.ok) {
-        showNotification('Care Media Uploaded to Feed!');
-        setMediaNotes('');
-        loadData();
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsUploadingMedia(false);
-    }
-  };
 
   const handlePostCaregiverUpdate = async (shiftId: string) => {
     const activeShift = shifts.find(s => s.id === shiftId);
@@ -1699,56 +1669,10 @@ export default function Home() {
                     <p className="text-xs text-gray-400 mt-0.5">Real-time updates, observation notes (decrypted for client representatives), and secure photo logs of Sarah Jenkins.</p>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                  <div className="w-full flex flex-col gap-6">
                     
-                    {/* Media Upload Simulation Form */}
-                    <div className="md:col-span-1 bg-white border border-gray-100 p-6 rounded-3xl shadow-sm flex flex-col gap-4 h-fit">
-                      <div className="border-b border-gray-100 pb-3">
-                        <h3 className="font-bold text-sm text-brand-purple flex items-center gap-2">
-                          <i className="fa-solid fa-camera w-4.5 h-4.5 text-brand-teal"></i>
-                          <span>Caregiver Media Logger</span>
-                        </h3>
-                        <p className="text-[10px] text-gray-400 mt-0.5">Simulate caregiver uploading a photo update to the client feed (Private signed URL).</p>
-                      </div>
-
-                      <form onSubmit={handleUploadMedia} className="flex flex-col gap-3">
-                        <div className="flex flex-col gap-1">
-                          <label className="text-[9px] font-bold text-gray-400 uppercase">Simulated Photo Name</label>
-                          <select 
-                            value={mediaName} 
-                            onChange={(e) => setMediaName(e.target.value)}
-                            className="bg-gray-50 border border-gray-100 rounded-xl px-2.5 py-2 text-xs font-semibold focus:outline-none cursor-pointer"
-                          >
-                            <option value="Mom-eating-breakfast.png">Mom eating breakfast.png</option>
-                            <option value="Walker-stability-check.png">Walker stability check.png</option>
-                            <option value="Oatmeal-Preparation.png">Oatmeal Preparation.png</option>
-                            <option value="Garden-exercise.png">Garden exercise.png</option>
-                          </select>
-                        </div>
-
-                        <div className="flex flex-col gap-1">
-                          <label className="text-[9px] font-bold text-gray-400 uppercase">Observation Note</label>
-                          <textarea 
-                            rows={3}
-                            placeholder="Enter short update note for client feed..."
-                            value={mediaNotes}
-                            onChange={(e) => setMediaNotes(e.target.value)}
-                            className="bg-gray-50 border border-gray-100 rounded-xl px-2.5 py-2 text-xs font-semibold focus:outline-none"
-                          />
-                        </div>
-
-                        <button 
-                          type="submit"
-                          disabled={isUploadingMedia}
-                          className="w-full py-2.5 bg-brand-purple hover:bg-brand-purple-dark disabled:bg-gray-300 text-white font-extrabold text-[10px] uppercase tracking-wider rounded-lg transition-all cursor-pointer"
-                        >
-                          {isUploadingMedia ? 'Simulating Upload...' : 'Upload Mock Photo Update'}
-                        </button>
-                      </form>
-                    </div>
-
                     {/* Live Feed List */}
-                    <div className="md:col-span-2 flex flex-col gap-4">
+                    <div className="w-full flex flex-col gap-4">
                       <div className="flex justify-between items-center bg-gray-50 px-4 py-2 rounded-xl text-xs font-bold text-brand-purple-dark">
                         <span>Live Care Logs (Decrypted Real-time Feed)</span>
                         <span className="text-[10px] text-brand-teal uppercase">Row-Level Security Enabled</span>
