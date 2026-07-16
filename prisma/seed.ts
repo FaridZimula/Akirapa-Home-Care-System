@@ -287,6 +287,36 @@ async function main() {
     },
   });
 
+  // Create Availability records
+  const availabilityData = [
+    // Amara Okafor (Mon-Fri 8am-5pm)
+    ...[1, 2, 3, 4, 5].map(day => ({
+      caregiverId: primaryCaregiver.id,
+      dayOfWeek: day,
+      startTime: '08:00',
+      endTime: '17:00',
+    })),
+    // Brendan Miller (Mon-Fri 8am-8pm)
+    ...[1, 2, 3, 4, 5].map(day => ({
+      caregiverId: backupCaregiver1.id,
+      dayOfWeek: day,
+      startTime: '08:00',
+      endTime: '20:00',
+    })),
+    // Chloe Chen (Sat-Sun 8am-10pm)
+    ...[0, 6].map(day => ({
+      caregiverId: backupCaregiver2.id,
+      dayOfWeek: day,
+      startTime: '08:00',
+      endTime: '22:00',
+    })),
+  ];
+
+  await prisma.availability.deleteMany();
+  await prisma.availability.createMany({
+    data: availabilityData,
+  });
+
   console.log('Database successfully seeded!');
 }
 

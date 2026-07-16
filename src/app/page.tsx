@@ -69,6 +69,10 @@ export default function Home() {
   const [newShiftDate, setNewShiftDate] = useState('');
   const [newShiftHours, setNewShiftHours] = useState('8');
   const [schedulerWarning, setSchedulerWarning] = useState<string | null>(null);
+  
+  // Scheduling Suggestion States
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
 
   // Pod Mapping States
   const [selectedPodClient, setSelectedPodClient] = useState('');
@@ -173,6 +177,39 @@ export default function Home() {
   useEffect(() => {
     loadData();
   }, []);
+
+  // Fetch intelligent caregiver suggestions based on selected shift parameters
+  useEffect(() => {
+    if (!newShiftClientId || !newShiftDate || !newShiftHours) {
+      setSuggestions([]);
+      return;
+    }
+
+    const fetchSuggestions = async () => {
+      setLoadingSuggestions(true);
+      try {
+        const start = new Date(newShiftDate);
+        const end = new Date(start.getTime() + parseInt(newShiftHours) * 60 * 60 * 1000);
+        
+        const res = await fetch(`/api/admin/scheduling/suggest?clientId=${newShiftClientId}&scheduledStart=${start.toISOString()}&scheduledEnd=${end.toISOString()}`);
+        const data = await res.json();
+        if (res.ok) {
+          setSuggestions(data.suggestions || []);
+          // Auto-select the best matching available, conflict-free caregiver
+          const bestMatch = data.suggestions?.find((s: any) => !s.hasConflict);
+          if (bestMatch) {
+            setNewShiftCaregiverId(bestMatch.id);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch caregiver suggestions:', err);
+      } finally {
+        setLoadingSuggestions(false);
+      }
+    };
+
+    fetchSuggestions();
+  }, [newShiftClientId, newShiftDate, newShiftHours]);
 
   // Periodic active shift location tracking simulation (Privacy check)
   useEffect(() => {
@@ -1245,7 +1282,17 @@ export default function Home() {
                               onChange={(e) => setNewShiftCaregiverId(e.target.value)}
                               className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5 text-xs font-semibold focus:outline-none focus:border-brand-teal cursor-pointer"
                             >
-                              {caregivers.map(cg => <option key={cg.id} value={cg.id}>{cg.name}</option>)}
+                              {suggestions.length > 0 ? (
+                                suggestions.map((s: any) => (
+                                  <option key={s.id} value={s.id} disabled={s.hasConflict}>
+                                    {s.name} - {s.rankLabel}
+                                  </option>
+                                ))
+                              ) : (
+                                caregivers.map(cg => (
+                                  <option key={cg.id} value={cg.id}>{cg.name}</option>
+                                ))
+                              )}
                             </select>
                           </div>
                         </div>
@@ -1275,6 +1322,39 @@ export default function Home() {
                             </select>
                           </div>
                         </div>
+
+                        {/* Intelligent Recommendations Directory */}
+                        {loadingSuggestions ? (
+                          <div className="py-3 text-center text-xs text-gray-400 flex items-center justify-center gap-2">
+                            <div className="w-3.5 h-3.5 border-2 border-brand-purple border-t-transparent rounded-full animate-spin" />
+                            <span>Calculating caregiver matches...</span>
+                          </div>
+                        ) : suggestions.length > 0 ? (
+                          <div className="bg-gray-50 border border-gray-100 p-4 rounded-2xl flex flex-col gap-2.5">
+                            <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1">
+                              <i className="fa-solid fa-wand-magic-sparkles text-brand-teal shrink-0"></i>
+                              <span>Intelligent Match Rankings</span>
+                            </span>
+                            <div className="flex flex-col gap-2 max-h-40 overflow-y-auto">
+                              {suggestions.map((s: any) => (
+                                <div key={s.id} className="flex justify-between items-center bg-white border border-gray-100 px-3 py-2 rounded-xl text-[11px] gap-2">
+                                  <div className="min-w-0">
+                                    <div className="font-bold text-gray-800 truncate">{s.name}</div>
+                                  </div>
+                                  <span className={`text-[9px] font-bold px-2 py-0.5 rounded border shrink-0 ${
+                                    s.rank === 1 ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
+                                    s.rank === 2 ? 'bg-brand-teal-ultra text-brand-teal-dark border-brand-teal/20' :
+                                    s.rank === 3 ? 'bg-blue-50 text-blue-700 border-blue-100' :
+                                    s.rank === 4 ? 'bg-amber-50 text-amber-700 border-amber-100' :
+                                    'bg-rose-50 text-rose-700 border-rose-100'
+                                  }`}>
+                                    {s.rankLabel}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ) : null}
 
                         <button 
                           type="submit"

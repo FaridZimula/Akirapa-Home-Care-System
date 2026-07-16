@@ -44,6 +44,8 @@ model User {
   assignedShifts Shift[]
   familyClients  LinkedFamilyMember[]
   auditLogs      AuditLog[]
+  availabilities Availability[]
+  shiftOffers    ShiftOffer[]
 }
 
 model Client {
@@ -106,6 +108,7 @@ model Shift {
   locations   CaregiverLocationHistory[]
   tasks       ShiftTask[]
   activityLogs ActivityLog[]
+  shiftOffers ShiftOffer[]
 }
 
 model CaregiverLocationHistory {
@@ -182,4 +185,25 @@ model AuditLog {
   outcome   String   // "SUCCESS" or "FAILURE"
 
   user      User     @relation(fields: [userId], references: [id])
+}
+
+model Availability {
+  id          String   @id @default(uuid())
+  caregiverId String
+  dayOfWeek   Int      // 0 = Sunday, 1 = Monday, etc.
+  startTime   String   // e.g. "08:00"
+  endTime     String   // e.g. "17:00"
+
+  caregiver   User     @relation(fields: [caregiverId], references: [id], onDelete: Cascade)
+}
+
+model ShiftOffer {
+  id          String      @id @default(uuid())
+  shiftId     String
+  caregiverId String
+  status      String      @default("PENDING") // PENDING, ACCEPTED, DECLINED
+  expiresAt   DateTime
+
+  shift       Shift       @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  caregiver   User        @relation(fields: [caregiverId], references: [id], onDelete: Cascade)
 }
