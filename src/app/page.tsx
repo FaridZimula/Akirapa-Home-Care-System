@@ -9,7 +9,7 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<'admin' | 'caregiver' | 'family' | 'audits'>('admin');
   
   // Flow states
-  const [viewState, setViewState] = useState<'splash' | 'role_select' | 'login' | 'dashboard'>('splash');
+  const [viewState, setViewState] = useState<'splash' | 'role_select' | 'login' | 'signup' | 'dashboard'>('splash');
   const [selectedRole, setSelectedRole] = useState<'ADMIN' | 'CAREGIVER' | 'CLIENT' | null>('CAREGIVER');
   
   // Login custom credentials state
@@ -99,6 +99,19 @@ export default function Home() {
 
   // Caregiver Status Update States
   const [isPostingUpdate, setIsPostingUpdate] = useState(false);
+
+  // Signup States
+  const [signupName, setSignupName] = useState('');
+  const [signupEmail, setSignupEmail] = useState('');
+  const [signupPassword, setSignupPassword] = useState('');
+  const [signupPhone, setSignupPhone] = useState('');
+  const [signupRole, setSignupRole] = useState<'CAREGIVER' | 'CLIENT'>('CAREGIVER');
+  const [patientName, setPatientName] = useState('');
+  const [patientAddress, setPatientAddress] = useState('');
+  const [patientLat, setPatientLat] = useState('49.2827');
+  const [patientLng, setPatientLng] = useState('-123.1207');
+  const [signupError, setSignupError] = useState<string | null>(null);
+  const [isSigningUp, setIsSigningUp] = useState(false);
 
   // Google Sign-In Simulation States
   const [showGoogleModal, setShowGoogleModal] = useState(false);
@@ -290,6 +303,53 @@ export default function Home() {
       setLoginError('An authentication system error occurred.');
     } finally {
       setIsLoggingIn(false);
+    }
+  };
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSigningUp(true);
+    setSignupError(null);
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: signupEmail,
+          password: signupPassword,
+          name: signupName,
+          phoneNumber: signupPhone,
+          role: signupRole,
+          patientName: signupRole === 'CLIENT' ? patientName : undefined,
+          patientAddress: signupRole === 'CLIENT' ? patientAddress : undefined,
+          patientLatitude: signupRole === 'CLIENT' ? parseFloat(patientLat) : undefined,
+          patientLongitude: signupRole === 'CLIENT' ? parseFloat(patientLng) : undefined,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showNotification('Account created successfully!');
+        
+        // Authenticate locally in AuthContext
+        await login(signupEmail, signupPassword, signupRole);
+        await loadData();
+        
+        // Reset inputs
+        setSignupEmail('');
+        setSignupPassword('');
+        setSignupName('');
+        setSignupPhone('');
+        setPatientName('');
+        setPatientAddress('');
+      } else {
+        setSignupError(data.error || 'Failed to create account.');
+      }
+    } catch (err) {
+      console.error(err);
+      setSignupError('A network error occurred. Please try again.');
+    } finally {
+      setIsSigningUp(false);
     }
   };
 
@@ -644,6 +704,40 @@ export default function Home() {
     );
   };
 
+  const handleGoogleAccountSelect = async (email: string, role: 'ADMIN' | 'CAREGIVER' | 'CLIENT') => {
+    setGoogleIsSubmitting(true);
+    setSelectedRole(role);
+    
+    // Look up password if it's a demo profile, otherwise use a mock password
+    let password = 'googleAuthPassword123';
+    if (email === 'admin@akirapa.com') password = 'admin123';
+    else if (email === 'primary@akirapa.com') password = 'akirapa2634!';
+    else if (email === 'family@akirapa.com') password = 'family123';
+
+    try {
+      // Wait 1.2s to simulate Google validation
+      await new Promise(resolve => setTimeout(resolve, 1200));
+      const success = await login(email, password, role);
+      if (success) {
+        await loadData();
+        setShowGoogleModal(false);
+      } else {
+        setLoginError('Google Authentication failed.');
+      }
+    } catch (err) {
+      console.error(err);
+      setLoginError('An error occurred during Google Sign-In.');
+    } finally {
+      setGoogleIsSubmitting(false);
+    }
+  };
+
+  const handleGoogleCustomSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!googleEmailInput.trim()) return;
+    await handleGoogleAccountSelect(googleEmailInput, googleCustomRole);
+  };
+
   const renderLoginScreen = () => {
     // Accounts list based on selectedRole
     let accounts: Array<{ name: string; email: string; pass: string }> = [];
@@ -670,40 +764,6 @@ export default function Home() {
         setLoginEmail(acc.email);
         setLoginPassword(acc.pass);
       }
-    };
-
-    const handleGoogleAccountSelect = async (email: string, role: 'ADMIN' | 'CAREGIVER' | 'CLIENT') => {
-      setGoogleIsSubmitting(true);
-      setSelectedRole(role);
-      
-      // Look up password if it's a demo profile, otherwise use a mock password
-      let password = 'googleAuthPassword123';
-      if (email === 'admin@akirapa.com') password = 'admin123';
-      else if (email === 'primary@akirapa.com') password = 'akirapa2634!';
-      else if (email === 'family@akirapa.com') password = 'family123';
-
-      try {
-        // Wait 1.2s to simulate Google validation
-        await new Promise(resolve => setTimeout(resolve, 1200));
-        const success = await login(email, password, role);
-        if (success) {
-          await loadData();
-          setShowGoogleModal(false);
-        } else {
-          setLoginError('Google Authentication failed.');
-        }
-      } catch (err) {
-        console.error(err);
-        setLoginError('An error occurred during Google Sign-In.');
-      } finally {
-        setGoogleIsSubmitting(false);
-      }
-    };
-
-    const handleGoogleCustomSubmit = async (e: React.FormEvent) => {
-      e.preventDefault();
-      if (!googleEmailInput.trim()) return;
-      await handleGoogleAccountSelect(googleEmailInput, googleCustomRole);
     };
 
     return (
@@ -838,6 +898,18 @@ export default function Home() {
             </svg>
             <span>Sign in with Google</span>
           </button>
+
+          {/* Signup Navigation Link */}
+          <div className="text-center text-xs text-gray-500 font-semibold mt-1">
+            New to Akirapa?{' '}
+            <button 
+              type="button" 
+              onClick={() => { setViewState('signup'); setLoginError(null); }}
+              className="text-brand-purple hover:text-brand-purple-dark font-extrabold underline cursor-pointer"
+            >
+              Create an Account
+            </button>
+          </div>
         </div>
 
         {/* MOCK GOOGLE LOGIN MODAL OVERLAY */}
@@ -971,9 +1043,318 @@ export default function Home() {
     );
   };
 
+  const renderSignupScreen = () => {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#f8f6fa] to-[#eefaf9] text-gray-800 flex flex-col justify-center items-center p-6 font-sans relative">
+        <div className="max-w-md w-full bg-white border border-gray-100 p-8 rounded-3xl shadow-xl flex flex-col gap-6 relative animate-fade-in z-10">
+          {/* Back Button to Login */}
+          <button 
+            onClick={() => { setViewState('login'); setSignupError(null); }}
+            className="flex items-center gap-1.5 text-xs font-bold text-gray-400 hover:text-brand-purple transition-colors w-fit group cursor-pointer"
+          >
+            <i className="fa-solid fa-chevron-left w-4 h-4 group-hover:-translate-x-0.5 transition-transform"></i>
+            <span>Back to Login</span>
+          </button>
+
+          {/* Heading */}
+          <div className="border-b border-gray-100 pb-4 text-center">
+            <div className="w-12 h-12 bg-brand-teal text-brand-purple font-black text-lg rounded-2xl flex items-center justify-center shadow-md mx-auto mb-3">
+              AK
+            </div>
+            <h2 className="text-xl font-extrabold text-brand-purple-dark">
+              Create Akirapa Account
+            </h2>
+            <p className="text-xs text-gray-400 mt-1 font-medium font-sans">HIPAA-Compliant Decentralized Registry</p>
+          </div>
+
+          {/* Role Tabs */}
+          <div className="flex bg-gray-50 border border-gray-100 p-1.5 rounded-2xl gap-1">
+            {(['CAREGIVER', 'CLIENT'] as const).map((role) => (
+              <button
+                key={role}
+                type="button"
+                onClick={() => {
+                  setSignupRole(role);
+                  setSignupError(null);
+                }}
+                className={`flex-1 py-2.5 text-center text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                  signupRole === role
+                    ? 'bg-brand-purple text-white shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                {role === 'CAREGIVER' ? 'Join as Caregiver' : 'Join as Client/Family'}
+              </button>
+            ))}
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleRegister} className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-bold text-gray-400 uppercase">Full Name</label>
+              <input 
+                type="text" 
+                required
+                placeholder="Jane Doe"
+                value={signupName}
+                onChange={(e) => setSignupName(e.target.value)}
+                className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5 text-xs font-semibold focus:outline-none focus:border-brand-purple"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-bold text-gray-400 uppercase">Email Address</label>
+              <input 
+                type="email" 
+                required
+                placeholder="jane.doe@example.com"
+                value={signupEmail}
+                onChange={(e) => setSignupEmail(e.target.value)}
+                className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5 text-xs font-semibold focus:outline-none focus:border-brand-purple"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-bold text-gray-400 uppercase">Password</label>
+              <input 
+                type="password" 
+                required
+                placeholder="••••••••"
+                value={signupPassword}
+                onChange={(e) => setSignupPassword(e.target.value)}
+                className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5 text-xs font-semibold focus:outline-none focus:border-brand-purple"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-bold text-gray-400 uppercase">Phone Number</label>
+              <input 
+                type="text" 
+                placeholder="+16045550199"
+                value={signupPhone}
+                onChange={(e) => setSignupPhone(e.target.value)}
+                className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5 text-xs font-semibold focus:outline-none focus:border-brand-purple"
+              />
+            </div>
+
+            {/* Optional Patient Profile section for Clients */}
+            {signupRole === 'CLIENT' && (
+              <div className="border-t border-dashed border-gray-100 pt-4 mt-2 flex flex-col gap-3">
+                <span className="text-[10px] font-extrabold text-brand-purple uppercase tracking-wider block">Patient / Recipient Profile Details (Optional)</span>
+                
+                <div className="flex flex-col gap-1">
+                  <label className="text-[9px] font-bold text-gray-400 uppercase">Patient Name</label>
+                  <input 
+                    type="text"
+                    placeholder="e.g. Sarah Jenkins"
+                    value={patientName}
+                    onChange={(e) => setPatientName(e.target.value)}
+                    className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-brand-purple"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-[9px] font-bold text-gray-400 uppercase">Home Address</label>
+                  <input 
+                    type="text"
+                    placeholder="e.g. 850 W Georgia St, Vancouver, BC"
+                    value={patientAddress}
+                    onChange={(e) => setPatientAddress(e.target.value)}
+                    className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-brand-purple"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[9px] font-bold text-gray-400 uppercase">Latitude</label>
+                    <input 
+                      type="text"
+                      placeholder="49.2827"
+                      value={patientLat}
+                      onChange={(e) => setPatientLat(e.target.value)}
+                      className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-xs font-mono font-bold focus:outline-none focus:border-brand-purple"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[9px] font-bold text-gray-400 uppercase">Longitude</label>
+                    <input 
+                      type="text"
+                      placeholder="-123.1207"
+                      value={patientLng}
+                      onChange={(e) => setPatientLng(e.target.value)}
+                      className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-xs font-mono font-bold focus:outline-none focus:border-brand-purple"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {signupError && (
+              <div className="bg-rose-50 border border-rose-100 text-rose-700 p-3.5 rounded-xl flex items-center gap-2 text-xs font-semibold">
+                <i className="fa-solid fa-circle-exclamation w-4 h-4 shrink-0"></i>
+                <span>{signupError}</span>
+              </div>
+            )}
+
+            <button 
+              type="submit"
+              disabled={isSigningUp || !signupName || !signupEmail || !signupPassword}
+              className="w-full mt-2 py-3.5 bg-brand-purple hover:bg-brand-purple-dark text-white font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md active:scale-95 disabled:bg-gray-200 disabled:text-gray-400 disabled:shadow-none cursor-pointer flex items-center justify-center gap-2"
+            >
+              {isSigningUp ? (
+                <>
+                  <div className="w-4.5 h-4.5 border-2 border-white border-t-brand-teal rounded-full animate-spin" />
+                  <span>Creating Account...</span>
+                </>
+              ) : (
+                <>
+                  <i className="fa-solid fa-user-plus w-4 h-4"></i>
+                  <span>Register & Launch</span>
+                </>
+              )}
+            </button>
+          </form>
+
+          {/* Divider */}
+          <div className="relative flex py-1 items-center">
+            <div className="flex-grow border-t border-gray-100"></div>
+            <span className="flex-shrink mx-4 text-[10px] text-gray-400 font-bold uppercase tracking-wider">or Agency Admin login</span>
+            <div className="flex-grow border-t border-gray-100"></div>
+          </div>
+
+          {/* Continue with Google (Simulated Admin) */}
+          <button 
+            type="button" 
+            onClick={() => {
+              setGoogleCustomRole('ADMIN');
+              setShowGoogleModal(true);
+              setSignupError(null);
+            }} 
+            className="w-full py-3 border border-gray-200 hover:border-gray-300 bg-white hover:bg-gray-50 text-gray-600 font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-sm active:scale-95 cursor-pointer flex items-center justify-center gap-2.5"
+          >
+            <svg className="w-4.5 h-4.5" viewBox="0 0 24 24">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+            </svg>
+            <span>Continue with Google account</span>
+          </button>
+        </div>
+
+        {/* MOCK GOOGLE LOGIN MODAL OVERLAY */}
+        {showGoogleModal && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="max-w-md w-full bg-white rounded-3xl border border-gray-100 shadow-2xl p-8 flex flex-col gap-6 animate-fade-in relative">
+              
+              {/* Google Modal Header */}
+              <div className="flex flex-col items-center text-center pb-4 border-b border-gray-100">
+                <svg className="w-9 h-9 mb-3" viewBox="0 0 24 24">
+                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+                </svg>
+                <h3 className="text-xl font-bold text-gray-800">Sign in with Google</h3>
+                <p className="text-xs text-gray-400 mt-1">to continue to <span className="font-semibold text-brand-purple">Akirapa</span></p>
+              </div>
+
+              {googleIsSubmitting ? (
+                <div className="py-12 flex flex-col items-center justify-center gap-4 text-center">
+                  <div className="w-10 h-10 border-4 border-[#4285F4] border-t-transparent rounded-full animate-spin" />
+                  <div>
+                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block">Verifying Google Account...</span>
+                    <span className="text-[10px] text-gray-400 block mt-1">OAuth 2.0 secure authorization exchange</span>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* Account Selector List */}
+                  <div className="flex flex-col gap-3">
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Choose an Account</span>
+                    
+                    <button 
+                      type="button"
+                      onClick={() => handleGoogleAccountSelect('admin@akirapa.com', 'ADMIN')}
+                      className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 border border-gray-100 rounded-2xl text-left transition-colors cursor-pointer"
+                    >
+                      <div>
+                        <div className="text-xs font-bold text-gray-800">Elena Rostova</div>
+                        <div className="text-[10px] text-gray-400 font-mono mt-0.5">admin@akirapa.com</div>
+                      </div>
+                      <span className="bg-amber-50 text-amber-700 border border-amber-100 text-[9px] font-bold px-2 py-0.5 rounded-md">Admin</span>
+                    </button>
+                  </div>
+
+                  {/* Divider */}
+                  <div className="relative flex py-1 items-center">
+                    <div className="flex-grow border-t border-gray-100"></div>
+                    <span className="flex-shrink mx-3 text-[9px] text-gray-400 font-bold uppercase tracking-wider">or sign in with another account</span>
+                    <div className="flex-grow border-t border-gray-100"></div>
+                  </div>
+
+                  {/* Use another account inputs */}
+                  <form onSubmit={handleGoogleCustomSubmit} className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[9px] font-bold text-gray-400 uppercase">Google Email</label>
+                      <input 
+                        type="email"
+                        required
+                        placeholder="yourname@gmail.com"
+                        value={googleEmailInput}
+                        onChange={(e) => setGoogleEmailInput(e.target.value)}
+                        className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-[#4285F4]"
+                      />
+                    </div>
+                    
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[9px] font-bold text-gray-400 uppercase">Select App Role</label>
+                      <select 
+                        value={googleCustomRole}
+                        onChange={(e) => setGoogleCustomRole(e.target.value as any)}
+                        className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-[#4285F4] cursor-pointer"
+                      >
+                        <option value="ADMIN">Agency Admin (Command/Scheduling)</option>
+                        <option value="CAREGIVER">Caregiver (Clock-In/Checklist)</option>
+                        <option value="CLIENT">Client Portal (Family Feed)</option>
+                      </select>
+                    </div>
+
+                    <button 
+                      type="submit"
+                      disabled={!googleEmailInput.trim()}
+                      className="w-full mt-1 py-2.5 bg-[#4285F4] hover:bg-[#357AE8] text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-sm active:scale-95 disabled:bg-gray-100 disabled:text-gray-400"
+                    >
+                      Authenticate Google User
+                    </button>
+                  </form>
+
+                  {/* Cancel Button */}
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      setShowGoogleModal(false);
+                      setGoogleEmailInput('');
+                    }}
+                    className="w-full py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs rounded-xl transition-all cursor-pointer text-center"
+                  >
+                    Cancel
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   // Main Dashboard gating logic
   if (viewState === 'splash') {
     return renderSplashScreen();
+  }
+  if (viewState === 'signup') {
+    return renderSignupScreen();
   }
   if (viewState === 'role_select' || viewState === 'login') {
     return renderLoginScreen();
