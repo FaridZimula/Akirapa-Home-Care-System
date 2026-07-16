@@ -1537,14 +1537,32 @@ export default function Home() {
                     
                     {/* Left Column: Active Shift Card */}
                     <div className="lg:col-span-2 flex flex-col gap-6">
-                      {/* Active Shift Card */}
-                  {shifts.filter(s => s.caregiverId === user.id && s.status !== 'COMPLETED' && s.status !== 'DROPPED').length === 0 ? (
-                    <div className="bg-white border border-gray-100 rounded-3xl p-12 text-center text-gray-400 italic">
-                      No active shifts assigned to you today.
-                    </div>
-                  ) : (
-                    shifts.filter(s => s.caregiverId === user.id && s.status !== 'COMPLETED' && s.status !== 'DROPPED').map(shift => (
-                      <div key={shift.id} className="bg-white border border-gray-100 rounded-3xl p-8 shadow-sm flex flex-col gap-6">
+                      {(() => {
+                          const activeShifts = shifts.filter(s => s.caregiverId === user.id && s.status !== 'COMPLETED' && s.status !== 'DROPPED');
+                          const sortedShifts = [...activeShifts].sort((a, b) => {
+                            const aNeedsAction = a.status === 'UNCONFIRMED' || a.status === 'CONFIRMED';
+                            const bNeedsAction = b.status === 'UNCONFIRMED' || b.status === 'CONFIRMED';
+                            if (aNeedsAction && !bNeedsAction) return -1;
+                            if (bNeedsAction && !aNeedsAction) return 1;
+                            if (a.status === 'IN_PROGRESS' && b.status !== 'IN_PROGRESS') return -1;
+                            if (b.status === 'IN_PROGRESS' && a.status !== 'IN_PROGRESS') return 1;
+                            return new Date(a.scheduledStart).getTime() - new Date(b.scheduledStart).getTime();
+                          });
+
+                          if (sortedShifts.length === 0) {
+                            return (
+                              <div className="bg-white border border-gray-100 rounded-3xl p-12 text-center text-gray-400 italic">
+                                No active shifts assigned to you today.
+                              </div>
+                            );
+                          }
+
+                          return sortedShifts.map(shift => {
+                            const needsClockIn = shift.status === 'CONFIRMED' || shift.status === 'UNCONFIRMED';
+                            return (
+                              <div key={shift.id} className={`bg-white border rounded-3xl p-8 shadow-sm flex flex-col gap-6 transition-all ${
+                                needsClockIn ? 'border-brand-teal/40 ring-1 ring-brand-teal/10 shadow-lg' : 'border-gray-100'
+                              }`}>
                         
                         {/* Header Details */}
                         <div className="flex justify-between items-start border-b border-gray-100 pb-5">
@@ -1868,9 +1886,10 @@ export default function Home() {
                           </div>              </div>
                         )}
 
-                      </div>
-                    ))
-                  )}
+                            </div>
+                          );
+                        });
+                      })()}
                     </div>
 
                     {/* Right Column: Scheduled visits */}
