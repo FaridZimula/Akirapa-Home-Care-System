@@ -77,6 +77,7 @@ export default function Home() {
 
   // Caregiver Dashboard Simulation States
   const [distanceOffset, setDistanceOffset] = useState<number>(0); // distance from patient home in meters
+  const [useRealGPS, setUseRealGPS] = useState<boolean>(false);
   const [overrideReason, setOverrideReason] = useState('');
   const [showOverrideInput, setShowOverrideInput] = useState(false);
   const [clockInError, setClockInError] = useState<string | null>(null);
@@ -178,22 +179,15 @@ export default function Home() {
     const activeShift = shifts.find(s => s.status === 'IN_PROGRESS' && s.caregiverId === user?.id);
     if (!activeShift) return;
 
-    // Simulate location ping every 10 seconds for prototyping (normally 1-5 mins)
-    const interval = setInterval(async () => {
-      // Mock coordinates slightly drifting around Sarah's coordinates based on offset
-      const clientLat = activeShift.client.latitude;
-      const clientLng = activeShift.client.longitude;
-      const mockLat = clientLat + (distanceOffset / 111111); // approx degree conversion
-      const mockLng = clientLng + (distanceOffset / (111111 * Math.cos(clientLat * Math.PI / 180)));
-
+    const sendLocationUpdate = async (shiftId: string, latitude: number, longitude: number) => {
       try {
         const res = await fetch('/api/shifts/location', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            shiftId: activeShift.id,
-            latitude: mockLat,
-            longitude: mockLng,
+            shiftId,
+            latitude,
+            longitude,
           }),
         });
         const data = await res.json();
@@ -205,10 +199,30 @@ export default function Home() {
       } catch (err) {
         console.error('[GPS TICK ERROR]', err);
       }
+    };
+
+    // Simulate location ping every 10 seconds for prototyping (normally 1-5 mins)
+    const interval = setInterval(async () => {
+      const clientLat = activeShift.client.latitude;
+      const clientLng = activeShift.client.longitude;
+
+      if (useRealGPS) {
+        navigator.geolocation.getCurrentPosition(
+          async (position) => {
+            await sendLocationUpdate(activeShift.id, position.coords.latitude, position.coords.longitude);
+          },
+          (err) => console.warn('[GPS TICK ERROR] Failed to fetch device location:', err),
+          { enableHighAccuracy: true }
+        );
+      } else {
+        const mockLat = clientLat + (distanceOffset / 111111);
+        const mockLng = clientLng + (distanceOffset / (111111 * Math.cos(clientLat * Math.PI / 180)));
+        await sendLocationUpdate(activeShift.id, mockLat, mockLng);
+      }
     }, 10000);
 
     return () => clearInterval(interval);
-  }, [shifts, distanceOffset, user]);
+  }, [shifts, distanceOffset, user, useRealGPS]);
 
   // Actions
   const handleFastLogin = async (email: string) => {
@@ -329,11 +343,26 @@ export default function Home() {
     const activeShift = shifts.find(s => s.id === shiftId);
     if (!activeShift) return;
 
-    // Simulate GPS coords based on client location and mock slider offset
-    const clientLat = activeShift.client.latitude;
-    const clientLng = activeShift.client.longitude;
-    const mockLat = clientLat + (distanceOffset / 111111);
-    const mockLng = clientLng + (distanceOffset / (111111 * Math.cos(clientLat * Math.PI / 180)));
+    let lat = activeShift.client.latitude;
+    let lng = activeShift.client.longitude;
+
+    if (!isOverride) {
+      if (useRealGPS) {
+        try {
+          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10000 });
+          });
+          lat = position.coords.latitude;
+          lng = position.coords.longitude;
+        } catch (err: any) {
+          setClockInError(`GPS Error: ${err.message || 'Could not retrieve device location.'}`);
+          return;
+        }
+      } else {
+        lat = lat + (distanceOffset / 111111);
+        lng = lng + (distanceOffset / (111111 * Math.cos(lat * Math.PI / 180)));
+      }
+    }
 
     try {
       const res = await fetch('/api/shifts/clock-in', {
@@ -341,8 +370,8 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           shiftId,
-          latitude: mockLat,
-          longitude: mockLng,
+          latitude: lat,
+          longitude: lng,
           isOverride,
           overrideReason: isOverride ? overrideReason : undefined,
         }),
@@ -370,11 +399,26 @@ export default function Home() {
     const activeShift = shifts.find(s => s.id === shiftId);
     if (!activeShift) return;
 
-    // Simulate GPS coords based on client location and mock slider offset
-    const clientLat = activeShift.client.latitude;
-    const clientLng = activeShift.client.longitude;
-    const mockLat = clientLat + (distanceOffset / 111111);
-    const mockLng = clientLng + (distanceOffset / (111111 * Math.cos(clientLat * Math.PI / 180)));
+    let lat = activeShift.client.latitude;
+    let lng = activeShift.client.longitude;
+
+    if (!isOverride) {
+      if (useRealGPS) {
+        try {
+          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10000 });
+          });
+          lat = position.coords.latitude;
+          lng = position.coords.longitude;
+        } catch (err: any) {
+          setClockOutError(`GPS Error: ${err.message || 'Could not retrieve device location.'}`);
+          return;
+        }
+      } else {
+        lat = lat + (distanceOffset / 111111);
+        lng = lng + (distanceOffset / (111111 * Math.cos(lat * Math.PI / 180)));
+      }
+    }
 
     // Mock completing all active tasks for simplicity
     const activeShiftTaskIds = activeShift.tasks?.map((t: any) => t.id) || [];
@@ -944,9 +988,23 @@ export default function Home() {
       {/* Simulator GPS slider quick bar - Only visible to Admins and Caregivers */}
       {(user.role === 'ADMIN' || user.role === 'CARE_COORDINATOR' || user.role === 'CAREGIVER') && (
         <section className="bg-white border-b border-gray-100 py-4 px-8 shadow-sm">
-          <div className="max-w-7xl mx-auto flex justify-end items-center">
+          <div className="max-w-7xl mx-auto flex flex-wrap justify-end items-center gap-4">
+            
+            {/* GPS Mode Selector */}
+            <div className="flex items-center gap-2 bg-gray-50 border border-gray-100 px-4 py-2.5 rounded-2xl text-xs font-bold">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  checked={useRealGPS}
+                  onChange={(e) => setUseRealGPS(e.target.checked)}
+                  className="w-4 h-4 rounded text-brand-purple accent-brand-purple cursor-pointer"
+                />
+                <span>Use Real Device GPS</span>
+              </label>
+            </div>
+
             {/* GPS Simulation Slider */}
-            <div className="flex items-center gap-4 bg-brand-teal-ultra border border-brand-teal/20 px-5 py-3 rounded-2xl w-full lg:w-auto">
+            <div className={`flex items-center gap-4 bg-brand-teal-ultra border border-brand-teal/20 px-5 py-3 rounded-2xl w-full lg:w-auto transition-opacity ${useRealGPS ? 'opacity-40 pointer-events-none' : ''}`}>
               <i className="fa-solid fa-map-pin w-5 h-5 text-brand-teal shrink-0"></i>
               <div className="flex-1 lg:w-64">
                 <div className="flex justify-between text-[10px] font-bold text-brand-teal-dark mb-1">
@@ -959,18 +1017,22 @@ export default function Home() {
                   max="1000" 
                   step="50"
                   value={distanceOffset}
+                  disabled={useRealGPS}
                   onChange={(e) => setDistanceOffset(parseInt(e.target.value))}
                   className="w-full h-1.5 bg-brand-teal/20 rounded-lg appearance-none cursor-pointer accent-brand-teal"
                 />
               </div>
               <div className="text-xs font-bold shrink-0 text-right">
-                {distanceOffset <= 150 ? (
+                {useRealGPS ? (
+                  <span className="text-brand-purple bg-brand-purple-ultra px-2 py-1 rounded-md border border-brand-purple-light/20">Using Device GPS</span>
+                ) : distanceOffset <= 150 ? (
                   <span className="text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md border border-emerald-100">At Client (Inside 150m)</span>
                 ) : (
                   <span className="text-rose-600 bg-rose-50 px-2 py-1 rounded-md border border-rose-100">Outside Boundary</span>
                 )}
               </div>
             </div>
+
           </div>
         </section>
       )}
