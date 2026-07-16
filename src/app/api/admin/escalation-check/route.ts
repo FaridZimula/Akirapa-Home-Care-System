@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { logAudit } from '@/lib/audit';
 import { ShiftStatus, PodRole } from '@prisma/client';
+import { createNotification } from '@/lib/notifications';
 
 export async function POST() {
   try {
@@ -80,6 +81,27 @@ export async function POST() {
           outcome: 'SUCCESS',
         });
 
+        // Notify backup caregiver
+        await createNotification({
+          userId: backupAssignment.caregiverId,
+          title: 'Shift Assignment (Escalated)',
+          message: `Confirmation deadline was missed by primary caregiver ${shift.caregiver.name}. You have been assigned to cover client ${shift.client.name} on ${shift.scheduledStart.toLocaleDateString()}. Confirm before ${nextDeadline.toLocaleTimeString()}.`,
+          type: 'SHIFT_ASSIGNED',
+        });
+
+        // Notify client's family members
+        const familyMembers = await prisma.linkedFamilyMember.findMany({
+          where: { clientId: shift.clientId },
+        });
+        for (const fam of familyMembers) {
+          await createNotification({
+            userId: fam.userId,
+            title: 'Caregiver Assignment Escalated',
+            message: `Primary caregiver ${shift.caregiver.name} missed the confirmation deadline for ${shift.client.name}. Backup caregiver ${backupAssignment.caregiver.name} has been assigned.`,
+            type: 'SHIFT_DROPPED',
+          });
+        }
+
         escalations.push({
           clientId: shift.clientId,
           clientName: shift.client.name,
@@ -98,6 +120,19 @@ export async function POST() {
           details: `Primary caregiver ${shift.caregiver.name} failed to confirm shift for client ${shift.client.name} but no backup caregiver exists in their pod. CRITICAL ADMIN ALERT RAISED.`,
           outcome: 'FAILURE',
         });
+
+        // Notify admins/coordinators of auto-escalation failure
+        const admins = await prisma.user.findMany({
+          where: { role: { in: ['ADMIN', 'CARE_COORDINATOR'] } },
+        });
+        for (const admin of admins) {
+          await createNotification({
+            userId: admin.id,
+            title: 'CRITICAL: Auto-Escalation Failed',
+            message: `Primary caregiver ${shift.caregiver.name} failed to confirm shift for client ${shift.client.name} before the deadline, but no backup caregiver exists in their pod.`,
+            type: 'SYSTEM_ALERT',
+          });
+        }
 
         escalations.push({
           clientId: shift.clientId,

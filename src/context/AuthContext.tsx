@@ -113,9 +113,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setUser(null);
       if (isTimeout) {
-        router.push('/?reason=timeout');
+        router.push('/login?reason=timeout');
       } else {
-        router.push('/?logout=true');
+        router.push('/login');
       }
     }
   };

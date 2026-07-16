@@ -22,7 +22,7 @@ async function main() {
   const admin = await prisma.user.create({
     data: {
       email: 'admin@akirapa.com',
-      passwordHash: 'akirapa2634!',
+      passwordHash: 'admin123', // plain-text or mock hash
       name: 'Elena Rostova',
       role: UserRole.ADMIN,
       phoneNumber: '+16045550101',
@@ -32,7 +32,7 @@ async function main() {
   const coordinator = await prisma.user.create({
     data: {
       email: 'coordinator@akirapa.com',
-      passwordHash: 'akirapa2634!',
+      passwordHash: 'coordinator123',
       name: 'Grace Taylor',
       role: UserRole.CARE_COORDINATOR,
       phoneNumber: '+16045550102',
@@ -52,7 +52,7 @@ async function main() {
   const backupCaregiver1 = await prisma.user.create({
     data: {
       email: 'backup1@akirapa.com',
-      passwordHash: 'akirapa2634!',
+      passwordHash: 'backup1123',
       name: 'Brendan Miller',
       role: UserRole.CAREGIVER,
       phoneNumber: '+16045550104',
@@ -62,7 +62,7 @@ async function main() {
   const backupCaregiver2 = await prisma.user.create({
     data: {
       email: 'backup2@akirapa.com',
-      passwordHash: 'akirapa2634!',
+      passwordHash: 'backup2123',
       name: 'Chloe Chen',
       role: UserRole.CAREGIVER,
       phoneNumber: '+16045550105',
@@ -72,7 +72,7 @@ async function main() {
   const familyMember = await prisma.user.create({
     data: {
       email: 'family@akirapa.com',
-      passwordHash: 'akirapa2634!',
+      passwordHash: 'family123',
       name: 'David Jenkins',
       role: UserRole.FAMILY_MEMBER,
       phoneNumber: '+16045550106',
@@ -189,8 +189,6 @@ async function main() {
       confirmedAt: yesterdayStart,
       clockInLat: 49.2826,
       clockInLng: -123.1206,
-      clockOutLat: 49.2827,
-      clockOutLng: -123.1207,
     },
   });
 

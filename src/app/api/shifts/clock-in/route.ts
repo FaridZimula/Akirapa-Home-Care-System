@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { logAudit } from '@/lib/audit';
 import { ShiftStatus } from '@prisma/client';
+import { createNotification } from '@/lib/notifications';
 
 // Haversine formula to compute distance between two coordinates in meters
 function computeHaversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -60,6 +61,19 @@ export async function POST(request: Request) {
         details: `Caregiver ${shift.caregiver.name} requested manual override clock-in for client ${shift.client.name}. Reason: ${overrideReason}`,
         outcome: 'SUCCESS',
       });
+
+      // Notify Admins & Coordinators
+      const admins = await prisma.user.findMany({
+        where: { role: { in: ['ADMIN', 'CARE_COORDINATOR'] } },
+      });
+      for (const admin of admins) {
+        await createNotification({
+          userId: admin.id,
+          title: 'Clock-In Override Requested',
+          message: `Caregiver ${shift.caregiver.name} requested manual override clock-in for client ${shift.client.name}. Reason: ${overrideReason}`,
+          type: 'EXCEPTION_OVERRIDE',
+        });
+      }
 
       return NextResponse.json({
         success: true,

@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { logAudit } from '@/lib/audit';
 import { ShiftStatus } from '@prisma/client';
 import { encrypt } from '@/lib/crypto';
+import { createNotification } from '@/lib/notifications';
 
 // Haversine formula to compute distance between two coordinates in meters
 function computeHaversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -30,8 +31,7 @@ export async function POST(request: Request) {
       latitude, 
       longitude, 
       isOverride, 
-      overrideReason,
-      mediaFiles 
+      overrideReason 
     } = await request.json();
 
     if (!shiftId) {
@@ -52,16 +52,6 @@ export async function POST(request: Request) {
     }
 
     const now = new Date();
-
-    // Process media upload simulation
-    const generatedUrls: string[] = [];
-    if (mediaFiles && Array.isArray(mediaFiles)) {
-      for (const file of mediaFiles) {
-        const mockFileId = `file_${Math.random().toString(36).substring(2, 11)}`;
-        const mockSignedUrl = `https://storage.akirapa.local/patient-media/${shift.clientId}/${mockFileId}?token=${Math.random().toString(36).substring(2, 20)}&expires=1893456000`;
-        generatedUrls.push(mockSignedUrl);
-      }
-    }
 
     // 1. Manual Override Path
     if (isOverride) {
@@ -98,8 +88,6 @@ export async function POST(request: Request) {
         activeRedFlags,
         completedTaskCount: completedTaskIds?.length || 0,
         caregiverName: shift.caregiver.name,
-        mediaUrls: generatedUrls,
-        mediaFiles: mediaFiles || [],
       };
 
       const encryptedLog = encrypt(JSON.stringify(logDetails));
@@ -110,7 +98,7 @@ export async function POST(request: Request) {
           clientId: shift.clientId,
           shiftId: shift.id,
           encryptedLog,
-          mediaUrls: JSON.stringify(generatedUrls),
+          mediaUrls: JSON.stringify([]),
         },
       });
 
@@ -147,6 +135,43 @@ export async function POST(request: Request) {
           details: `CLINICAL ALERT: Red flags raised for client ${shift.client.name} during caregiver ${shift.caregiver.name} shift. Flags: ${activeRedFlags.join(', ')}.`,
           outcome: 'SUCCESS',
         });
+      }
+
+      // Notify Admins & Coordinators about clock-out override request
+      const admins = await prisma.user.findMany({
+        where: { role: { in: ['ADMIN', 'CARE_COORDINATOR'] } },
+      });
+      for (const admin of admins) {
+        await createNotification({
+          userId: admin.id,
+          title: 'Clock-Out Override Requested',
+          message: `Caregiver ${shift.caregiver.name} requested manual override clock-out for client ${shift.client.name}. Reason: ${overrideReason}`,
+          type: 'EXCEPTION_OVERRIDE',
+        });
+      }
+
+      // Notify Admins and Family about Clinical Red Flags if raised during override
+      if (hasRedFlags) {
+        for (const admin of admins) {
+          await createNotification({
+            userId: admin.id,
+            title: `CLINICAL ALERT: ${shift.client.name}`,
+            message: `Clinical red flags raised for client ${shift.client.name} during shift by caregiver ${shift.caregiver.name}. Flags: ${activeRedFlags.join(', ')}.`,
+            type: 'CLINICAL_ALERT',
+          });
+        }
+
+        const familyMembers = await prisma.linkedFamilyMember.findMany({
+          where: { clientId: shift.clientId },
+        });
+        for (const fam of familyMembers) {
+          await createNotification({
+            userId: fam.userId,
+            title: 'Clinical Concern Logged',
+            message: `A care report for ${shift.client.name} has been filed with clinical observations requiring attention. Detail flags: ${activeRedFlags.join(', ')}.`,
+            type: 'CLINICAL_ALERT',
+          });
+        }
       }
 
       return NextResponse.json({
@@ -219,8 +244,6 @@ export async function POST(request: Request) {
       activeRedFlags,
       completedTaskCount: completedTaskIds?.length || 0,
       caregiverName: shift.caregiver.name,
-      mediaUrls: generatedUrls,
-      mediaFiles: mediaFiles || [],
     };
 
     const encryptedLog = encrypt(JSON.stringify(logDetails));
@@ -230,7 +253,7 @@ export async function POST(request: Request) {
         clientId: shift.clientId,
         shiftId: shift.id,
         encryptedLog,
-        mediaUrls: JSON.stringify(generatedUrls),
+        mediaUrls: JSON.stringify([]),
       },
     });
 
@@ -239,8 +262,6 @@ export async function POST(request: Request) {
       data: {
         status: ShiftStatus.COMPLETED,
         actualEnd: now,
-        clockOutLat: latitude,
-        clockOutLng: longitude,
       },
     });
 
@@ -258,6 +279,32 @@ export async function POST(request: Request) {
         details: `CLINICAL ALERT: Red flags raised for client ${shift.client.name} during caregiver ${shift.caregiver.name} shift. Flags: ${activeRedFlags.join(', ')}.`,
         outcome: 'SUCCESS',
       });
+
+      // Notify Admins & Coordinators
+      const admins = await prisma.user.findMany({
+        where: { role: { in: ['ADMIN', 'CARE_COORDINATOR'] } },
+      });
+      for (const admin of admins) {
+        await createNotification({
+          userId: admin.id,
+          title: `CLINICAL ALERT: ${shift.client.name}`,
+          message: `Clinical red flags raised for client ${shift.client.name} during shift by caregiver ${shift.caregiver.name}. Flags: ${activeRedFlags.join(', ')}.`,
+          type: 'CLINICAL_ALERT',
+        });
+      }
+
+      // Notify Family Members
+      const familyMembers = await prisma.linkedFamilyMember.findMany({
+        where: { clientId: shift.clientId },
+      });
+      for (const fam of familyMembers) {
+        await createNotification({
+          userId: fam.userId,
+          title: 'Clinical Concern Logged',
+          message: `A care report for ${shift.client.name} has been filed with clinical observations requiring attention. Detail flags: ${activeRedFlags.join(', ')}.`,
+          type: 'CLINICAL_ALERT',
+        });
+      }
     }
 
     await prisma.caregiverLocationHistory.create({

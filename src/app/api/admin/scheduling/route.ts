@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { logAudit } from '@/lib/audit';
 import { ShiftStatus } from '@prisma/client';
+import { createNotification } from '@/lib/notifications';
 
 export async function GET() {
   try {
@@ -83,6 +84,14 @@ export async function POST(request: Request) {
       action: 'CREATE_SHIFT',
       details: `Scheduled shift for client ${shift.client.name} with caregiver ${shift.caregiver.name} (Start: ${start.toISOString()})${warningAlert ? ' - WITH POD WARNING' : ''}`,
       outcome: 'SUCCESS',
+    });
+
+    // Trigger Notification for the Caregiver
+    await createNotification({
+      userId: caregiverId,
+      title: 'New Shift Scheduled',
+      message: `You have been scheduled for a new shift with client ${shift.client.name} on ${start.toLocaleDateString()} starting at ${start.toLocaleTimeString()}.`,
+      type: 'SHIFT_ASSIGNED',
     });
 
     return NextResponse.json({ shift, warningAlert });

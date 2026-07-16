@@ -1,7 +1,6 @@
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
 
 generator client {
@@ -44,6 +43,7 @@ model User {
   assignedShifts Shift[]
   familyClients  LinkedFamilyMember[]
   auditLogs      AuditLog[]
+  notifications  Notification[]
 }
 
 model Client {
@@ -94,8 +94,6 @@ model Shift {
   // Geofencing & Exceptions
   clockInLat           Float?
   clockInLng           Float?
-  clockOutLat          Float?
-  clockOutLng          Float?
   isOverrideException  Boolean       @default(false)
   overrideReason       String?
   overrideApprovedBy   String?       // Reference to Admin User ID
@@ -183,3 +181,17 @@ model AuditLog {
 
   user      User     @relation(fields: [userId], references: [id])
 }
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String
+  message   String
+  type      String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+
