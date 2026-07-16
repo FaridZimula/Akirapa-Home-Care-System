@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { logAudit } from '@/lib/audit';
 import { ShiftStatus } from '@prisma/client';
+import { encrypt } from '@/lib/crypto';
 
 export async function POST(request: Request) {
   try {
@@ -40,6 +41,25 @@ export async function POST(request: Request) {
       action: 'SHIFT_CONFIRMATION',
       details: `Caregiver ${shift.caregiver.name} confirmed shift availability for client ${shift.client.name} (Scheduled: ${shift.scheduledStart.toISOString()}).`,
       outcome: 'SUCCESS',
+    });
+
+    // Log shift confirmation activity for family member view
+    const logDetails = {
+      type: 'SHIFT_CONFIRMED',
+      notes: `Caregiver ${shift.caregiver.name} has confirmed they will work the scheduled visit on ${shift.scheduledStart.toLocaleDateString()} starting at ${shift.scheduledStart.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}.`,
+      caregiverName: shift.caregiver.name,
+      hasRedFlags: false,
+    };
+
+    const encryptedLog = encrypt(JSON.stringify(logDetails));
+
+    await prisma.activityLog.create({
+      data: {
+        clientId: shift.clientId,
+        shiftId: shift.id,
+        encryptedLog,
+        mediaUrls: '[]',
+      }
     });
 
     return NextResponse.json({ success: true, shift: updatedShift });

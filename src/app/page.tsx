@@ -1532,7 +1532,11 @@ export default function Home() {
                     <p className="text-xs text-gray-400 mt-0.5">Mock device interface for location clock-in validation, task checklist, and clock-out red flags.</p>
                   </div>
 
-                  {/* Active Shift Card */}
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+                    
+                    {/* Left Column: Active Shift Card */}
+                    <div className="lg:col-span-2 flex flex-col gap-6">
+                      {/* Active Shift Card */}
                   {shifts.filter(s => s.caregiverId === user.id && s.status !== 'COMPLETED' && s.status !== 'DROPPED').length === 0 ? (
                     <div className="bg-white border border-gray-100 rounded-3xl p-12 text-center text-gray-400 italic">
                       No active shifts assigned to you today.
@@ -1854,6 +1858,54 @@ export default function Home() {
                       </div>
                     ))
                   )}
+                    </div>
+
+                    {/* Right Column: Scheduled visits */}
+                    <div className="bg-white border border-gray-100 p-6 rounded-3xl shadow-sm flex flex-col gap-4">
+                      <div className="border-b border-gray-100 pb-3 flex items-center justify-between">
+                        <div>
+                          <h3 className="font-bold text-sm text-brand-purple flex items-center gap-2">
+                            <i className="fa-solid fa-calendar-days text-brand-teal"></i>
+                            <span>My Scheduled Visits</span>
+                          </h3>
+                          <p className="text-[10px] text-gray-400 mt-0.5">Your calendar routing details.</p>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col gap-3 max-h-[500px] overflow-y-auto pr-1">
+                        {shifts.filter(s => s.caregiverId === user.id).length === 0 ? (
+                          <div className="text-center text-xs text-gray-400 italic py-4">No scheduled visits.</div>
+                        ) : (
+                          shifts.filter(s => s.caregiverId === user.id).map(s => (
+                            <div key={s.id} className="flex justify-between items-start bg-gray-50 border border-gray-100 p-4 rounded-2xl text-xs gap-3">
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="font-bold text-gray-800">{s.client.name}</span>
+                                  <span className={`text-[9px] font-bold px-1.5 py-0.25 rounded border ${
+                                    s.status === 'COMPLETED' ? 'bg-gray-100 text-gray-500 border-gray-200' :
+                                    s.status === 'IN_PROGRESS' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
+                                    s.status === 'UNCONFIRMED' ? 'bg-amber-50 text-amber-700 border-amber-100' :
+                                    'bg-brand-purple-ultra text-brand-purple border border-brand-purple-light/20'
+                                  }`}>
+                                    {s.status}
+                                  </span>
+                                </div>
+                                <div className="text-[10px] text-gray-500 mt-2 flex items-center gap-1.5">
+                                  <i className="fa-solid fa-clock w-3.5 h-3.5 shrink-0 text-brand-purple-light"></i>
+                                  <span>{new Date(s.scheduledStart).toLocaleDateString()} &bull; {new Date(s.scheduledStart).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - {new Date(s.scheduledEnd).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                                </div>
+                                <div className="text-[10px] text-gray-500 mt-1 flex items-center gap-1.5">
+                                  <i className="fa-solid fa-location-dot w-3.5 h-3.5 shrink-0 text-brand-teal"></i>
+                                  <span className="truncate">{s.client.address}</span>
+                                </div>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+
+                  </div>
                 </div>
               )}
 
@@ -1865,10 +1917,11 @@ export default function Home() {
                     <p className="text-xs text-gray-400 mt-0.5">Real-time updates, observation notes (decrypted for client representatives), and secure photo logs of Sarah Jenkins.</p>
                   </div>
 
-                  <div className="w-full flex flex-col gap-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                     
-                    {/* Live Feed List */}
-                    <div className="w-full flex flex-col gap-4">
+                    {/* Left Column: Live Feed List */}
+                    <div className="lg:col-span-2 flex flex-col gap-6">
+                      <div className="flex flex-col gap-4">
                       <div className="flex justify-between items-center bg-gray-50 px-4 py-2 rounded-xl text-xs font-bold text-brand-purple-dark">
                         <span>Live Care Logs (Decrypted Real-time Feed)</span>
                         <span className="text-[10px] text-brand-teal uppercase">Row-Level Security Enabled</span>
@@ -1880,20 +1933,34 @@ export default function Home() {
                         </div>
                       ) : (
                         activityLogs.map((log) => {
+                          const isConfirmation = log.details?.type === 'SHIFT_CONFIRMED';
                           const hasWarning = log.details?.hasRedFlags;
                           const hasMedia = log.mediaUrls?.length > 0;
                           return (
                             <div key={log.id} className={`bg-white border rounded-3xl p-6 shadow-sm flex flex-col gap-4 transition-all ${
+                              isConfirmation ? 'border-emerald-100 bg-emerald-50/5' :
                               hasWarning ? 'border-rose-100 bg-rose-50/10' : 'border-gray-100'
                             }`}>
                               
                               <div className="flex justify-between items-start">
                                 <div className="flex items-center gap-2">
-                                  <div className={`p-1.5 rounded-xl ${hasWarning ? 'bg-rose-50 text-rose-500' : 'bg-brand-teal-ultra text-brand-teal'}`}>
-                                    {hasWarning ? <i className="fa-solid fa-shield-halved w-4 h-4"></i> : <i className="fa-solid fa-heart-pulse w-4 h-4"></i>}
+                                  <div className={`p-1.5 rounded-xl ${
+                                    isConfirmation ? 'bg-emerald-50 text-emerald-600' :
+                                    hasWarning ? 'bg-rose-50 text-rose-500' : 
+                                    'bg-brand-teal-ultra text-brand-teal'
+                                  }`}>
+                                    {isConfirmation ? (
+                                      <i className="fa-solid fa-calendar-check w-4 h-4"></i>
+                                    ) : hasWarning ? (
+                                      <i className="fa-solid fa-shield-halved w-4 h-4"></i>
+                                    ) : (
+                                      <i className="fa-solid fa-heart-pulse w-4 h-4"></i>
+                                    )}
                                   </div>
                                   <div>
-                                    <div className="text-xs font-bold text-gray-800">Care Log by {log.details?.caregiverName || 'Amara Okafor'}</div>
+                                    <div className="text-xs font-bold text-gray-800">
+                                      {isConfirmation ? 'Visit Availability Confirmed' : `Care Log by ${log.details?.caregiverName || 'Amara Okafor'}`}
+                                    </div>
                                     <div className="text-[10px] text-gray-400">{new Date(log.createdAt).toLocaleString()}</div>
                                   </div>
                                 </div>
@@ -1995,11 +2062,55 @@ export default function Home() {
                           );
                         })
                       )}
-                    </div>
+                        </div>
+                      </div>
 
+                      {/* Right Column: Scheduled Caregivers Panel */}
+                      <div className="bg-white border border-gray-100 p-6 rounded-3xl shadow-sm flex flex-col gap-4">
+                        <div className="border-b border-gray-100 pb-3 flex items-center justify-between">
+                          <div>
+                            <h3 className="font-bold text-sm text-brand-purple flex items-center gap-2">
+                              <i className="fa-solid fa-user-nurse text-brand-teal animate-pulse"></i>
+                              <span>My Scheduled Caregivers</span>
+                            </h3>
+                            <p className="text-[10px] text-gray-400 mt-0.5">Details of scheduled visits, arrival, departure, and caregiver confirmation.</p>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col gap-3 max-h-[500px] overflow-y-auto pr-1">
+                          {shifts.filter(s => s.status !== 'COMPLETED' && s.status !== 'DROPPED').length === 0 ? (
+                            <div className="text-center text-xs text-gray-400 italic py-4">No upcoming scheduled visits.</div>
+                          ) : (
+                            shifts.filter(s => s.status !== 'COMPLETED' && s.status !== 'DROPPED').map(s => (
+                              <div key={s.id} className="flex justify-between items-start bg-gray-50 border border-gray-100 p-4 rounded-2xl text-xs gap-3">
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="font-bold text-gray-800">{s.caregiver.name}</span>
+                                    <span className={`text-[9px] font-bold px-1.5 py-0.25 rounded border shrink-0 ${
+                                      s.status === 'UNCONFIRMED' ? 'bg-amber-50 text-amber-700 border-amber-100' :
+                                      'bg-emerald-50 text-emerald-700 border-emerald-100'
+                                    }`}>
+                                      {s.status === 'UNCONFIRMED' ? 'Awaiting Acceptance' : 'Confirmed'}
+                                    </span>
+                                  </div>
+                                  <div className="text-[10px] text-gray-500 mt-2 flex items-center gap-1.5">
+                                    <i className="fa-solid fa-clock w-3.5 h-3.5 shrink-0 text-brand-purple-light"></i>
+                                    <span>Arrival: <strong>{new Date(s.scheduledStart).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</strong></span>
+                                  </div>
+                                  <div className="text-[10px] text-gray-500 mt-1 flex items-center gap-1.5">
+                                    <i className="fa-solid fa-arrow-right-from-bracket w-3.5 h-3.5 shrink-0 text-brand-teal"></i>
+                                    <span>Departure: <strong>{new Date(s.scheduledEnd).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</strong></span>
+                                  </div>
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
+
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
               {/* TAB 4: AUDIT LOGS - Gated */}
               {(user.role === 'ADMIN' || user.role === 'CARE_COORDINATOR') && activeTab === 'audits' && (
