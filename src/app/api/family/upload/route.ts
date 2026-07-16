@@ -5,7 +5,7 @@ import { encrypt } from '@/lib/crypto';
 
 export async function POST(request: Request) {
   try {
-    const { clientId, shiftId, mediaName, mediaType, notes, mediaFiles, redFlags } = await request.json();
+    const { clientId, shiftId, mediaName, mediaType, notes, mediaFiles, redFlags, wellness } = await request.json();
 
     if (!clientId) {
       return NextResponse.json({ error: 'Client ID is required' }, { status: 400 });
@@ -70,6 +70,7 @@ export async function POST(request: Request) {
       mediaFiles: filesMetadata,
       mediaName: filesMetadata[0]?.name || null,
       mediaType: filesMetadata[0]?.type || null,
+      wellness: wellness || null,
     };
 
     const encryptedLog = encrypt(JSON.stringify(logDetails));

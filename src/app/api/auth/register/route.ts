@@ -14,7 +14,12 @@ export async function POST(request: Request) {
       patientName,
       patientAddress,
       patientLatitude,
-      patientLongitude 
+      patientLongitude,
+      careNeeds,
+      medicalHistory,
+      emergencyName,
+      emergencyPhone,
+      emergencyRelation
     } = await request.json();
 
     if (!email || !password || !name) {
@@ -143,30 +148,99 @@ export async function POST(request: Request) {
           },
         });
 
-        await prisma.carePlanTask.createMany({
-          data: [
+        const seededTasks = [];
+
+        // Check Care Needs
+        if (careNeeds?.medication) {
+          seededTasks.push({
+            taskName: 'Medication Administration',
+            description: 'Administer scheduled medications. Ensure caregiver observes ingestion.',
+            scheduledTime: '08:00 AM',
+            isMandatory: true,
+          });
+        }
+        if (careNeeds?.mobility) {
+          seededTasks.push({
+            taskName: 'Mobility Walk & Transfer Support',
+            description: 'Support patient with transferring from bed and perform 15-min walk.',
+            scheduledTime: '11:00 AM',
+            isMandatory: true,
+          });
+        }
+        if (careNeeds?.bathing) {
+          seededTasks.push({
+            taskName: 'Bathing & Dressing Assistance',
+            description: 'Assist client with personal hygiene and dressing for the day.',
+            scheduledTime: '09:00 AM',
+            isMandatory: true,
+          });
+        }
+        if (careNeeds?.mealPrep) {
+          seededTasks.push({
+            taskName: 'Meal Preparation & Nutrition',
+            description: 'Prepare a healthy balanced meal and assist with dietary needs.',
+            scheduledTime: '01:00 PM',
+            isMandatory: true,
+          });
+        }
+        if (careNeeds?.companionship) {
+          seededTasks.push({
+            taskName: 'Social Engagement & Conversation',
+            description: 'Engage client in memory stimulation, reading, or conversation.',
+            scheduledTime: '04:00 PM',
+            isMandatory: false,
+          });
+        }
+
+        // Check Medical Concerns to add specific clinical oversight
+        if (medicalHistory?.hypertension) {
+          seededTasks.push({
+            taskName: 'Vital Signs Checklist (Hypertension)',
+            description: 'Measure blood pressure and heart rate. Log in clinical feed.',
+            scheduledTime: '10:00 AM',
+            isMandatory: true,
+          });
+        }
+        if (medicalHistory?.cognitive) {
+          seededTasks.push({
+            taskName: 'Cognitive Reality Orientation',
+            description: 'Orient client to date, location, and engage in cognitive exercises.',
+            scheduledTime: '02:00 PM',
+            isMandatory: true,
+          });
+        }
+        if (medicalHistory?.falls) {
+          seededTasks.push({
+            taskName: 'Safety Risk Assessment & Cleared Walkways',
+            description: 'Verify patient walker access and ensure floors are free of trip hazards.',
+            scheduledTime: '08:30 AM',
+            isMandatory: true,
+          });
+        }
+
+        // Fallback default tasks if nothing selected
+        if (seededTasks.length === 0) {
+          seededTasks.push(
             {
-              carePlanId: carePlan.id,
               taskName: 'Vital Signs Checklist',
               description: 'Verify temperature and blood pressure.',
               scheduledTime: '10:00 AM',
               isMandatory: true,
             },
             {
-              carePlanId: carePlan.id,
               taskName: 'Medication Administration',
               description: 'Administer Lisinopril 10mg.',
               scheduledTime: '12:00 PM',
               isMandatory: true,
-            },
-            {
-              carePlanId: carePlan.id,
-              taskName: 'Mobility Walk & Hydration',
-              description: 'Support garden walk and check hydration.',
-              scheduledTime: '02:30 PM',
-              isMandatory: false,
-            },
-          ],
+            }
+          );
+        }
+
+        await prisma.carePlanTask.createMany({
+          data: seededTasks.map(t => ({
+            carePlanId: carePlan.id,
+            ...t
+          }))
         });
       } else {
         // Fallback to first existing client

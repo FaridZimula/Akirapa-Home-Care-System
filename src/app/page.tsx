@@ -100,6 +100,20 @@ export default function Home() {
   // Caregiver Status Update States
   const [isPostingUpdate, setIsPostingUpdate] = useState(false);
 
+  // Caregiver Wellness Logs states
+  const [wellnessMood, setWellnessMood] = useState('Calm');
+  const [wellnessEnergy, setWellnessEnergy] = useState('Moderate');
+  const [wellnessHydration, setWellnessHydration] = useState('Adequate');
+  const [wellnessAppetite, setWellnessAppetite] = useState('Good');
+  const [wellnessSleep, setWellnessSleep] = useState('Good');
+
+  // Safety Incident States
+  const [showIncidentModal, setShowIncidentModal] = useState(false);
+  const [incidentType, setIncidentType] = useState('Fall');
+  const [incidentDescription, setIncidentDescription] = useState('');
+  const [incidentAction, setIncidentAction] = useState('');
+  const [isReportingIncident, setIsReportingIncident] = useState(false);
+
   // Signup States
   const [signupName, setSignupName] = useState('');
   const [signupEmail, setSignupEmail] = useState('');
@@ -110,6 +124,22 @@ export default function Home() {
   const [patientAddress, setPatientAddress] = useState('');
   const [patientLat, setPatientLat] = useState('49.2827');
   const [patientLng, setPatientLng] = useState('-123.1207');
+  const [signupCareNeeds, setSignupCareNeeds] = useState({
+    medication: false,
+    mobility: false,
+    bathing: false,
+    mealPrep: false,
+    companionship: false,
+  });
+  const [signupHistory, setSignupHistory] = useState({
+    hypertension: false,
+    cognitive: false,
+    diabetes: false,
+    falls: false,
+  });
+  const [signupEmergencyName, setSignupEmergencyName] = useState('');
+  const [signupEmergencyPhone, setSignupEmergencyPhone] = useState('');
+  const [signupEmergencyRelation, setSignupEmergencyRelation] = useState('');
   const [signupError, setSignupError] = useState<string | null>(null);
   const [isSigningUp, setIsSigningUp] = useState(false);
 
@@ -324,6 +354,11 @@ export default function Home() {
           patientAddress: signupRole === 'CLIENT' ? patientAddress : undefined,
           patientLatitude: signupRole === 'CLIENT' ? parseFloat(patientLat) : undefined,
           patientLongitude: signupRole === 'CLIENT' ? parseFloat(patientLng) : undefined,
+          careNeeds: signupRole === 'CLIENT' ? signupCareNeeds : undefined,
+          medicalHistory: signupRole === 'CLIENT' ? signupHistory : undefined,
+          emergencyName: signupRole === 'CLIENT' ? signupEmergencyName : undefined,
+          emergencyPhone: signupRole === 'CLIENT' ? signupEmergencyPhone : undefined,
+          emergencyRelation: signupRole === 'CLIENT' ? signupEmergencyRelation : undefined,
         }),
       });
 
@@ -342,6 +377,22 @@ export default function Home() {
         setSignupPhone('');
         setPatientName('');
         setPatientAddress('');
+        setSignupEmergencyName('');
+        setSignupEmergencyPhone('');
+        setSignupEmergencyRelation('');
+        setSignupCareNeeds({
+          medication: false,
+          mobility: false,
+          bathing: false,
+          mealPrep: false,
+          companionship: false,
+        });
+        setSignupHistory({
+          hypertension: false,
+          cognitive: false,
+          diabetes: false,
+          falls: false,
+        });
       } else {
         setSignupError(data.error || 'Failed to create account.');
       }
@@ -626,7 +677,15 @@ export default function Home() {
           clientId: activeShift.clientId,
           shiftId: shiftId,
           notes: shiftNotes || 'Caregiver posted a shift progress update.',
+          redFlags: redFlags,
           mediaFiles: selectedMediaFiles.map(f => ({ name: f.name, type: f.type })),
+          wellness: {
+            mood: wellnessMood,
+            energy: wellnessEnergy,
+            hydration: wellnessHydration,
+            appetite: wellnessAppetite,
+            sleep: wellnessSleep,
+          }
         }),
       });
 
@@ -634,6 +693,17 @@ export default function Home() {
         showNotification('Real-time Care Update Posted to Feed!');
         setShiftNotes('');
         setSelectedMediaFiles([]);
+        setRedFlags({
+          cognitiveConfusion: false,
+          fallDetected: false,
+          behavioralChanges: false,
+          mobilityDecline: false,
+        });
+        setWellnessMood('Calm');
+        setWellnessEnergy('Moderate');
+        setWellnessHydration('Adequate');
+        setWellnessAppetite('Good');
+        setWellnessSleep('Good');
         loadData();
       } else {
         const data = await res.json();
@@ -644,6 +714,69 @@ export default function Home() {
       showNotification('An error occurred while posting update.');
     } finally {
       setIsPostingUpdate(false);
+    }
+  };
+
+  const handleSubmitIncident = async (shiftId: string) => {
+    if (!incidentDescription.trim()) {
+      showNotification('Please enter a description of the incident.');
+      return;
+    }
+    const activeShift = shifts.find(s => s.id === shiftId);
+    if (!activeShift) return;
+
+    setIsReportingIncident(true);
+    try {
+      const res = await fetch('/api/family/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientId: activeShift.clientId,
+          shiftId: shiftId,
+          notes: `[SAFETY INCIDENT REPORTED] Type: ${incidentType}. Description: ${incidentDescription}. Immediate Action Taken: ${incidentAction}`,
+          redFlags: {
+            fallDetected: incidentType === 'Fall',
+            behavioralChanges: incidentType === 'Behavioral Incident',
+            cognitiveConfusion: false,
+            mobilityDecline: false,
+          },
+          mediaFiles: [],
+          wellness: null,
+          incident: {
+            isIncident: true,
+            type: incidentType,
+            description: incidentDescription,
+            actionTaken: incidentAction,
+          }
+        }),
+      });
+
+      if (res.ok) {
+        showNotification('Incident Filed Successfully & Escalated to Coordinator!');
+        
+        // Push a simulated SMS message to care coordinator
+        const mockSms = {
+          to: 'Grace Taylor (Care Coordinator)',
+          message: `CRITICAL ALERT: Safety Incident (${incidentType}) reported for client ${activeShift.client.name}. Description: "${incidentDescription}". Action taken: "${incidentAction}". Caregiver: ${user?.name || 'Amara Okafor'}.`,
+          timestamp: new Date()
+        };
+        setSmsAlerts(prev => [mockSms, ...prev]);
+
+        // Close and reset
+        setShowIncidentModal(false);
+        setIncidentDescription('');
+        setIncidentAction('');
+        setIncidentType('Fall');
+        loadData();
+      } else {
+        const data = await res.json();
+        showNotification(data.error || 'Failed to file incident report.');
+      }
+    } catch (err) {
+      console.error(err);
+      showNotification('An error occurred while reporting incident.');
+    } finally {
+      setIsReportingIncident(false);
     }
   };
 
@@ -1184,6 +1317,138 @@ export default function Home() {
                       onChange={(e) => setPatientLng(e.target.value)}
                       className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-xs font-mono font-bold focus:outline-none focus:border-brand-purple"
                     />
+                  </div>
+                </div>
+
+                {/* Emergency Contact */}
+                <div className="border-t border-gray-100 pt-3 flex flex-col gap-3">
+                  <span className="text-[9px] font-extrabold text-brand-purple uppercase tracking-wider block">Primary Emergency Contact</span>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[9px] font-bold text-gray-400 uppercase">Contact Name</label>
+                    <input 
+                      type="text" 
+                      placeholder="e.g. Mary Jenkins"
+                      value={signupEmergencyName}
+                      onChange={(e) => setSignupEmergencyName(e.target.value)}
+                      className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-brand-purple"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[9px] font-bold text-gray-400 uppercase">Phone</label>
+                      <input 
+                        type="text" 
+                        placeholder="+16045550299"
+                        value={signupEmergencyPhone}
+                        onChange={(e) => setSignupEmergencyPhone(e.target.value)}
+                        className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-brand-purple"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[9px] font-bold text-gray-400 uppercase">Relationship</label>
+                      <input 
+                        type="text" 
+                        placeholder="e.g. Daughter"
+                        value={signupEmergencyRelation}
+                        onChange={(e) => setSignupEmergencyRelation(e.target.value)}
+                        className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-brand-purple"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Care Needs Assessment */}
+                <div className="border-t border-gray-100 pt-3 flex flex-col gap-2">
+                  <span className="text-[9px] font-extrabold text-brand-purple uppercase tracking-wider block">Care Needs Checklist</span>
+                  <div className="grid grid-cols-2 gap-2 text-xs font-semibold">
+                    <label className="flex items-center gap-2 text-gray-600 hover:text-gray-900 cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={signupCareNeeds.medication} 
+                        onChange={(e) => setSignupCareNeeds({...signupCareNeeds, medication: e.target.checked})}
+                        className="accent-brand-purple w-4 h-4 rounded"
+                      />
+                      <span>Medication Reminders</span>
+                    </label>
+                    <label className="flex items-center gap-2 text-gray-600 hover:text-gray-900 cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={signupCareNeeds.mobility} 
+                        onChange={(e) => setSignupCareNeeds({...signupCareNeeds, mobility: e.target.checked})}
+                        className="accent-brand-purple w-4 h-4 rounded"
+                      />
+                      <span>Mobility Support</span>
+                    </label>
+                    <label className="flex items-center gap-2 text-gray-600 hover:text-gray-900 cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={signupCareNeeds.bathing} 
+                        onChange={(e) => setSignupCareNeeds({...signupCareNeeds, bathing: e.target.checked})}
+                        className="accent-brand-purple w-4 h-4 rounded"
+                      />
+                      <span>Bathing & Dressing</span>
+                    </label>
+                    <label className="flex items-center gap-2 text-gray-600 hover:text-gray-900 cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={signupCareNeeds.mealPrep} 
+                        onChange={(e) => setSignupCareNeeds({...signupCareNeeds, mealPrep: e.target.checked})}
+                        className="accent-brand-purple w-4 h-4 rounded"
+                      />
+                      <span>Meal Preparation</span>
+                    </label>
+                    <label className="flex items-center gap-2 text-gray-600 hover:text-gray-900 cursor-pointer col-span-2">
+                      <input 
+                        type="checkbox" 
+                        checked={signupCareNeeds.companionship} 
+                        onChange={(e) => setSignupCareNeeds({...signupCareNeeds, companionship: e.target.checked})}
+                        className="accent-brand-purple w-4 h-4 rounded"
+                      />
+                      <span>Social Companionship</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Medical History Form */}
+                <div className="border-t border-gray-100 pt-3 flex flex-col gap-2">
+                  <span className="text-[9px] font-extrabold text-brand-purple uppercase tracking-wider block">Medical History Concerns</span>
+                  <div className="grid grid-cols-2 gap-2 text-xs font-semibold">
+                    <label className="flex items-center gap-2 text-gray-600 hover:text-gray-900 cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={signupHistory.hypertension} 
+                        onChange={(e) => setSignupHistory({...signupHistory, hypertension: e.target.checked})}
+                        className="accent-brand-purple w-4 h-4 rounded"
+                      />
+                      <span>Hypertension</span>
+                    </label>
+                    <label className="flex items-center gap-2 text-gray-600 hover:text-gray-900 cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={signupHistory.cognitive} 
+                        onChange={(e) => setSignupHistory({...signupHistory, cognitive: e.target.checked})}
+                        className="accent-brand-purple w-4 h-4 rounded"
+                      />
+                      <span>Cognitive Confusion</span>
+                    </label>
+                    <label className="flex items-center gap-2 text-gray-600 hover:text-gray-900 cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={signupHistory.diabetes} 
+                        onChange={(e) => setSignupHistory({...signupHistory, diabetes: e.target.checked})}
+                        className="accent-brand-purple w-4 h-4 rounded"
+                      />
+                      <span>Diabetes</span>
+                    </label>
+                    <label className="flex items-center gap-2 text-gray-600 hover:text-gray-900 cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={signupHistory.falls} 
+                        onChange={(e) => setSignupHistory({...signupHistory, falls: e.target.checked})}
+                        className="accent-brand-purple w-4 h-4 rounded"
+                      />
+                      <span>History of Falls</span>
+                    </label>
                   </div>
                 </div>
               </div>
@@ -2128,6 +2393,87 @@ export default function Home() {
                               </div>
                             </div>
 
+                            {/* Patient Wellness Log Questionnaire (Toolkit Digitization) */}
+                            <div className="bg-gray-50/50 border border-gray-100 p-5 rounded-2xl flex flex-col gap-4">
+                              <div className="flex items-center gap-2 text-brand-purple font-bold text-sm">
+                                <i className="fa-solid fa-heart-pulse text-brand-teal w-4.5 h-4.5"></i>
+                                <span>Patient Daily Wellness Survey</span>
+                              </div>
+                              <p className="text-[11px] text-gray-500 leading-normal font-sans">
+                                Assess the patient's wellness rating metrics compiled from the daily clinical observations toolkit sheet.
+                              </p>
+
+                              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-xs font-semibold">
+                                <div className="flex flex-col gap-1.5 bg-white border border-gray-100 p-3 rounded-xl">
+                                  <label className="text-[9px] font-bold text-gray-400 uppercase">Mental/Emotional Mood</label>
+                                  <select 
+                                    value={wellnessMood}
+                                    onChange={(e) => setWellnessMood(e.target.value)}
+                                    className="bg-gray-50 border border-gray-100 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-brand-purple cursor-pointer w-full text-xs font-bold"
+                                  >
+                                    <option value="Calm">Calm</option>
+                                    <option value="Happy">Happy</option>
+                                    <option value="Anxious">Anxious</option>
+                                    <option value="Irritable">Irritable</option>
+                                    <option value="Confused">Confused</option>
+                                    <option value="Unresponsive">Unresponsive</option>
+                                  </select>
+                                </div>
+
+                                <div className="flex flex-col gap-1.5 bg-white border border-gray-100 p-3 rounded-xl">
+                                  <label className="text-[9px] font-bold text-gray-400 uppercase">Energy Level</label>
+                                  <select 
+                                    value={wellnessEnergy}
+                                    onChange={(e) => setWellnessEnergy(e.target.value)}
+                                    className="bg-gray-50 border border-gray-100 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-brand-purple cursor-pointer w-full text-xs font-bold"
+                                  >
+                                    <option value="High">High Energy</option>
+                                    <option value="Moderate">Moderate Energy</option>
+                                    <option value="Low">Low Energy</option>
+                                  </select>
+                                </div>
+
+                                <div className="flex flex-col gap-1.5 bg-white border border-gray-100 p-3 rounded-xl">
+                                  <label className="text-[9px] font-bold text-gray-400 uppercase">Hydration Level</label>
+                                  <select 
+                                    value={wellnessHydration}
+                                    onChange={(e) => setWellnessHydration(e.target.value)}
+                                    className="bg-gray-50 border border-gray-100 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-brand-purple cursor-pointer w-full text-xs font-bold"
+                                  >
+                                    <option value="Excellent">Excellent</option>
+                                    <option value="Adequate">Adequate</option>
+                                    <option value="Poor">Poor</option>
+                                  </select>
+                                </div>
+
+                                <div className="flex flex-col gap-1.5 bg-white border border-gray-100 p-3 rounded-xl">
+                                  <label className="text-[9px] font-bold text-gray-400 uppercase">Appetite / Food Intake</label>
+                                  <select 
+                                    value={wellnessAppetite}
+                                    onChange={(e) => setWellnessAppetite(e.target.value)}
+                                    className="bg-gray-50 border border-gray-100 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-brand-purple cursor-pointer w-full text-xs font-bold"
+                                  >
+                                    <option value="Good">Good</option>
+                                    <option value="Fair">Fair</option>
+                                    <option value="Poor">Poor</option>
+                                  </select>
+                                </div>
+
+                                <div className="flex flex-col gap-1.5 bg-white border border-gray-100 p-3 rounded-xl">
+                                  <label className="text-[9px] font-bold text-gray-400 uppercase">Sleep Quality</label>
+                                  <select 
+                                    value={wellnessSleep}
+                                    onChange={(e) => setWellnessSleep(e.target.value)}
+                                    className="bg-gray-50 border border-gray-100 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-brand-purple cursor-pointer w-full text-xs font-bold"
+                                  >
+                                    <option value="Good">Good</option>
+                                    <option value="Restless">Restless</option>
+                                    <option value="Poor">Poor</option>
+                                  </select>
+                                </div>
+                              </div>
+                            </div>
+
                             {/* Care Notes */}
                             <div className="flex flex-col gap-1">
                               <label className="text-[10px] font-bold text-gray-400 uppercase">Care Shift Summary Notes</label>
@@ -2240,6 +2586,15 @@ export default function Home() {
                                     <span>Submit Progress & Clinical Report</span>
                                   </>
                                 )}
+                              </button>
+
+                              <button 
+                                type="button"
+                                onClick={() => setShowIncidentModal(true)}
+                                className="py-3 bg-rose-50 hover:bg-rose-100 text-rose-700 font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all border border-rose-200/50 active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+                              >
+                                <i className="fa-solid fa-triangle-exclamation w-4 h-4"></i>
+                                <span>Report Safety Incident</span>
                               </button>
                             </div>
 
@@ -2386,6 +2741,47 @@ export default function Home() {
                               <div className="text-xs font-medium text-gray-700 leading-relaxed pl-1">
                                 {log.details?.notes || 'No description notes provided.'}
                               </div>
+
+                              {log.details?.wellness && (
+                                <div className="bg-emerald-50/30 border border-emerald-100/50 p-4 rounded-2xl flex flex-col gap-2.5">
+                                  <div className="flex items-center gap-2 text-emerald-800 font-bold text-xs">
+                                    <i className="fa-solid fa-heart-pulse text-emerald-600"></i>
+                                    <span>Patient Daily Wellness Metrics</span>
+                                  </div>
+                                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
+                                    <div className="bg-white p-2.5 rounded-xl border border-gray-100 text-center">
+                                      <span className="text-[8px] font-bold text-gray-400 uppercase tracking-wider block">Mood</span>
+                                      <span className="text-xs font-bold text-gray-800 mt-1 block">
+                                        {log.details.wellness.mood}
+                                      </span>
+                                    </div>
+                                    <div className="bg-white p-2.5 rounded-xl border border-gray-100 text-center">
+                                      <span className="text-[8px] font-bold text-gray-400 uppercase tracking-wider block">Energy</span>
+                                      <span className="text-xs font-bold text-gray-800 mt-1 block">
+                                        {log.details.wellness.energy}
+                                      </span>
+                                    </div>
+                                    <div className="bg-white p-2.5 rounded-xl border border-gray-100 text-center">
+                                      <span className="text-[8px] font-bold text-gray-400 uppercase tracking-wider block">Hydration</span>
+                                      <span className="text-xs font-bold text-gray-800 mt-1 block">
+                                        {log.details.wellness.hydration}
+                                      </span>
+                                    </div>
+                                    <div className="bg-white p-2.5 rounded-xl border border-gray-100 text-center">
+                                      <span className="text-[8px] font-bold text-gray-400 uppercase tracking-wider block">Appetite</span>
+                                      <span className="text-xs font-bold text-gray-800 mt-1 block">
+                                        {log.details.wellness.appetite}
+                                      </span>
+                                    </div>
+                                    <div className="bg-white p-2.5 rounded-xl border border-gray-100 text-center">
+                                      <span className="text-[8px] font-bold text-gray-400 uppercase tracking-wider block">Sleep</span>
+                                      <span className="text-xs font-bold text-gray-800 mt-1 block">
+                                        {log.details.wellness.sleep}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
 
                               {hasWarning && (
                                 <div className="bg-rose-50 border border-rose-100 p-3 rounded-xl flex flex-wrap gap-1.5 items-center">
@@ -2590,6 +2986,108 @@ export default function Home() {
         </section>
 
       </main>
+
+      {/* SAFETY INCIDENT MODAL OVERLAY */}
+      {showIncidentModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="max-w-md w-full bg-white rounded-3xl border border-gray-100 shadow-2xl p-8 flex flex-col gap-6 animate-fade-in relative">
+            <button 
+              onClick={() => setShowIncidentModal(false)}
+              className="absolute top-5 right-5 text-gray-400 hover:text-gray-600 text-2xl font-bold cursor-pointer"
+            >
+              &times;
+            </button>
+
+            <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
+              <div className="bg-rose-50 text-rose-600 p-3 rounded-2xl">
+                <i className="fa-solid fa-triangle-exclamation text-xl"></i>
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-800">Report Safety Incident</h3>
+                <p className="text-xs text-gray-400 mt-0.5">Toolkit Form 41 - Risk Management & Compliance</p>
+              </div>
+            </div>
+
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              // Find the active caregiver shift to report
+              const activeShift = shifts.find(s => s.caregiverId === user.id && s.status === 'IN_PROGRESS');
+              if (activeShift) {
+                handleSubmitIncident(activeShift.id);
+              } else {
+                showNotification('No active in-progress shift found to report against.');
+              }
+            }} className="flex flex-col gap-4">
+              
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold text-gray-400 uppercase">Incident Type</label>
+                <select 
+                  value={incidentType}
+                  onChange={(e) => setIncidentType(e.target.value)}
+                  className="bg-gray-50 border border-gray-100 rounded-xl px-3.5 py-2.5 text-xs font-bold focus:outline-none focus:border-rose-500 cursor-pointer"
+                >
+                  <option value="Fall">Patient Slip / Fall Incident</option>
+                  <option value="Injury">Physical Injury</option>
+                  <option value="Medication Error">Medication administration error</option>
+                  <option value="Property Damage">Property damage</option>
+                  <option value="Emergency Event">Emergency medical call</option>
+                  <option value="Behavioral Incident">Behavioral Exception / Outbreak</option>
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold text-gray-400 uppercase">Description of Incident</label>
+                <textarea 
+                  rows={3}
+                  required
+                  placeholder="Describe clearly what happened, the severity, and how the event occurred..."
+                  value={incidentDescription}
+                  onChange={(e) => setIncidentDescription(e.target.value)}
+                  className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5 text-xs font-semibold focus:outline-none focus:border-rose-500"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold text-gray-400 uppercase">Immediate Action Taken</label>
+                <textarea 
+                  rows={2}
+                  placeholder="e.g. Cleaned wound, assisted client to chair, notified doctor..."
+                  value={incidentAction}
+                  onChange={(e) => setIncidentAction(e.target.value)}
+                  className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5 text-xs font-semibold focus:outline-none focus:border-rose-500"
+                />
+              </div>
+
+              <div className="flex gap-3.5 mt-2">
+                <button 
+                  type="submit"
+                  disabled={isReportingIncident}
+                  className="flex-1 py-3 bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md active:scale-95 disabled:bg-gray-200 cursor-pointer flex items-center justify-center gap-2"
+                >
+                  {isReportingIncident ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>Filing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <i className="fa-solid fa-paper-plane"></i>
+                      <span>File Incident Report</span>
+                    </>
+                  )}
+                </button>
+                <button 
+                  type="button"
+                  onClick={() => setShowIncidentModal(false)}
+                  className="px-5 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all active:scale-95 cursor-pointer"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
       <footer className="bg-gray-50 border-t border-gray-100 py-6 px-8 mt-12 text-center text-xs text-gray-400 font-semibold">
