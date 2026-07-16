@@ -5,7 +5,7 @@ import { encrypt } from '@/lib/crypto';
 
 export async function POST(request: Request) {
   try {
-    const { clientId, shiftId, mediaName, mediaType, notes, mediaFiles } = await request.json();
+    const { clientId, shiftId, mediaName, mediaType, notes, mediaFiles, redFlags } = await request.json();
 
     if (!clientId) {
       return NextResponse.json({ error: 'Client ID is required' }, { status: 400 });
@@ -54,9 +54,18 @@ export async function POST(request: Request) {
       }
     }
 
+    // Process clinical red flags
+    const activeRedFlags = Object.entries(redFlags || {})
+      .filter(([_, value]) => value === true)
+      .map(([key, _]) => key);
+
+    const hasRedFlags = activeRedFlags.length > 0;
+
     const logDetails = {
       notes: notes || (filesMetadata.length > 0 ? `Uploaded care media update: ${filesMetadata.map(f => f.name).join(', ')}` : 'Daily observation update.'),
-      hasRedFlags: false,
+      hasRedFlags,
+      activeRedFlags,
+      redFlags: redFlags || {},
       caregiverName,
       mediaFiles: filesMetadata,
       mediaName: filesMetadata[0]?.name || null,
@@ -81,6 +90,22 @@ export async function POST(request: Request) {
       details: `Uploaded ${filesMetadata.length} private care media files for client: ${clientId}. Signed URLs generated.`,
       outcome: 'SUCCESS',
     });
+
+    if (hasRedFlags) {
+      // Find client name to make audit alert descriptive
+      let clientName = 'Sarah Jenkins';
+      if (clientId) {
+        const client = await prisma.client.findUnique({ where: { id: clientId } });
+        if (client) clientName = client.name;
+      }
+
+      await logAudit({
+        userId: 'SYSTEM',
+        action: 'CLINICAL_RED_FLAG_ALERT',
+        details: `CLINICAL ALERT: Red flags raised for client ${clientName} during caregiver ${caregiverName} update. Flags: ${activeRedFlags.join(', ')}.`,
+        outcome: 'SUCCESS',
+      });
+    }
 
     return NextResponse.json({
       success: true,

@@ -89,6 +89,7 @@ export default function Home() {
   const [showClockOutOverrideInput, setShowClockOutOverrideInput] = useState(false);
   const [clockOutOverrideReason, setClockOutOverrideReason] = useState('');
   const [shiftNotes, setShiftNotes] = useState('');
+  const [clockOutRemarks, setClockOutRemarks] = useState('');
   const [redFlags, setRedFlags] = useState({
     cognitiveConfusion: false,
     fallDetected: false,
@@ -1794,9 +1795,7 @@ export default function Home() {
                                   })}
                                 </div>
                               )}
-                            </div>
-
-                            {/* Geofenced Clock-out Verification Errors */}
+                                              {/* Geofenced Clock-out Verification Errors */}
                             {clockOutError && (
                               <div className="bg-red-50 text-red-600 border border-red-100 p-4.5 rounded-2xl flex flex-col gap-3 text-xs font-semibold">
                                 <span>{clockOutError}. GPS reports {distanceOffset}m away from center point.</span>
@@ -1823,26 +1822,40 @@ export default function Home() {
                               </div>
                             )}
 
-                            {/* Actions Group */}
+                            {/* Shift Progress reporting trigger */}
                             <div className="flex flex-col gap-3 mt-4 border-t border-gray-100 pt-5">
                               <button 
                                 type="button"
                                 onClick={() => handlePostCaregiverUpdate(shift.id)}
-                                disabled={isPostingUpdate || (!shiftNotes.trim() && selectedMediaFiles.length === 0)}
+                                disabled={isPostingUpdate}
                                 className="py-3 bg-brand-teal hover:bg-brand-teal-dark disabled:bg-gray-100 disabled:text-gray-400 disabled:shadow-none text-brand-purple font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
                               >
                                 {isPostingUpdate ? (
                                   <>
                                     <div className="w-4 h-4 border-2 border-brand-purple border-t-transparent rounded-full animate-spin" />
-                                    <span>Posting Update...</span>
+                                    <span>Submitting Clinical Report...</span>
                                   </>
                                 ) : (
                                   <>
                                     <i className="fa-solid fa-paper-plane w-4 h-4"></i>
-                                    <span>Post Real-time Status Update</span>
+                                    <span>Submit Progress & Clinical Report</span>
                                   </>
                                 )}
                               </button>
+                            </div>
+
+                            {/* Clock-out Remarks & Trigger */}
+                            <div className="flex flex-col gap-4 border-t border-gray-100 pt-6 mt-4">
+                              <div className="flex flex-col gap-1">
+                                <label className="text-[10px] font-bold text-gray-400 uppercase">Optional Patient Status Remarks (for Clock-Out)</label>
+                                <textarea 
+                                  rows={2}
+                                  placeholder="Enter final shift summary, client status changes at departure, or handoff notes..."
+                                  value={clockOutRemarks}
+                                  onChange={(e) => setClockOutRemarks(e.target.value)}
+                                  className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-brand-purple"
+                                />
+                              </div>
 
                               <button 
                                 onClick={() => handleClockOut(shift.id, false)}
@@ -1852,7 +1865,7 @@ export default function Home() {
                                 <span>Complete Shift & Clock-Out</span>
                               </button>
                             </div>
-                          </div>
+                          </div>              </div>
                         )}
 
                       </div>
