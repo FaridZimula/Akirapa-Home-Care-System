@@ -375,6 +375,26 @@ export default function Home() {
     }
   };
 
+  const handleConfirmShift = async (shiftId: string) => {
+    try {
+      const res = await fetch('/api/shifts/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shiftId }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showNotification('Shift successfully confirmed!');
+        await loadData();
+      } else {
+        showNotification(`Error: ${data.error || 'Failed to confirm shift'}`);
+      }
+    } catch (err) {
+      console.error(err);
+      showNotification('An error occurred while confirming the shift.');
+    }
+  };
+
   const handleClockIn = async (shiftId: string, isOverride = false) => {
     setClockInError(null);
     const activeShift = shifts.find(s => s.id === shiftId);
@@ -1535,14 +1555,48 @@ export default function Home() {
                           </div>
 
                           <span className={`px-4 py-1.5 rounded-full text-xs font-bold ${
-                            shift.status === 'IN_PROGRESS' ? 'bg-brand-teal-ultra text-brand-teal-dark border border-brand-teal/20 animate-pulse' : 'bg-brand-purple text-white'
+                            shift.status === 'IN_PROGRESS' ? 'bg-brand-teal-ultra text-brand-teal-dark border border-brand-teal/20 animate-pulse' :
+                            shift.status === 'UNCONFIRMED' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
+                            'bg-brand-purple text-white'
                           }`}>
-                            {shift.status === 'IN_PROGRESS' ? 'In Progress (Clocked In)' : 'Confirmed (Awaiting Clock-In)'}
+                            {shift.status === 'IN_PROGRESS' ? 'In Progress (Clocked In)' :
+                             shift.status === 'UNCONFIRMED' ? 'Unconfirmed (Awaiting Acceptance)' :
+                             'Confirmed (Awaiting Clock-In)'}
                           </span>
                         </div>
 
-                        {/* Clock-in Controller */}
-                        {shift.status !== 'IN_PROGRESS' && (
+                        {/* Clock-in / Confirmation Controller */}
+                        {shift.status === 'UNCONFIRMED' ? (
+                          <div className="bg-amber-50 border border-amber-100 p-6 rounded-2xl flex flex-col gap-4">
+                            <h4 className="font-bold text-sm text-amber-800 flex items-center gap-2">
+                              <i className="fa-solid fa-circle-exclamation text-amber-600"></i>
+                              <span>Confirm Your Availability</span>
+                            </h4>
+                            
+                            <div className="text-xs text-amber-900 leading-relaxed font-medium">
+                              This shift is currently unconfirmed. Please verify that you will work this shift so it is locked in your schedule.
+                              {(() => {
+                                const hoursUntilShift = (new Date(shift.scheduledStart).getTime() - Date.now()) / (1000 * 60 * 60);
+                                if (hoursUntilShift < 48) {
+                                  return (
+                                    <span className="block mt-2 font-extrabold text-rose-600">
+                                      ⚠️ WARNING: Shift starts in {Math.round(hoursUntilShift)} hours! Confirm immediately to prevent auto-escalation.
+                                    </span>
+                                  );
+                                }
+                                return null;
+                              })()}
+                            </div>
+
+                            <button 
+                              onClick={() => handleConfirmShift(shift.id)}
+                              className="py-3 bg-brand-purple hover:bg-brand-purple-dark text-white font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+                            >
+                              <i className="fa-solid fa-circle-check w-4 h-4"></i>
+                              <span>Accept & Confirm Shift</span>
+                            </button>
+                          </div>
+                        ) : shift.status !== 'IN_PROGRESS' && (
                           <div className="bg-gray-50 border border-gray-100 p-6 rounded-2xl flex flex-col gap-4">
                             <h4 className="font-bold text-sm text-gray-700">Geofenced Clock-in Verification</h4>
                             

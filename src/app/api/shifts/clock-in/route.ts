@@ -36,6 +36,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Shift not found' }, { status: 404 });
     }
 
+    if (shift.status === ShiftStatus.UNCONFIRMED) {
+      return NextResponse.json({ error: 'Shift must be confirmed before you can clock in.' }, { status: 400 });
+    }
+
     const now = new Date();
 
     // 1. Manual Override Path
