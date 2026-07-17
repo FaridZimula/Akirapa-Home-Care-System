@@ -11,6 +11,7 @@ export async function POST(request: Request) {
       name, 
       phoneNumber, 
       role,
+      code,
       patientName,
       patientAddress,
       patientLatitude,
@@ -22,9 +23,33 @@ export async function POST(request: Request) {
       emergencyRelation
     } = await request.json();
 
-    if (!email || !password || !name) {
+    if (!email || !password || !name || !code) {
       return NextResponse.json(
-        { error: 'Name, email, and password are required' },
+        { error: 'Name, email, password, and verification code are required' },
+        { status: 400 }
+      );
+    }
+
+    // Validate OTP verification code
+    const verificationToken = await prisma.verificationToken.findFirst({
+      where: {
+        email,
+        token: code,
+        purpose: 'SIGNUP',
+      },
+    });
+
+    if (!verificationToken) {
+      return NextResponse.json(
+        { error: 'Invalid or incorrect verification code. Please try again.' },
+        { status: 400 }
+      );
+    }
+
+    if (new Date() > verificationToken.expiresAt) {
+      await prisma.verificationToken.delete({ where: { id: verificationToken.id } }).catch(() => {});
+      return NextResponse.json(
+        { error: 'Verification code has expired. Please request a new one.' },
         { status: 400 }
       );
     }
@@ -56,6 +81,11 @@ export async function POST(request: Request) {
         phoneNumber: phoneNumber || '+16045550199',
       },
     });
+
+    // Delete token after successful registration
+    await prisma.verificationToken.delete({
+      where: { id: verificationToken.id },
+    }).catch(() => {});
 
     // Handle Caregiver profile seeding so they have immediate test data
     if (finalRole === UserRole.CAREGIVER) {

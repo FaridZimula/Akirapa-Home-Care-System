@@ -207,3 +207,14 @@ model ShiftOffer {
   shift       Shift       @relation(fields: [shiftId], references: [id], onDelete: Cascade)
   caregiver   User        @relation(fields: [caregiverId], references: [id], onDelete: Cascade)
 }
+
+model VerificationToken {
+  id        String   @id @default(uuid())
+  email     String
+  token     String
+  purpose   String   // "SIGNUP" or "PASSWORD_RESET"
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@unique([email, token, purpose])
+}

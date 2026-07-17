@@ -9,7 +9,7 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<'admin' | 'caregiver' | 'family' | 'audits'>('admin');
   
   // Flow states
-  const [viewState, setViewState] = useState<'splash' | 'role_select' | 'login' | 'signup' | 'dashboard'>('splash');
+  const [viewState, setViewState] = useState<'splash' | 'role_select' | 'login' | 'signup' | 'forgot_password' | 'dashboard'>('splash');
   const [selectedRole, setSelectedRole] = useState<'ADMIN' | 'CAREGIVER' | 'CLIENT' | null>('CAREGIVER');
   
   // Login custom credentials state
@@ -18,11 +18,36 @@ export default function Home() {
   const [loginError, setLoginError] = useState<string | null>(null);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
+  // Sign up verification states
+  const [signupVerificationCode, setSignupVerificationCode] = useState('');
+  const [isVerificationCodeSent, setIsVerificationCodeSent] = useState(false);
+  const [isSendingCode, setIsSendingCode] = useState(false);
+
+  // Forgot password states
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotCode, setForgotCode] = useState('');
+  const [forgotNewPassword, setForgotNewPassword] = useState('');
+  const [isForgotCodeSent, setIsForgotCodeSent] = useState(false);
+  const [isSendingForgotCode, setIsSendingForgotCode] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const [forgotError, setForgotError] = useState<string | null>(null);
+
   // Redirect to splash/role_select on logout or direct to dashboard on login
   useEffect(() => {
     if (!user && !authLoading) {
       const params = new URLSearchParams(window.location.search);
-      if (params.get('reason') === 'timeout' || params.get('logout') === 'true') {
+      const err = params.get('error');
+      
+      if (err === 'google_not_configured') {
+        setViewState('login');
+        setShowGoogleModal(true);
+        setTimeout(() => showNotification('Google OAuth not configured in .env. Falling back to Sandbox Mode.'), 100);
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } else if (err) {
+        setViewState('login');
+        setLoginError(`Authentication error: ${err.replace(/_/g, ' ')}`);
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } else if (params.get('reason') === 'timeout' || params.get('logout') === 'true') {
         setViewState('login');
       } else {
         setViewState('splash');
@@ -350,6 +375,7 @@ export default function Home() {
           name: signupName,
           phoneNumber: signupPhone,
           role: signupRole,
+          code: signupVerificationCode,
           patientName: signupRole === 'CLIENT' ? patientName : undefined,
           patientAddress: signupRole === 'CLIENT' ? patientAddress : undefined,
           patientLatitude: signupRole === 'CLIENT' ? parseFloat(patientLat) : undefined,
@@ -377,6 +403,8 @@ export default function Home() {
         setSignupPhone('');
         setPatientName('');
         setPatientAddress('');
+        setSignupVerificationCode('');
+        setIsVerificationCodeSent(false);
         setSignupEmergencyName('');
         setSignupEmergencyPhone('');
         setSignupEmergencyRelation('');
@@ -401,6 +429,103 @@ export default function Home() {
       setSignupError('A network error occurred. Please try again.');
     } finally {
       setIsSigningUp(false);
+    }
+  };
+
+  const handleSendSignupCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!signupEmail || !signupName || !signupPassword) {
+      setSignupError('Please fill out name, email, and password first.');
+      return;
+    }
+    setIsSendingCode(true);
+    setSignupError(null);
+    try {
+      const res = await fetch('/api/auth/verify/send-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: signupEmail, purpose: 'SIGNUP' }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setIsVerificationCodeSent(true);
+        showNotification('Verification code sent to your email!');
+      } else {
+        setSignupError(data.error || 'Failed to send verification code.');
+      }
+    } catch (err) {
+      console.error(err);
+      setSignupError('An error occurred. Please check your network connection.');
+    } finally {
+      setIsSendingCode(false);
+    }
+  };
+
+  const handleSendForgotCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!forgotEmail) {
+      setForgotError('Please enter your email address.');
+      return;
+    }
+    setIsSendingForgotCode(true);
+    setForgotError(null);
+    try {
+      const res = await fetch('/api/auth/verify/send-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: forgotEmail, purpose: 'PASSWORD_RESET' }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setIsForgotCodeSent(true);
+        showNotification('Password reset code sent to your email!');
+      } else {
+        setForgotError(data.error || 'Failed to send reset code.');
+      }
+    } catch (err) {
+      console.error(err);
+      setForgotError('An error occurred while sending reset code.');
+    } finally {
+      setIsSendingForgotCode(false);
+    }
+  };
+
+  const handleResetPasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!forgotEmail || !forgotCode || !forgotNewPassword) {
+      setForgotError('Please enter your email, verification code, and new password.');
+      return;
+    }
+    setIsResettingPassword(true);
+    setForgotError(null);
+    try {
+      const res = await fetch('/api/auth/verify/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: forgotEmail,
+          token: forgotCode,
+          newPassword: forgotNewPassword,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showNotification('Password reset successfully! Please log in.');
+        
+        // Reset states and switch to login view
+        setForgotEmail('');
+        setForgotCode('');
+        setForgotNewPassword('');
+        setIsForgotCodeSent(false);
+        setViewState('login');
+      } else {
+        setForgotError(data.error || 'Failed to reset password.');
+      }
+    } catch (err) {
+      console.error(err);
+      setForgotError('An error occurred during password reset.');
+    } finally {
+      setIsResettingPassword(false);
     }
   };
 
@@ -969,7 +1094,17 @@ export default function Home() {
             <div className="flex flex-col gap-1">
               <div className="flex justify-between items-center">
                 <label className="text-[10px] font-bold text-gray-400 uppercase">Password</label>
-                <span className="text-[9px] font-bold text-brand-teal-dark uppercase tracking-wider">AES-256 Verified</span>
+                <div className="flex gap-2.5 items-center">
+                  <button 
+                    type="button" 
+                    onClick={() => { setViewState('forgot_password'); setForgotError(null); }}
+                    className="text-[9px] font-extrabold text-brand-purple hover:text-brand-purple-dark underline cursor-pointer"
+                  >
+                    Forgot Password?
+                  </button>
+                  <span className="text-[9.5px] text-gray-300">|</span>
+                  <span className="text-[9px] font-bold text-brand-teal-dark uppercase tracking-wider font-mono">AES-256</span>
+                </div>
               </div>
               <input 
                 type="password" 
@@ -1018,8 +1153,8 @@ export default function Home() {
           <button 
             type="button" 
             onClick={() => {
-              setShowGoogleModal(true);
               setLoginError(null);
+              window.location.href = '/api/auth/google';
             }} 
             className="w-full py-3 border border-gray-200 hover:border-gray-300 bg-white hover:bg-gray-50 text-gray-600 font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-sm active:scale-95 cursor-pointer flex items-center justify-center gap-2.5"
           >
@@ -1172,6 +1307,124 @@ export default function Home() {
             </div>
           </div>
         )}
+      </div>
+    );
+  };
+
+  const renderForgotPasswordScreen = () => {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#f8f6fa] to-[#eefaf9] text-gray-800 flex flex-col justify-center items-center p-6 font-sans relative">
+        <div className="max-w-md w-full bg-white border border-gray-100 p-8 rounded-3xl shadow-xl flex flex-col gap-6 relative animate-fade-in z-10">
+          
+          {/* Back Button */}
+          <button 
+            onClick={() => { setViewState('login'); setForgotError(null); }}
+            className="flex items-center gap-1.5 text-xs font-bold text-gray-400 hover:text-brand-purple transition-colors w-fit group cursor-pointer"
+          >
+            <i className="fa-solid fa-chevron-left w-4 h-4 group-hover:-translate-x-0.5 transition-transform"></i>
+            <span>Back to Login</span>
+          </button>
+
+          {/* Heading */}
+          <div className="border-b border-gray-100 pb-4 text-center">
+            <div className="w-12 h-12 bg-rose-50 text-rose-600 font-black text-lg rounded-2xl flex items-center justify-center shadow-md mx-auto mb-3">
+              <i className="fa-solid fa-key text-xl"></i>
+            </div>
+            <h2 className="text-xl font-extrabold text-brand-purple-dark">
+              Reset Password
+            </h2>
+            <p className="text-xs text-gray-400 mt-1 font-medium font-sans">Verify identity via secure email OTP code</p>
+          </div>
+
+          <form onSubmit={isForgotCodeSent ? handleResetPasswordSubmit : handleSendForgotCode} className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-bold text-gray-400 uppercase">Email Address</label>
+              <input 
+                type="email" 
+                required
+                disabled={isForgotCodeSent}
+                placeholder="email@akirapa.com"
+                value={forgotEmail}
+                onChange={(e) => setForgotEmail(e.target.value)}
+                className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5 text-xs font-semibold focus:outline-none focus:border-brand-purple disabled:opacity-60"
+              />
+            </div>
+
+            {isForgotCodeSent && (
+              <>
+                <div className="flex flex-col gap-1.5 bg-brand-teal-ultra/10 border border-brand-teal/20 p-4.5 rounded-2xl animate-fade-in">
+                  <label className="text-[10px] font-bold text-brand-teal-dark uppercase">Enter 6-Digit Verification Code</label>
+                  <input 
+                    type="text" 
+                    required
+                    maxLength={6}
+                    placeholder="e.g. 192804"
+                    value={forgotCode}
+                    onChange={(e) => setForgotCode(e.target.value.replace(/\D/g, ''))}
+                    className="bg-white border border-brand-teal/30 rounded-xl px-3 py-2.5 text-center text-base font-bold tracking-widest focus:outline-none focus:border-brand-purple"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase">New Password</label>
+                  <input 
+                    type="password" 
+                    required
+                    placeholder="••••••••"
+                    value={forgotNewPassword}
+                    onChange={(e) => setForgotNewPassword(e.target.value)}
+                    className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5 text-xs font-semibold focus:outline-none focus:border-brand-purple"
+                  />
+                </div>
+              </>
+            )}
+
+            {forgotError && (
+              <div className="bg-rose-50 border border-rose-100 text-rose-700 p-3.5 rounded-xl flex items-center gap-2 text-xs font-semibold">
+                <i className="fa-solid fa-circle-exclamation w-4 h-4 shrink-0"></i>
+                <span>{forgotError}</span>
+              </div>
+            )}
+
+            {isForgotCodeSent ? (
+              <button 
+                type="submit"
+                disabled={isResettingPassword || !forgotCode || !forgotNewPassword}
+                className="w-full mt-2 py-3.5 bg-brand-purple hover:bg-brand-purple-dark text-white font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md active:scale-95 disabled:bg-gray-200 disabled:text-gray-400 disabled:shadow-none cursor-pointer flex items-center justify-center gap-2"
+              >
+                {isResettingPassword ? (
+                  <>
+                    <div className="w-4.5 h-4.5 border-2 border-white border-t-brand-teal rounded-full animate-spin" />
+                    <span>Updating Password...</span>
+                  </>
+                ) : (
+                  <>
+                    <i className="fa-solid fa-circle-check w-4 h-4"></i>
+                    <span>Reset Password</span>
+                  </>
+                )}
+              </button>
+            ) : (
+              <button 
+                type="submit"
+                disabled={isSendingForgotCode || !forgotEmail}
+                className="w-full mt-2 py-3.5 bg-brand-purple hover:bg-brand-purple-dark text-white font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md active:scale-95 disabled:bg-gray-200 disabled:text-gray-400 disabled:shadow-none cursor-pointer flex items-center justify-center gap-2"
+              >
+                {isSendingForgotCode ? (
+                  <>
+                    <div className="w-4.5 h-4.5 border-2 border-white border-t-brand-teal rounded-full animate-spin" />
+                    <span>Sending Code...</span>
+                  </>
+                ) : (
+                  <>
+                    <i className="fa-solid fa-paper-plane w-4 h-4"></i>
+                    <span>Send Reset Code</span>
+                  </>
+                )}
+              </button>
+            )}
+          </form>
+        </div>
       </div>
     );
   };
@@ -1454,6 +1707,28 @@ export default function Home() {
               </div>
             )}
 
+            {isVerificationCodeSent && (
+              <div className="flex flex-col gap-1.5 bg-brand-teal-ultra/10 border border-brand-teal/20 p-4.5 rounded-2xl animate-fade-in mt-2">
+                <label className="text-[10px] font-bold text-brand-teal-dark uppercase">Enter 6-Digit Verification Code</label>
+                <input 
+                  type="text" 
+                  required
+                  maxLength={6}
+                  placeholder="e.g. 581902"
+                  value={signupVerificationCode}
+                  onChange={(e) => setSignupVerificationCode(e.target.value.replace(/\D/g, ''))}
+                  className="bg-white border border-brand-teal/30 rounded-xl px-3 py-2.5 text-center text-base font-bold tracking-widest focus:outline-none focus:border-brand-purple"
+                />
+                <button 
+                  type="button"
+                  onClick={() => setIsVerificationCodeSent(false)}
+                  className="text-[9px] font-bold text-gray-400 hover:text-rose-500 text-left mt-2 cursor-pointer"
+                >
+                  Change Email / Request Code Again
+                </button>
+              </div>
+            )}
+
             {signupError && (
               <div className="bg-rose-50 border border-rose-100 text-rose-700 p-3.5 rounded-xl flex items-center gap-2 text-xs font-semibold">
                 <i className="fa-solid fa-circle-exclamation w-4 h-4 shrink-0"></i>
@@ -1461,23 +1736,44 @@ export default function Home() {
               </div>
             )}
 
-            <button 
-              type="submit"
-              disabled={isSigningUp || !signupName || !signupEmail || !signupPassword}
-              className="w-full mt-2 py-3.5 bg-brand-purple hover:bg-brand-purple-dark text-white font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md active:scale-95 disabled:bg-gray-200 disabled:text-gray-400 disabled:shadow-none cursor-pointer flex items-center justify-center gap-2"
-            >
-              {isSigningUp ? (
-                <>
-                  <div className="w-4.5 h-4.5 border-2 border-white border-t-brand-teal rounded-full animate-spin" />
-                  <span>Creating Account...</span>
-                </>
-              ) : (
-                <>
-                  <i className="fa-solid fa-user-plus w-4 h-4"></i>
-                  <span>Register & Launch</span>
-                </>
-              )}
-            </button>
+            {isVerificationCodeSent ? (
+              <button 
+                type="submit"
+                disabled={isSigningUp || !signupName || !signupEmail || !signupPassword || !signupVerificationCode}
+                className="w-full mt-2 py-3.5 bg-brand-purple hover:bg-brand-purple-dark text-white font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md active:scale-95 disabled:bg-gray-200 disabled:text-gray-400 disabled:shadow-none cursor-pointer flex items-center justify-center gap-2"
+              >
+                {isSigningUp ? (
+                  <>
+                    <div className="w-4.5 h-4.5 border-2 border-white border-t-brand-teal rounded-full animate-spin" />
+                    <span>Creating Account...</span>
+                  </>
+                ) : (
+                  <>
+                    <i className="fa-solid fa-user-plus w-4 h-4"></i>
+                    <span>Verify & Register Account</span>
+                  </>
+                )}
+              </button>
+            ) : (
+              <button 
+                type="button"
+                onClick={handleSendSignupCode}
+                disabled={isSendingCode || !signupName || !signupEmail || !signupPassword}
+                className="w-full mt-2 py-3.5 bg-brand-purple hover:bg-brand-purple-dark text-white font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md active:scale-95 disabled:bg-gray-200 disabled:text-gray-400 disabled:shadow-none cursor-pointer flex items-center justify-center gap-2"
+              >
+                {isSendingCode ? (
+                  <>
+                    <div className="w-4.5 h-4.5 border-2 border-white border-t-brand-teal rounded-full animate-spin" />
+                    <span>Sending Code...</span>
+                  </>
+                ) : (
+                  <>
+                    <i className="fa-solid fa-paper-plane w-4 h-4"></i>
+                    <span>Send Verification Code</span>
+                  </>
+                )}
+              </button>
+            )}
           </form>
 
           {/* Divider */}
@@ -1491,9 +1787,8 @@ export default function Home() {
           <button 
             type="button" 
             onClick={() => {
-              setGoogleCustomRole('ADMIN');
-              setShowGoogleModal(true);
               setSignupError(null);
+              window.location.href = '/api/auth/google';
             }} 
             className="w-full py-3 border border-gray-200 hover:border-gray-300 bg-white hover:bg-gray-50 text-gray-600 font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-sm active:scale-95 cursor-pointer flex items-center justify-center gap-2.5"
           >
@@ -1620,6 +1915,9 @@ export default function Home() {
   }
   if (viewState === 'signup') {
     return renderSignupScreen();
+  }
+  if (viewState === 'forgot_password') {
+    return renderForgotPasswordScreen();
   }
   if (viewState === 'role_select' || viewState === 'login') {
     return renderLoginScreen();
