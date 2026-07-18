@@ -31,7 +31,8 @@ export async function POST(request: Request) {
       longitude, 
       isOverride, 
       overrideReason,
-      mediaFiles 
+      mediaFiles,
+      handover
     } = await request.json();
 
     if (!shiftId) {
@@ -100,6 +101,7 @@ export async function POST(request: Request) {
         caregiverName: shift.caregiver.name,
         mediaUrls: generatedUrls,
         mediaFiles: mediaFiles || [],
+        handover: handover || null,
       };
 
       const encryptedLog = encrypt(JSON.stringify(logDetails));
@@ -221,6 +223,7 @@ export async function POST(request: Request) {
       caregiverName: shift.caregiver.name,
       mediaUrls: generatedUrls,
       mediaFiles: mediaFiles || [],
+      handover: handover || null,
     };
 
     const encryptedLog = encrypt(JSON.stringify(logDetails));

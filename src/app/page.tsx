@@ -204,6 +204,29 @@ export default function Home() {
   const [ptSecondaryRelation, setPtSecondaryRelation] = useState('');
   const [ptSecondaryPhone, setPtSecondaryPhone] = useState('');
 
+  // Caregiver Shift Handover Notes states (Form HCA-SH-01)
+  const [handoverIncomingCaregiver, setHandoverIncomingCaregiver] = useState('');
+  const [handoverSupervisorNotified, setHandoverSupervisorNotified] = useState(false);
+  const [handoverSupervisorName, setHandoverSupervisorName] = useState('');
+  const [handoverCareProvided, setHandoverCareProvided] = useState({
+    personalCare: false,
+    medicationGiven: false,
+    mealsPrepared: false,
+    mobilitySupport: false,
+    companionship: false,
+    housekeeping: false,
+    vitalSigns: false,
+    other: false,
+  });
+  const [handoverPhysicalStatus, setHandoverPhysicalStatus] = useState('Stable');
+  const [handoverMoodBehavior, setHandoverMoodBehavior] = useState('Calm');
+  const [handoverMedicationUpdate, setHandoverMedicationUpdate] = useState('All Given');
+  const [handoverMedNotes, setHandoverMedNotes] = useState('');
+  const [handoverImportantNotes, setHandoverImportantNotes] = useState('');
+  const [handoverIncidents, setHandoverIncidents] = useState(false);
+  const [handoverIncidentDetails, setHandoverIncidentDetails] = useState('');
+  const [handoverSignature, setHandoverSignature] = useState('');
+
   // Google Sign-In Simulation States
   const [showGoogleModal, setShowGoogleModal] = useState(false);
   const [googleEmailInput, setGoogleEmailInput] = useState('');
@@ -818,6 +841,21 @@ export default function Home() {
           isOverride,
           overrideReason: isOverride ? clockOutOverrideReason : undefined,
           mediaFiles: selectedMediaFiles.map(f => ({ name: f.name, type: f.type })),
+          handover: {
+            incomingCaregiverId: handoverIncomingCaregiver,
+            supervisorNotified: handoverSupervisorNotified,
+            supervisorName: handoverSupervisorName,
+            careProvided: handoverCareProvided,
+            physicalStatus: handoverPhysicalStatus,
+            moodBehavior: handoverMoodBehavior,
+            medicationUpdate: handoverMedicationUpdate,
+            medicationNotes: handoverMedNotes,
+            importantNotesForNextShift: handoverImportantNotes,
+            incidentsOrConcerns: handoverIncidents,
+            incidentDetails: handoverIncidentDetails,
+            outgoingSignature: handoverSignature,
+            signedDate: new Date().toISOString(),
+          }
         }),
       });
 
@@ -834,6 +872,30 @@ export default function Home() {
         });
         setShowClockOutOverrideInput(false);
         setClockOutOverrideReason('');
+        
+        // Reset Shift Handover Notes states
+        setHandoverIncomingCaregiver('');
+        setHandoverSupervisorNotified(false);
+        setHandoverSupervisorName('');
+        setHandoverCareProvided({
+          personalCare: false,
+          medicationGiven: false,
+          mealsPrepared: false,
+          mobilitySupport: false,
+          companionship: false,
+          housekeeping: false,
+          vitalSigns: false,
+          other: false,
+        });
+        setHandoverPhysicalStatus('Stable');
+        setHandoverMoodBehavior('Calm');
+        setHandoverMedicationUpdate('All Given');
+        setHandoverMedNotes('');
+        setHandoverImportantNotes('');
+        setHandoverIncidents(false);
+        setHandoverIncidentDetails('');
+        setHandoverSignature('');
+        
         loadData();
       } else {
         setClockOutError(data.error);
@@ -3330,6 +3392,226 @@ export default function Home() {
                               </button>
                             </div>
 
+                            {/* Shift Handover notes Form (Form HCA-SH-01) */}
+                            <div className="bg-white border border-[#48c0b6]/30 p-6 rounded-2xl flex flex-col gap-5 mt-4">
+                              <div className="border-b border-gray-100 pb-3 flex justify-between items-center">
+                                <div>
+                                  <h4 className="font-extrabold text-xs text-brand-purple flex items-center gap-2 uppercase tracking-wide">
+                                    <i className="fa-solid fa-file-invoice text-[#48c0b6]"></i>
+                                    <span>Shift Handover Notes</span>
+                                  </h4>
+                                  <p className="text-[10px] text-gray-400 mt-0.5 uppercase font-bold">Form HCA-SH-01 &bull; Complete at End of Every Shift</p>
+                                </div>
+                                <span className="bg-[#48c0b6]/10 text-[#48c0b6] text-[9px] font-extrabold px-2.5 py-1 rounded border border-[#48c0b6]/20">Required for Sign-off</span>
+                              </div>
+
+                              {/* Form Fields: Auto-Populated Headers */}
+                              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-xs bg-gray-50/50 p-3.5 rounded-xl border border-gray-100 font-semibold text-gray-600">
+                                <div>
+                                  <span className="text-[8px] font-bold text-gray-400 uppercase block">Client Name</span>
+                                  <span className="text-gray-800 font-bold">{shift.client.name}</span>
+                                </div>
+                                <div>
+                                  <span className="text-[8px] font-bold text-gray-400 uppercase block">Outgoing Caregiver</span>
+                                  <span className="text-gray-800 font-bold">{user.name}</span>
+                                </div>
+                                <div>
+                                  <span className="text-[8px] font-bold text-gray-400 uppercase block">Shift Schedule</span>
+                                  <span className="text-brand-purple font-bold">Active Shift</span>
+                                </div>
+                              </div>
+
+                              {/* Dropdowns & Selects */}
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="flex flex-col gap-1.5">
+                                  <label className="text-[9px] font-extrabold text-gray-400 uppercase">Incoming Caregiver</label>
+                                  <select
+                                    value={handoverIncomingCaregiver}
+                                    onChange={(e) => setHandoverIncomingCaregiver(e.target.value)}
+                                    className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5 text-xs font-bold text-gray-700 focus:outline-none focus:border-brand-purple cursor-pointer"
+                                  >
+                                    <option value="">Select Incoming Caregiver...</option>
+                                    {caregivers
+                                      .filter(cg => cg.id !== user.id)
+                                      .map(cg => (
+                                        <option key={cg.id} value={cg.id}>{cg.name}</option>
+                                      ))
+                                    }
+                                  </select>
+                                </div>
+
+                                <div className="flex flex-col gap-1.5">
+                                  <div className="flex items-center justify-between">
+                                    <label className="text-[9px] font-extrabold text-gray-400 uppercase">Supervisor Notified?</label>
+                                    <button
+                                      type="button"
+                                      onClick={() => setHandoverSupervisorNotified(!handoverSupervisorNotified)}
+                                      className={`px-3 py-0.5 text-[9px] font-bold rounded transition-all ${
+                                        handoverSupervisorNotified ? 'bg-brand-teal text-brand-purple border border-brand-teal/20' : 'bg-gray-100 text-gray-400'
+                                      }`}
+                                    >
+                                      {handoverSupervisorNotified ? 'YES' : 'NO'}
+                                    </button>
+                                  </div>
+                                  {handoverSupervisorNotified && (
+                                    <input
+                                      type="text"
+                                      placeholder="Supervisor's Name"
+                                      value={handoverSupervisorName}
+                                      onChange={(e) => setHandoverSupervisorName(e.target.value)}
+                                      className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-brand-purple"
+                                    />
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Care Provided Checklist */}
+                              <div className="flex flex-col gap-2 border-t border-gray-100 pt-3">
+                                <span className="text-[9px] font-extrabold text-gray-400 uppercase">1. Care Provided This Shift</span>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-[10px] font-semibold text-gray-600">
+                                  {[
+                                    { key: 'personalCare', label: 'Personal Care' },
+                                    { key: 'medicationGiven', label: 'Medication Given' },
+                                    { key: 'mealsPrepared', label: 'Meals Prepared' },
+                                    { key: 'mobilitySupport', label: 'Mobility Support' },
+                                    { key: 'companionship', label: 'Companionship' },
+                                    { key: 'housekeeping', label: 'Housekeeping' },
+                                    { key: 'vitalSigns', label: 'Vital Signs' },
+                                    { key: 'other', label: 'Other' },
+                                  ].map(item => (
+                                    <label key={item.key} className="flex items-center gap-1.5 cursor-pointer hover:text-gray-900">
+                                      <input
+                                        type="checkbox"
+                                        checked={(handoverCareProvided as any)[item.key]}
+                                        onChange={(e) => setHandoverCareProvided({
+                                          ...handoverCareProvided,
+                                          [item.key]: e.target.checked,
+                                        })}
+                                        className="accent-brand-purple rounded"
+                                      />
+                                      <span>{item.label}</span>
+                                    </label>
+                                  ))}
+                                </div>
+                              </div>
+
+                              {/* Client Condition & Mood */}
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-gray-100 pt-3">
+                                <div className="flex flex-col gap-1.5">
+                                  <label className="text-[9px] font-extrabold text-gray-400 uppercase">2. Physical Status</label>
+                                  <select
+                                    value={handoverPhysicalStatus}
+                                    onChange={(e) => setHandoverPhysicalStatus(e.target.value)}
+                                    className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5 text-xs font-bold text-gray-700 focus:outline-none focus:border-brand-purple cursor-pointer"
+                                  >
+                                    <option value="Stable">Stable</option>
+                                    <option value="Improving">Improving</option>
+                                    <option value="Declining">Declining</option>
+                                  </select>
+                                </div>
+
+                                <div className="flex flex-col gap-1.5">
+                                  <label className="text-[9px] font-extrabold text-gray-400 uppercase">3. Mood / Behavior</label>
+                                  <select
+                                    value={handoverMoodBehavior}
+                                    onChange={(e) => setHandoverMoodBehavior(e.target.value)}
+                                    className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5 text-xs font-bold text-gray-700 focus:outline-none focus:border-brand-purple cursor-pointer"
+                                  >
+                                    <option value="Calm">Calm</option>
+                                    <option value="Anxious">Anxious</option>
+                                    <option value="Irritable">Irritable</option>
+                                    <option value="Confused">Confused</option>
+                                  </select>
+                                </div>
+                              </div>
+
+                              {/* Medication Update */}
+                              <div className="border-t border-gray-100 pt-3 flex flex-col gap-3">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                                  <div className="flex flex-col gap-1.5">
+                                    <label className="text-[9px] font-extrabold text-gray-400 uppercase">4. Medication Update</label>
+                                    <select
+                                      value={handoverMedicationUpdate}
+                                      onChange={(e) => setHandoverMedicationUpdate(e.target.value)}
+                                      className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5 text-xs font-bold text-gray-700 focus:outline-none focus:border-brand-purple cursor-pointer"
+                                    >
+                                      <option value="All Given">All Given</option>
+                                      <option value="Missed Dose">Missed Dose</option>
+                                      <option value="Refused">Refused</option>
+                                    </select>
+                                  </div>
+                                  <div className="flex flex-col gap-1.5">
+                                    <label className="text-[9px] font-extrabold text-gray-400 uppercase">Medication Notes</label>
+                                    <input
+                                      type="text"
+                                      placeholder="e.g. details of refusal or dosage notes"
+                                      value={handoverMedNotes}
+                                      onChange={(e) => setHandoverMedNotes(e.target.value)}
+                                      className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-brand-purple"
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Important Notes for Next Shift */}
+                              <div className="border-t border-gray-100 pt-3 flex flex-col gap-1.5">
+                                <label className="text-[9px] font-extrabold text-gray-400 uppercase">5. Important Notes for Next Shift</label>
+                                <textarea
+                                  rows={2}
+                                  placeholder="What does the next caregiver need to know?"
+                                  value={handoverImportantNotes}
+                                  onChange={(e) => setHandoverImportantNotes(e.target.value)}
+                                  className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-brand-purple"
+                                />
+                              </div>
+
+                              {/* Incidents / Concerns */}
+                              <div className="border-t border-gray-100 pt-3 flex flex-col gap-2.5">
+                                <div className="flex items-center justify-between">
+                                  <label className="text-[9px] font-extrabold text-gray-400 uppercase">6. Incidents / Concerns?</label>
+                                  <button
+                                    type="button"
+                                    onClick={() => setHandoverIncidents(!handoverIncidents)}
+                                    className={`px-3 py-0.5 text-[9px] font-bold rounded transition-all ${
+                                      handoverIncidents ? 'bg-rose-500 text-white shadow-sm' : 'bg-gray-100 text-gray-400'
+                                    }`}
+                                  >
+                                    {handoverIncidents ? 'YES' : 'NO'}
+                                  </button>
+                                </div>
+                                {handoverIncidents && (
+                                  <textarea
+                                    rows={2}
+                                    placeholder="Describe physical injury, refusal of food, safety alerts..."
+                                    value={handoverIncidentDetails}
+                                    onChange={(e) => setHandoverIncidentDetails(e.target.value)}
+                                    className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-brand-purple animate-fade-in"
+                                  />
+                                )}
+                              </div>
+
+                              {/* Outgoing Signature Sign-off */}
+                              <div className="border-t border-gray-100 pt-3 flex flex-col gap-2.5">
+                                <span className="text-[9px] font-extrabold text-gray-400 uppercase block">7. Caregiver Sign-off Verification</span>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  <div className="flex flex-col gap-1.5">
+                                    <label className="text-[9px] font-bold text-gray-400 uppercase">Outgoing Caregiver Signature (Type Full Name)</label>
+                                    <input
+                                      type="text"
+                                      placeholder="Type your signature name to sign"
+                                      value={handoverSignature}
+                                      onChange={(e) => setHandoverSignature(e.target.value)}
+                                      className="bg-gray-50 border border-[#48c0b6]/30 rounded-xl px-3 py-2 text-xs font-mono font-bold focus:outline-none focus:border-[#48c0b6]"
+                                    />
+                                  </div>
+                                  <div className="flex flex-col gap-1.5 bg-gray-50/50 p-2.5 rounded-xl border border-gray-100 justify-center">
+                                    <span className="text-[9px] font-bold text-gray-400 uppercase">Sign-Off Date & Time</span>
+                                    <span className="text-xs font-bold text-gray-700 mt-0.5">{new Date().toLocaleString()}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
                             {/* Clock-out Remarks & Trigger */}
                             <div className="flex flex-col gap-4 border-t border-gray-100 pt-6 mt-4">
                               <div className="flex flex-col gap-1">
@@ -3345,11 +3627,17 @@ export default function Home() {
 
                               <button 
                                 onClick={() => handleClockOut(shift.id, false)}
-                                className="py-3 bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+                                disabled={!handoverSignature.trim()}
+                                className="py-3.5 bg-rose-600 hover:bg-rose-700 disabled:bg-gray-100 disabled:text-gray-400 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
                               >
                                 <i className="fa-solid fa-circle-check w-4 h-4"></i>
                                 <span>Complete Shift & Clock-Out</span>
                               </button>
+                              {!handoverSignature.trim() && (
+                                <p className="text-[10px] text-rose-500 font-bold text-center mt-1">
+                                  ⚠️ You must sign the handover form above before you can clock out.
+                                </p>
+                              )}
                             </div>
                           </div>              </div>
                         )}
