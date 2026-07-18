@@ -31,13 +31,14 @@ enum PodRole {
 }
 
 model User {
-  id           String        @id @default(uuid())
-  email        String        @unique
-  passwordHash String
-  name         String
-  role         UserRole
-  phoneNumber  String?
-  createdAt    DateTime      @default(now())
+  id              String        @id @default(uuid())
+  email           String        @unique
+  passwordHash    String
+  name            String
+  role            UserRole
+  phoneNumber     String?
+  createdAt       DateTime      @default(now())
+  profileMetadata String?       // JSON-serialized string of additional intake/job details
   
   // Relations
   podAssignments CaregiverPod[]
@@ -56,6 +57,7 @@ model Client {
   longitude           Float
   geofenceRadiusMeter Int           @default(150) // Default 150m radius
   createdAt           DateTime      @default(now())
+  profileMetadata     String?       // JSON-serialized string of additional patient details
 
   // Relations
   caregiverPods  CaregiverPod[]

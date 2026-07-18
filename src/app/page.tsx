@@ -168,6 +168,42 @@ export default function Home() {
   const [signupError, setSignupError] = useState<string | null>(null);
   const [isSigningUp, setIsSigningUp] = useState(false);
 
+  // Caregiver Job Application Details
+  const [cgDob, setCgDob] = useState('');
+  const [cgGender, setCgGender] = useState('Female');
+  const [cgNationality, setCgNationality] = useState('');
+  const [cgIdPassport, setCgIdPassport] = useState('');
+  const [cgAddress, setCgAddress] = useState('');
+  const [cgCity, setCgCity] = useState('');
+  const [cgState, setCgState] = useState('');
+  const [cgZip, setCgZip] = useState('');
+  const [cgPosition, setCgPosition] = useState('Caregiver');
+  const [cgEmploymentType, setCgEmploymentType] = useState('Full-Time');
+  const [cgDaysAvailable, setCgDaysAvailable] = useState<Record<string, boolean>>({
+    Mon: true, Tue: true, Wed: true, Thu: true, Fri: true, Sat: false, Sun: false
+  });
+  const [cgPreferredShifts, setCgPreferredShifts] = useState<Record<string, boolean>>({
+    Morning: true, Afternoon: true, Evening: false, Overnight: false
+  });
+  const [cgHoursPerWeek, setCgHoursPerWeek] = useState('40');
+  const [cgCanTravel, setCgCanTravel] = useState(true);
+  const [cgTravelDistance, setCgTravelDistance] = useState('25 miles');
+
+  // Patient Admission Details
+  const [ptDob, setPtDob] = useState('');
+  const [ptGender, setPtGender] = useState('Female');
+  const [ptLanguage, setPtLanguage] = useState('English');
+  const [ptCity, setPtCity] = useState('');
+  const [ptState, setPtState] = useState('');
+  const [ptZip, setPtZip] = useState('');
+  const [ptPrimaryName, setPtPrimaryName] = useState('');
+  const [ptPrimaryRelation, setPtPrimaryRelation] = useState('');
+  const [ptPrimaryPhone, setPtPrimaryPhone] = useState('');
+  const [ptPrimaryEmail, setPtPrimaryEmail] = useState('');
+  const [ptSecondaryName, setPtSecondaryName] = useState('');
+  const [ptSecondaryRelation, setPtSecondaryRelation] = useState('');
+  const [ptSecondaryPhone, setPtSecondaryPhone] = useState('');
+
   // Google Sign-In Simulation States
   const [showGoogleModal, setShowGoogleModal] = useState(false);
   const [googleEmailInput, setGoogleEmailInput] = useState('');
@@ -376,15 +412,48 @@ export default function Home() {
           phoneNumber: signupPhone,
           role: signupRole,
           code: signupVerificationCode,
+
+          // Caregiver Job Details
+          dob: signupRole === 'CAREGIVER' ? cgDob : undefined,
+          gender: signupRole === 'CAREGIVER' ? cgGender : undefined,
+          nationality: signupRole === 'CAREGIVER' ? cgNationality : undefined,
+          idPassport: signupRole === 'CAREGIVER' ? cgIdPassport : undefined,
+          address: signupRole === 'CAREGIVER' ? cgAddress : undefined,
+          city: signupRole === 'CAREGIVER' ? cgCity : undefined,
+          state: signupRole === 'CAREGIVER' ? cgState : undefined,
+          zip: signupRole === 'CAREGIVER' ? cgZip : undefined,
+          positionApplying: signupRole === 'CAREGIVER' ? cgPosition : undefined,
+          employmentType: signupRole === 'CAREGIVER' ? cgEmploymentType : undefined,
+          daysAvailable: signupRole === 'CAREGIVER' ? Object.keys(cgDaysAvailable).filter(k => cgDaysAvailable[k]) : undefined,
+          preferredShifts: signupRole === 'CAREGIVER' ? Object.keys(cgPreferredShifts).filter(k => cgPreferredShifts[k]) : undefined,
+          hoursPerWeek: signupRole === 'CAREGIVER' ? parseInt(cgHoursPerWeek) || 40 : undefined,
+          canTravel: signupRole === 'CAREGIVER' ? cgCanTravel : undefined,
+          travelDistance: signupRole === 'CAREGIVER' ? cgTravelDistance : undefined,
+
+          // Patient Admission Details
           patientName: signupRole === 'CLIENT' ? patientName : undefined,
           patientAddress: signupRole === 'CLIENT' ? patientAddress : undefined,
           patientLatitude: signupRole === 'CLIENT' ? parseFloat(patientLat) : undefined,
           patientLongitude: signupRole === 'CLIENT' ? parseFloat(patientLng) : undefined,
           careNeeds: signupRole === 'CLIENT' ? signupCareNeeds : undefined,
           medicalHistory: signupRole === 'CLIENT' ? signupHistory : undefined,
-          emergencyName: signupRole === 'CLIENT' ? signupEmergencyName : undefined,
-          emergencyPhone: signupRole === 'CLIENT' ? signupEmergencyPhone : undefined,
-          emergencyRelation: signupRole === 'CLIENT' ? signupEmergencyRelation : undefined,
+          patientDob: signupRole === 'CLIENT' ? ptDob : undefined,
+          patientGender: signupRole === 'CLIENT' ? ptGender : undefined,
+          patientLanguage: signupRole === 'CLIENT' ? ptLanguage : undefined,
+          patientCity: signupRole === 'CLIENT' ? ptCity : undefined,
+          patientState: signupRole === 'CLIENT' ? ptState : undefined,
+          patientZip: signupRole === 'CLIENT' ? ptZip : undefined,
+          primaryEmergency: signupRole === 'CLIENT' ? {
+            name: ptPrimaryName,
+            relationship: ptPrimaryRelation,
+            phone: ptPrimaryPhone,
+            email: ptPrimaryEmail,
+          } : undefined,
+          secondaryEmergency: signupRole === 'CLIENT' ? {
+            name: ptSecondaryName,
+            relationship: ptSecondaryRelation,
+            phone: ptSecondaryPhone,
+          } : undefined,
         }),
       });
 
@@ -408,6 +477,24 @@ export default function Home() {
         setSignupEmergencyName('');
         setSignupEmergencyPhone('');
         setSignupEmergencyRelation('');
+        setCgDob('');
+        setCgNationality('');
+        setCgIdPassport('');
+        setCgAddress('');
+        setCgCity('');
+        setCgState('');
+        setCgZip('');
+        setPtDob('');
+        setPtCity('');
+        setPtState('');
+        setPtZip('');
+        setPtPrimaryName('');
+        setPtPrimaryRelation('');
+        setPtPrimaryPhone('');
+        setPtPrimaryEmail('');
+        setPtSecondaryName('');
+        setPtSecondaryRelation('');
+        setPtSecondaryPhone('');
         setSignupCareNeeds({
           medication: false,
           mobility: false,
@@ -1523,31 +1610,318 @@ export default function Home() {
               />
             </div>
 
-            {/* Optional Patient Profile section for Clients */}
-            {signupRole === 'CLIENT' && (
+            {/* Caregiver Job Application Details */}
+            {signupRole === 'CAREGIVER' && (
               <div className="border-t border-dashed border-gray-100 pt-4 mt-2 flex flex-col gap-3">
-                <span className="text-[10px] font-extrabold text-brand-purple uppercase tracking-wider block">Patient / Recipient Profile Details (Optional)</span>
+                <span className="text-[10px] font-extrabold text-brand-purple uppercase tracking-wider block">Caregiver Job Application Details</span>
                 
-                <div className="flex flex-col gap-1">
-                  <label className="text-[9px] font-bold text-gray-400 uppercase">Patient Name</label>
-                  <input 
-                    type="text"
-                    placeholder="e.g. Sarah Jenkins"
-                    value={patientName}
-                    onChange={(e) => setPatientName(e.target.value)}
-                    className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-brand-purple"
-                  />
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[9px] font-bold text-gray-400 uppercase">Date of Birth</label>
+                    <input 
+                      type="date"
+                      required
+                      value={cgDob}
+                      onChange={(e) => setCgDob(e.target.value)}
+                      className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-brand-purple"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[9px] font-bold text-gray-400 uppercase">Gender</label>
+                    <select 
+                      value={cgGender}
+                      onChange={(e) => setCgGender(e.target.value)}
+                      className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-brand-purple cursor-pointer"
+                    >
+                      <option value="Female">Female</option>
+                      <option value="Male">Male</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[9px] font-bold text-gray-400 uppercase">Nationality</label>
+                    <input 
+                      type="text"
+                      required
+                      placeholder="e.g. Canadian"
+                      value={cgNationality}
+                      onChange={(e) => setCgNationality(e.target.value)}
+                      className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-brand-purple"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[9px] font-bold text-gray-400 uppercase">ID / Passport No.</label>
+                    <input 
+                      type="text"
+                      required
+                      placeholder="e.g. AB123456"
+                      value={cgIdPassport}
+                      onChange={(e) => setCgIdPassport(e.target.value)}
+                      className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-brand-purple"
+                    />
+                  </div>
                 </div>
 
                 <div className="flex flex-col gap-1">
                   <label className="text-[9px] font-bold text-gray-400 uppercase">Home Address</label>
                   <input 
                     type="text"
-                    placeholder="e.g. 850 W Georgia St, Vancouver, BC"
+                    required
+                    placeholder="123 Main St"
+                    value={cgAddress}
+                    onChange={(e) => setCgAddress(e.target.value)}
+                    className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-brand-purple"
+                  />
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[9px] font-bold text-gray-400 uppercase">City</label>
+                    <input 
+                      type="text"
+                      required
+                      placeholder="Vancouver"
+                      value={cgCity}
+                      onChange={(e) => setCgCity(e.target.value)}
+                      className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-brand-purple"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[9px] font-bold text-gray-400 uppercase">State</label>
+                    <input 
+                      type="text"
+                      required
+                      placeholder="BC"
+                      value={cgState}
+                      onChange={(e) => setCgState(e.target.value)}
+                      className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-brand-purple"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[9px] font-bold text-gray-400 uppercase">Zip Code</label>
+                    <input 
+                      type="text"
+                      required
+                      placeholder="V6B 2Y1"
+                      value={cgZip}
+                      onChange={(e) => setCgZip(e.target.value)}
+                      className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-brand-purple"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 border-t border-gray-100 pt-3">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[9px] font-bold text-gray-400 uppercase">Position Applying For</label>
+                    <input 
+                      type="text"
+                      required
+                      placeholder="Caregiver"
+                      value={cgPosition}
+                      onChange={(e) => setCgPosition(e.target.value)}
+                      className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-brand-purple"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[9px] font-bold text-gray-400 uppercase">Employment Type</label>
+                    <select 
+                      value={cgEmploymentType}
+                      onChange={(e) => setCgEmploymentType(e.target.value)}
+                      className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-brand-purple cursor-pointer"
+                    >
+                      <option value="Full-Time">Full-Time</option>
+                      <option value="Part-Time">Part-Time</option>
+                      <option value="Live-In">Live-In</option>
+                      <option value="Temporary / Relief">Temporary / Relief</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Availability checks */}
+                <div className="border-t border-gray-100 pt-3 flex flex-col gap-2">
+                  <span className="text-[9px] font-bold text-gray-400 uppercase block">Days Available</span>
+                  <div className="flex flex-wrap gap-2">
+                    {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
+                      <label key={day} className="flex items-center gap-1 text-[11px] font-semibold text-gray-600 hover:text-gray-900 cursor-pointer">
+                        <input 
+                          type="checkbox"
+                          checked={cgDaysAvailable[day]}
+                          onChange={(e) => setCgDaysAvailable({ ...cgDaysAvailable, [day]: e.target.checked })}
+                          className="accent-brand-purple rounded"
+                        />
+                        <span>{day}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 pt-2">
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-[9px] font-bold text-gray-400 uppercase block">Preferred Shifts</span>
+                    <div className="grid grid-cols-2 gap-1.5 text-[10px] font-semibold text-gray-600">
+                      {['Morning', 'Afternoon', 'Evening', 'Overnight'].map(shift => (
+                        <label key={shift} className="flex items-center gap-1 cursor-pointer">
+                          <input 
+                            type="checkbox"
+                            checked={cgPreferredShifts[shift]}
+                            onChange={(e) => setCgPreferredShifts({ ...cgPreferredShifts, [shift]: e.target.checked })}
+                            className="accent-brand-purple rounded"
+                          />
+                          <span>{shift}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[9px] font-bold text-gray-400 uppercase">Hours Per Week</label>
+                    <input 
+                      type="number"
+                      required
+                      value={cgHoursPerWeek}
+                      onChange={(e) => setCgHoursPerWeek(e.target.value)}
+                      className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-brand-purple"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 pt-2 border-t border-gray-100">
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="text-[9px] font-bold text-gray-400 uppercase">Can Travel?</span>
+                    <button 
+                      type="button"
+                      onClick={() => setCgCanTravel(!cgCanTravel)}
+                      className={`px-3 py-1 text-[10px] font-bold rounded-lg transition-all ${
+                        cgCanTravel ? 'bg-brand-teal text-brand-purple' : 'bg-gray-100 text-gray-400'
+                      }`}
+                    >
+                      {cgCanTravel ? 'Yes' : 'No'}
+                    </button>
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[9px] font-bold text-gray-400 uppercase">Travel Area / Distance</label>
+                    <input 
+                      type="text"
+                      placeholder="e.g. 25 miles"
+                      value={cgTravelDistance}
+                      onChange={(e) => setCgTravelDistance(e.target.value)}
+                      className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-brand-purple"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Optional Patient Profile section for Clients */}
+            {signupRole === 'CLIENT' && (
+              <div className="border-t border-dashed border-gray-100 pt-4 mt-2 flex flex-col gap-3">
+                <span className="text-[10px] font-extrabold text-brand-purple uppercase tracking-wider block">Patient / Recipient Profile Details</span>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[9px] font-bold text-gray-400 uppercase">Patient Name</label>
+                    <input 
+                      type="text"
+                      required
+                      placeholder="e.g. Sarah Jenkins"
+                      value={patientName}
+                      onChange={(e) => setPatientName(e.target.value)}
+                      className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-brand-purple"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[9px] font-bold text-gray-400 uppercase">Date of Birth</label>
+                    <input 
+                      type="date"
+                      required
+                      value={ptDob}
+                      onChange={(e) => setPtDob(e.target.value)}
+                      className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-brand-purple"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[9px] font-bold text-gray-400 uppercase">Gender</label>
+                    <select 
+                      value={ptGender}
+                      onChange={(e) => setPtGender(e.target.value)}
+                      className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-brand-purple cursor-pointer"
+                    >
+                      <option value="Female">Female</option>
+                      <option value="Male">Male</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[9px] font-bold text-gray-400 uppercase">Preferred Language</label>
+                    <input 
+                      type="text"
+                      required
+                      placeholder="e.g. English"
+                      value={ptLanguage}
+                      onChange={(e) => setPtLanguage(e.target.value)}
+                      className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-brand-purple"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-[9px] font-bold text-gray-400 uppercase">Home Address</label>
+                  <input 
+                    type="text"
+                    required
+                    placeholder="e.g. 850 W Georgia St"
                     value={patientAddress}
                     onChange={(e) => setPatientAddress(e.target.value)}
                     className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-brand-purple"
                   />
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[9px] font-bold text-gray-400 uppercase">City</label>
+                    <input 
+                      type="text"
+                      required
+                      placeholder="Vancouver"
+                      value={ptCity}
+                      onChange={(e) => setPtCity(e.target.value)}
+                      className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-brand-purple"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[9px] font-bold text-gray-400 uppercase">State</label>
+                    <input 
+                      type="text"
+                      required
+                      placeholder="BC"
+                      value={ptState}
+                      onChange={(e) => setPtState(e.target.value)}
+                      className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-brand-purple"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[9px] font-bold text-gray-400 uppercase">ZIP Code</label>
+                    <input 
+                      type="text"
+                      required
+                      placeholder="V6B 2Y1"
+                      value={ptZip}
+                      onChange={(e) => setPtZip(e.target.value)}
+                      className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-brand-purple"
+                    />
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -1573,40 +1947,100 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* Emergency Contact */}
+                {/* Primary Emergency Contact */}
                 <div className="border-t border-gray-100 pt-3 flex flex-col gap-3">
                   <span className="text-[9px] font-extrabold text-brand-purple uppercase tracking-wider block">Primary Emergency Contact</span>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[9px] font-bold text-gray-400 uppercase">Contact Name</label>
-                    <input 
-                      type="text" 
-                      placeholder="e.g. Mary Jenkins"
-                      value={signupEmergencyName}
-                      onChange={(e) => setSignupEmergencyName(e.target.value)}
-                      className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-brand-purple"
-                    />
-                  </div>
+                  
                   <div className="grid grid-cols-2 gap-3">
                     <div className="flex flex-col gap-1">
-                      <label className="text-[9px] font-bold text-gray-400 uppercase">Phone</label>
+                      <label className="text-[9px] font-bold text-gray-400 uppercase">Contact Name</label>
                       <input 
                         type="text" 
-                        placeholder="+16045550299"
-                        value={signupEmergencyPhone}
-                        onChange={(e) => setSignupEmergencyPhone(e.target.value)}
-                        className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-brand-purple"
+                        required
+                        placeholder="Mary Jenkins"
+                        value={ptPrimaryName}
+                        onChange={(e) => setPtPrimaryName(e.target.value)}
+                        className="bg-gray-50 border border-gray-100 rounded-xl px-3.5 py-2 text-xs font-semibold focus:outline-none focus:border-brand-purple"
                       />
                     </div>
                     <div className="flex flex-col gap-1">
                       <label className="text-[9px] font-bold text-gray-400 uppercase">Relationship</label>
                       <input 
                         type="text" 
-                        placeholder="e.g. Daughter"
-                        value={signupEmergencyRelation}
-                        onChange={(e) => setSignupEmergencyRelation(e.target.value)}
-                        className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-brand-purple"
+                        required
+                        placeholder="Daughter"
+                        value={ptPrimaryRelation}
+                        onChange={(e) => setPtPrimaryRelation(e.target.value)}
+                        className="bg-gray-50 border border-gray-100 rounded-xl px-3.5 py-2 text-xs font-semibold focus:outline-none focus:border-brand-purple"
                       />
                     </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[9px] font-bold text-gray-400 uppercase">Phone Number</label>
+                      <input 
+                        type="text" 
+                        required
+                        placeholder="+16045550299"
+                        value={ptPrimaryPhone}
+                        onChange={(e) => setPtPrimaryPhone(e.target.value)}
+                        className="bg-gray-50 border border-gray-100 rounded-xl px-3.5 py-2 text-xs font-semibold focus:outline-none focus:border-brand-purple"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[9px] font-bold text-gray-400 uppercase">Email Address</label>
+                      <input 
+                        type="email" 
+                        required
+                        placeholder="mary@example.com"
+                        value={ptPrimaryEmail}
+                        onChange={(e) => setPtPrimaryEmail(e.target.value)}
+                        className="bg-gray-50 border border-gray-100 rounded-xl px-3.5 py-2 text-xs font-semibold focus:outline-none focus:border-brand-purple"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Secondary Emergency Contact */}
+                <div className="border-t border-gray-100 pt-3 flex flex-col gap-3">
+                  <span className="text-[9px] font-extrabold text-brand-purple uppercase tracking-wider block">Secondary Emergency Contact</span>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[9px] font-bold text-gray-400 uppercase">Contact Name</label>
+                      <input 
+                        type="text" 
+                        required
+                        placeholder="John Jenkins"
+                        value={ptSecondaryName}
+                        onChange={(e) => setPtSecondaryName(e.target.value)}
+                        className="bg-gray-50 border border-gray-100 rounded-xl px-3.5 py-2 text-xs font-semibold focus:outline-none focus:border-brand-purple"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[9px] font-bold text-gray-400 uppercase">Relationship</label>
+                      <input 
+                        type="text" 
+                        required
+                        placeholder="Son"
+                        value={ptSecondaryRelation}
+                        onChange={(e) => setPtSecondaryRelation(e.target.value)}
+                        className="bg-gray-50 border border-gray-100 rounded-xl px-3.5 py-2 text-xs font-semibold focus:outline-none focus:border-brand-purple"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[9px] font-bold text-gray-400 uppercase">Phone Number</label>
+                    <input 
+                      type="text" 
+                      required
+                      placeholder="+16045550399"
+                      value={ptSecondaryPhone}
+                      onChange={(e) => setPtSecondaryPhone(e.target.value)}
+                      className="bg-gray-50 border border-gray-100 rounded-xl px-3.5 py-2 text-xs font-semibold focus:outline-none focus:border-brand-purple"
+                    />
                   </div>
                 </div>
 

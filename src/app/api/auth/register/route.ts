@@ -12,15 +12,39 @@ export async function POST(request: Request) {
       phoneNumber, 
       role,
       code,
+      
+      // Caregiver Job Application Details
+      dob,
+      gender,
+      nationality,
+      idPassport,
+      address,
+      city,
+      state,
+      zip,
+      positionApplying,
+      employmentType,
+      daysAvailable,
+      preferredShifts,
+      hoursPerWeek,
+      canTravel,
+      travelDistance,
+
+      // Patient Admission Details
       patientName,
       patientAddress,
       patientLatitude,
       patientLongitude,
       careNeeds,
       medicalHistory,
-      emergencyName,
-      emergencyPhone,
-      emergencyRelation
+      patientDob,
+      patientGender,
+      patientLanguage,
+      patientCity,
+      patientState,
+      patientZip,
+      primaryEmergency,
+      secondaryEmergency
     } = await request.json();
 
     if (!email || !password || !name || !code) {
@@ -71,6 +95,25 @@ export async function POST(request: Request) {
       finalRole = UserRole.FAMILY_MEMBER;
     }
 
+    // Package extra caregiver job details into metadata field
+    const caregiverMetadata = finalRole === UserRole.CAREGIVER ? JSON.stringify({
+      dob,
+      gender,
+      nationality,
+      idPassport,
+      address,
+      city,
+      state,
+      zip,
+      positionApplying,
+      employmentType,
+      daysAvailable,
+      preferredShifts,
+      hoursPerWeek,
+      canTravel,
+      travelDistance,
+    }) : null;
+
     // Create new user record
     const user = await prisma.user.create({
       data: {
@@ -79,6 +122,7 @@ export async function POST(request: Request) {
         name,
         role: finalRole,
         phoneNumber: phoneNumber || '+16045550199',
+        profileMetadata: caregiverMetadata,
       },
     });
 
@@ -159,6 +203,18 @@ export async function POST(request: Request) {
       let targetClientId: string | null = null;
 
       if (patientName && patientAddress) {
+        // Package extra client details into metadata field
+        const clientMetadata = JSON.stringify({
+          dob: patientDob,
+          gender: patientGender,
+          preferredLanguage: patientLanguage,
+          city: patientCity,
+          state: patientState,
+          zip: patientZip,
+          primaryEmergency,
+          secondaryEmergency,
+        });
+
         // Create custom patient profile from signup fields
         const client = await prisma.client.create({
           data: {
@@ -167,6 +223,7 @@ export async function POST(request: Request) {
             latitude: parseFloat(patientLatitude) || 49.2827,
             longitude: parseFloat(patientLongitude) || -123.1207,
             geofenceRadiusMeter: 150,
+            profileMetadata: clientMetadata,
           },
         });
         targetClientId = client.id;
