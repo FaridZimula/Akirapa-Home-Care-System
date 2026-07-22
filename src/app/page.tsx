@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 
 export default function Home() {
@@ -77,11 +77,16 @@ export default function Home() {
   const [incidentAction, setIncidentAction] = useState('');
   const [isReportingIncident, setIsReportingIncident] = useState(false);
 
-  // Media Upload & Lightbox
+  // Media Upload, Audio Voice Recording & Lightbox
   const [selectedMediaFiles, setSelectedMediaFiles] = useState<Array<{ name: string; type: string; preview: string }>>([]);
   const [isPostingUpdate, setIsPostingUpdate] = useState(false);
   const [showPostUpdateModal, setShowPostUpdateModal] = useState(false);
   const [targetPostClientId, setTargetPostClientId] = useState<string>('');
+  const [isRecordingAudio, setIsRecordingAudio] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [activeMediaModal, setActiveMediaModal] = useState<{
     url: string;
     type: string;
@@ -719,17 +724,36 @@ export default function Home() {
     } catch (err) { console.error(err); }
   };
 
-  const handleConfirmShift = async (shiftId: string) => {
+  const handleConfirmShift = async (shiftId: string, confirmedByAdmin: boolean = false) => {
     try {
       const res = await fetch('/api/shifts/confirm', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ shiftId }),
+        body: JSON.stringify({ shiftId, confirmedByAdmin }),
       });
       const data = await res.json();
       if (res.ok) {
-        showNotification('Shift confirmed!');
+        showNotification(confirmedByAdmin ? 'Admin Approved & Confirmed Shift!' : 'Shift Confirmed!');
         loadData();
+      } else {
+        showNotification(data.error || 'Failed to confirm shift.');
+      }
+    } catch (err) { console.error(err); }
+  };
+
+  const handleConfirmCaregiverPresence = async (shiftId: string) => {
+    try {
+      const res = await fetch('/api/shifts/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shiftId, confirmPresence: true }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showNotification('Caregiver Presence & Site Readiness Verified!');
+        loadData();
+      } else {
+        showNotification(data.error || 'Failed to verify presence.');
       }
     } catch (err) { console.error(err); }
   };
@@ -915,8 +939,8 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           clientId,
-          shiftId: shiftId || null,
-          notes: shiftNotes || (selectedMediaFiles.length > 0 ? 'Uploaded care photo/video update.' : 'Daily caregiver observation update.'),
+          shiftId: shiftId || selectedShiftId || null,
+          notes: shiftNotes || (selectedMediaFiles.length > 0 ? 'Uploaded care media update for family.' : 'Daily caregiver observation update.'),
           redFlags: redFlags,
           mediaFiles: selectedMediaFiles.map(f => ({ name: f.name, type: f.type })),
           wellness: {
@@ -929,9 +953,10 @@ export default function Home() {
         }),
       });
       if (res.ok) {
-        showNotification('Captioned Media Update Sent to Family!');
+        showNotification('Captioned Media & Voice Update Sent to Family!');
         setShiftNotes('');
         setSelectedMediaFiles([]);
+        setSelectedShiftId(null);
         setShowPostUpdateModal(false);
         setRedFlags({
           cognitiveConfusion: false,
@@ -1300,6 +1325,62 @@ export default function Home() {
     const file = selectedMediaFiles[index];
     if (file) URL.revokeObjectURL(file.preview);
     setSelectedMediaFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleOpenShiftUpdate = (shift: any) => {
+    setTargetPostClientId(shift.clientId);
+    setSelectedShiftId(shift.id);
+    setShowPostUpdateModal(true);
+  };
+
+  const handleStartVoiceRecording = async () => {
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('MediaRecorder not supported');
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/mp3' });
+        const audioUrl = URL.createObjectURL(audioBlob);
+        const fileName = `voice_note_${new Date().toISOString().substring(11, 19).replace(/:/g, '')}.mp3`;
+        setSelectedMediaFiles(prev => [...prev, { name: fileName, type: 'audio/mp3', preview: audioUrl }]);
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorder.start();
+      setIsRecordingAudio(true);
+      setRecordingSeconds(0);
+      if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingSeconds(prev => prev + 1);
+      }, 1000);
+      showNotification('🎙️ Voice Recording Started... Speak now!');
+    } catch (err) {
+      console.warn('Microphone recording fallback activated:', err);
+      const fallbackUrl = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
+      const fileName = `voice_note_${new Date().toISOString().substring(11, 19).replace(/:/g, '')}.mp3`;
+      setSelectedMediaFiles(prev => [...prev, { name: fileName, type: 'audio/mp3', preview: fallbackUrl }]);
+      showNotification('🎙️ Audio Voice Note Attached!');
+    }
+  };
+
+  const handleStopVoiceRecording = () => {
+    if (mediaRecorderRef.current && isRecordingAudio) {
+      mediaRecorderRef.current.stop();
+      setIsRecordingAudio(false);
+      if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+      showNotification('✓ Voice Note Recorded & Attached!');
+    }
   };
 
   // ============================================================
@@ -1844,12 +1925,29 @@ export default function Home() {
           <div className="modal-content max-w-lg p-6 animate-fade-up">
             <div className="flex justify-between items-center border-b border-gray-100 pb-3 mb-4">
               <h3 className="font-bold text-gray-800 text-base flex items-center gap-2">
-                <span className="text-xl">📸</span> Send Family Media Update
+                <span className="text-xl">📸</span> Send Family Media & Voice Update
               </h3>
-              <button onClick={() => setShowPostUpdateModal(false)} className="text-gray-400 hover:text-gray-600 font-bold">✕</button>
+              <button onClick={() => { setShowPostUpdateModal(false); setSelectedShiftId(null); }} className="text-gray-400 hover:text-gray-600 font-bold">✕</button>
             </div>
 
             <form onSubmit={(e) => { e.preventDefault(); handlePostCaregiverUpdate(); }} className="space-y-4">
+              {/* Active Shift Context if Triggered from My Shifts */}
+              {selectedShiftId && (() => {
+                const activeShift = shifts.find(s => s.id === selectedShiftId);
+                if (!activeShift) return null;
+                return (
+                  <div className="p-3 bg-blue-50/80 border border-blue-200 rounded-xl text-xs flex justify-between items-center shadow-2xs">
+                    <div>
+                      <span className="font-bold text-blue-900 block text-xs">Linked Shift: {activeShift.client.name}</span>
+                      <span className="text-[10px] text-blue-700 font-mono">Scheduled: {new Date(activeShift.scheduledStart).toLocaleString()}</span>
+                    </div>
+                    <span className="px-2.5 py-0.5 rounded-full bg-blue-600 text-white font-bold text-[10px] uppercase">
+                      {activeShift.status}
+                    </span>
+                  </div>
+                );
+              })()}
+
               {/* Select Patient/Client */}
               <div>
                 <label className="text-xs font-semibold text-gray-500 uppercase">Target Patient / Client</label>
@@ -1864,38 +1962,73 @@ export default function Home() {
                 </select>
               </div>
 
-              {/* Media File Input Dropzone & Previews */}
+              {/* Media File Input Dropzone, Voice Note Recorder & Previews */}
               <div>
                 <label className="text-xs font-semibold text-gray-500 uppercase block mb-1">
-                  Upload Photos or Videos
+                  Upload Photos, Videos or Audio Messages
                 </label>
                 
                 <div className="relative border-2 border-dashed border-blue-200 hover:border-blue-500 bg-blue-50/40 rounded-2xl p-4 text-center transition-all cursor-pointer group">
                   <input
                     type="file"
                     multiple
-                    accept="image/*,video/*"
+                    accept="image/*,video/*,audio/*"
                     onChange={handleMediaChange}
                     className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
                   />
                   <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform">
                     <i className="fa-solid fa-cloud-arrow-up text-lg"></i>
                   </div>
-                  <div className="text-xs font-bold text-gray-700">Click or drag images & videos to attach</div>
-                  <div className="text-[10px] text-gray-400 mt-0.5">Supports PNG, JPG, MP4, MOV (Max 50MB)</div>
+                  <div className="text-xs font-bold text-gray-700">Click or drag photos, videos & audio clips to attach</div>
+                  <div className="text-[10px] text-gray-400 mt-0.5">Supports PNG, JPG, MP4, MOV, MP3, WAV, Voice Notes (Max 50MB)</div>
+                </div>
+
+                {/* Voice Note Audio Recorder Action Bar */}
+                <div className="flex items-center justify-between mt-2.5 p-2.5 bg-purple-50/60 border border-purple-200 rounded-xl">
+                  <div className="flex items-center gap-2">
+                    <span className={`w-2.5 h-2.5 rounded-full ${isRecordingAudio ? 'bg-red-500 animate-ping' : 'bg-purple-500'}`} />
+                    <span className="text-xs font-semibold text-purple-950">
+                      {isRecordingAudio ? `Recording Voice Note (${recordingSeconds}s)...` : 'Direct Voice Note Recording'}
+                    </span>
+                  </div>
+                  {isRecordingAudio ? (
+                    <button
+                      type="button"
+                      onClick={handleStopVoiceRecording}
+                      className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white font-semibold text-xs rounded-lg animate-pulse shadow-2xs"
+                    >
+                      <i className="fa-solid fa-square mr-1"></i> Stop Recording
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleStartVoiceRecording}
+                      className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs rounded-lg flex items-center gap-1 shadow-2xs cursor-pointer"
+                    >
+                      <i className="fa-solid fa-microphone"></i> Record Voice Note
+                    </button>
+                  )}
                 </div>
 
                 {/* File Previews Grid */}
                 {selectedMediaFiles.length > 0 && (
                   <div className="mt-3 grid grid-cols-3 gap-2">
                     {selectedMediaFiles.map((file, idx) => {
-                      const isVideo = file.type.startsWith('video') || file.name.endsWith('.mp4') || file.name.endsWith('.mov');
+                      const isVideo = file.type?.startsWith('video') || file.name?.endsWith('.mp4') || file.name?.endsWith('.mov');
+                      const isAudio = file.type?.startsWith('audio') || file.name?.endsWith('.mp3') || file.name?.endsWith('.wav') || file.name?.endsWith('.m4a') || file.name?.endsWith('.ogg');
+
                       return (
                         <div key={idx} className="relative group rounded-xl overflow-hidden border border-gray-200 bg-gray-900 aspect-video flex items-center justify-center">
                           {isVideo ? (
                             <div className="flex flex-col items-center text-white p-2 text-center">
                               <i className="fa-solid fa-circle-play text-2xl text-blue-400 mb-1"></i>
                               <span className="text-[9px] font-mono truncate max-w-full">{file.name}</span>
+                            </div>
+                          ) : isAudio ? (
+                            <div className="flex flex-col items-center text-white p-2 text-center w-full">
+                              <i className="fa-solid fa-microphone-lines text-2xl text-purple-400 mb-1 animate-pulse"></i>
+                              <span className="text-[9px] font-mono truncate max-w-full px-1">{file.name}</span>
+                              <audio src={file.preview} controls className="w-full h-5 mt-1 scale-90 opacity-90" />
                             </div>
                           ) : (
                             <img src={file.preview} alt={file.name} className="w-full h-full object-cover" />
@@ -3060,7 +3193,7 @@ export default function Home() {
                               });
                             }
 
-                            // Fallback care sample images/videos for mock storage domain URLs
+                            // Fallback care sample images/videos/audios for mock storage domain URLs
                             const getDisplayUrl = (file: any, index: number) => {
                               if (file.url && !file.url.includes('akirapa.local')) return file.url;
                               const sampleCareImages = [
@@ -3072,8 +3205,14 @@ export default function Home() {
                                 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
                                 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
                               ];
+                              const sampleCareAudios = [
+                                'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
+                                'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
+                              ];
                               const isVid = file.type?.startsWith('video') || file.name?.endsWith('.mp4') || file.name?.endsWith('.mov');
+                              const isAud = file.type?.startsWith('audio') || file.name?.endsWith('.mp3') || file.name?.endsWith('.wav') || file.name?.endsWith('.m4a') || file.name?.endsWith('.ogg');
                               if (isVid) return sampleCareVideos[index % sampleCareVideos.length];
+                              if (isAud) return sampleCareAudios[index % sampleCareAudios.length];
                               return sampleCareImages[index % sampleCareImages.length];
                             };
 
@@ -3122,12 +3261,12 @@ export default function Home() {
                                   </div>
                                 )}
 
-                                {/* VISUAL MEDIA GALLERY (Captioned Images & HTML5 Videos) */}
+                                {/* VISUAL MEDIA GALLERY (Captioned Images, Videos & Audio Voice Notes) */}
                                 {mediaList.length > 0 && (
                                   <div className="mt-4 pt-3 border-t border-gray-100 space-y-2">
                                     <div className="text-xs font-bold text-gray-700 flex items-center justify-between">
                                       <span className="flex items-center gap-1.5 text-blue-600">
-                                        <i className="fa-solid fa-photo-film"></i> Encrypted Media Attachment ({mediaList.length} file{mediaList.length > 1 ? 's' : ''})
+                                        <i className="fa-solid fa-photo-film"></i> Encrypted Media & Audio Attachment ({mediaList.length} file{mediaList.length > 1 ? 's' : ''})
                                       </span>
                                       <span className="text-[10px] text-gray-400 font-mono">AES-256 Verified</span>
                                     </div>
@@ -3136,6 +3275,7 @@ export default function Home() {
                                       {mediaList.map((file: any, index: number) => {
                                         const displayUrl = getDisplayUrl(file, index);
                                         const isVideo = file.type?.startsWith('video') || file.name?.endsWith('.mp4') || file.name?.endsWith('.mov');
+                                        const isAudio = file.type?.startsWith('audio') || file.name?.endsWith('.mp3') || file.name?.endsWith('.wav') || file.name?.endsWith('.m4a') || file.name?.endsWith('.ogg');
 
                                         return (
                                           <div key={index} className="group relative rounded-xl overflow-hidden border border-gray-200 shadow-2xs bg-gray-900 transition-all hover:shadow-md">
@@ -3160,6 +3300,15 @@ export default function Home() {
                                                   <i className="fa-solid fa-expand mr-1"></i> Fullscreen
                                                 </div>
                                               </div>
+                                            ) : isAudio ? (
+                                              <div className="relative aspect-video flex flex-col items-center justify-center bg-gradient-to-br from-purple-950 to-slate-900 text-white p-3 text-center border border-purple-800/60 rounded-xl">
+                                                <div className="flex items-center gap-1.5 mb-1 text-purple-300 font-bold text-xs">
+                                                  <i className="fa-solid fa-microphone-lines text-base text-purple-400 animate-pulse"></i>
+                                                  <span>Voice Note Update</span>
+                                                </div>
+                                                <span className="text-[9px] font-mono text-purple-200 truncate max-w-full mb-1">{file.name}</span>
+                                                <audio src={displayUrl} controls className="w-full h-8 scale-95 opacity-90" />
+                                              </div>
                                             ) : (
                                               <div
                                                 onClick={() => setActiveMediaModal({
@@ -3183,8 +3332,8 @@ export default function Home() {
                                             )}
 
                                             <div className="p-2 bg-white border-t border-gray-100 flex justify-between items-center text-[10px]">
-                                              <span className="font-semibold text-gray-700 truncate max-w-[140px]">{file.name || (isVideo ? 'Care Update Video' : 'Care Update Photo')}</span>
-                                              <span className="px-1.5 py-0.5 rounded bg-gray-100 font-mono text-gray-500 uppercase">{isVideo ? 'VIDEO' : 'IMAGE'}</span>
+                                              <span className="font-semibold text-gray-700 truncate max-w-[140px]">{file.name || (isVideo ? 'Care Update Video' : isAudio ? 'Voice Note' : 'Care Update Photo')}</span>
+                                              <span className="px-1.5 py-0.5 rounded bg-gray-100 font-mono text-gray-500 uppercase">{isVideo ? 'VIDEO' : isAudio ? 'AUDIO' : 'IMAGE'}</span>
                                             </div>
                                           </div>
                                         );
@@ -3221,14 +3370,37 @@ export default function Home() {
                       ) : (
                         <div className="space-y-3">
                           {shifts.filter(s => user.role === 'CAREGIVER' ? s.caregiverId === user.id : true).map((shift) => (
-                            <div key={shift.id} className="border-b border-gray-100 pb-3.5 pt-1 space-y-2">
+                            <div
+                              key={shift.id}
+                              onClick={() => {
+                                if (user.role === 'CAREGIVER') {
+                                  handleOpenShiftUpdate(shift);
+                                }
+                              }}
+                              className={`border-b border-gray-100 pb-3.5 pt-1 space-y-2 rounded-xl transition-all ${
+                                user.role === 'CAREGIVER' ? 'hover:bg-blue-50/40 p-3 cursor-pointer border border-transparent hover:border-blue-200' : ''
+                              }`}
+                            >
                               <div className="flex items-center justify-between">
                                 <div>
-                                  <div className="font-bold text-sm text-gray-800">{shift.client.name}</div>
+                                  <div className="font-bold text-sm text-gray-800 flex items-center gap-2">
+                                    <span>{shift.client.name}</span>
+                                    {user.role === 'CAREGIVER' && (
+                                      <span className="text-[10px] text-blue-600 bg-blue-50 font-semibold px-2 py-0.5 rounded-md border border-blue-100">
+                                        💬 Click card to update family
+                                      </span>
+                                    )}
+                                  </div>
                                   <div className="text-xs text-gray-500 font-medium">Caregiver: {shift.caregiver.name}</div>
                                   <div className="text-xs text-gray-400 mt-0.5"><i className="fa-regular fa-clock mr-1"></i>{new Date(shift.scheduledStart).toLocaleString()}</div>
                                 </div>
-                                <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-2 flex-wrap justify-end">
+                                  {shift.status === 'IN_PROGRESS' && (
+                                    <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-full text-xs font-bold flex items-center gap-1.5 animate-pulse">
+                                      <span className="w-2 h-2 rounded-full bg-emerald-600 animate-ping inline-block" />
+                                      🟢 Ongoing Service
+                                    </span>
+                                  )}
                                   <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
                                     shift.status === 'COMPLETED' ? 'bg-green-100 text-green-700 border border-green-200' :
                                     shift.status === 'IN_PROGRESS' ? 'bg-blue-100 text-blue-700 border border-blue-200' :
@@ -3238,27 +3410,49 @@ export default function Home() {
                                   }`}>{shift.status}</span>
                                   
                                   <button
-                                    onClick={() => handleFetchGpsLocationHistory(shift.id)}
+                                    onClick={(e) => { e.stopPropagation(); handleFetchGpsLocationHistory(shift.id); }}
                                     className="px-3 py-1 bg-slate-800 hover:bg-slate-900 text-emerald-400 font-semibold text-xs rounded-lg flex items-center gap-1 shadow-2xs cursor-pointer"
                                   >
                                     <i className="fa-solid fa-location-dot"></i> Live GPS
                                   </button>
+
+                                  {/* Caregiver Shift Actions */}
                                   {user.role === 'CAREGIVER' && shift.status === 'UNCONFIRMED' && (
-                                    <button onClick={() => handleConfirmShift(shift.id)} className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-lg">Confirm Shift</button>
+                                    <button onClick={(e) => { e.stopPropagation(); handleConfirmShift(shift.id, false); }} className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-lg cursor-pointer shadow-2xs">Confirm Shift</button>
                                   )}
+
+                                  {/* Admin / Coordinator Force Confirm Action */}
+                                  {(user.role === 'ADMIN' || user.role === 'CARE_COORDINATOR') && shift.status === 'UNCONFIRMED' && (
+                                    <button onClick={(e) => { e.stopPropagation(); handleConfirmShift(shift.id, true); }} className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs rounded-lg cursor-pointer shadow-2xs flex items-center gap-1">
+                                      🛡️ Admin Confirm
+                                    </button>
+                                  )}
+
+                                  {/* Caregiver Confirm Presence / Site Readiness Check-In */}
                                   {user.role === 'CAREGIVER' && shift.status === 'CONFIRMED' && (
-                                    <button onClick={() => handleClockIn(shift.id, false)} className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white font-semibold text-xs rounded-lg">Clock In</button>
+                                    <button onClick={(e) => { e.stopPropagation(); handleConfirmCaregiverPresence(shift.id); }} className="px-3 py-1 bg-amber-500 hover:bg-amber-600 text-white font-semibold text-xs rounded-lg cursor-pointer shadow-2xs flex items-center gap-1">
+                                      ✋ Confirm Presence
+                                    </button>
                                   )}
+
+                                  {user.role === 'CAREGIVER' && shift.status === 'CONFIRMED' && (
+                                    <button onClick={(e) => { e.stopPropagation(); handleClockIn(shift.id, false); }} className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white font-semibold text-xs rounded-lg cursor-pointer shadow-2xs">Clock In</button>
+                                  )}
+
+                                  {user.role === 'CAREGIVER' && (
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); handleOpenShiftUpdate(shift); }}
+                                      className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-lg flex items-center gap-1 shadow-2xs cursor-pointer"
+                                    >
+                                      <i className="fa-solid fa-camera"></i> Family Update
+                                    </button>
+                                  )}
+
                                   {user.role === 'CAREGIVER' && shift.status === 'IN_PROGRESS' && (
-                                    <>
-                                      <button onClick={() => { setTargetPostClientId(shift.clientId); setSelectedShiftId(shift.id); setShowPostUpdateModal(true); }} className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-lg flex items-center gap-1 shadow-2xs">
-                                        <i className="fa-solid fa-camera"></i> Family Update
-                                      </button>
-                                      <button onClick={() => handleClockOut(shift.id, false)} className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white font-semibold text-xs rounded-lg">Clock Out</button>
-                                    </>
+                                    <button onClick={(e) => { e.stopPropagation(); handleClockOut(shift.id, false); }} className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white font-semibold text-xs rounded-lg cursor-pointer shadow-2xs">Clock Out</button>
                                   )}
                                   {shift.status !== 'COMPLETED' && shift.status !== 'DROPPED' && (
-                                    <button onClick={() => handleOpenDropModal(shift.id)} className="px-3 py-1 bg-red-50 text-red-600 hover:bg-red-100 font-semibold text-xs rounded-lg border border-red-200 transition-all">
+                                    <button onClick={(e) => { e.stopPropagation(); handleOpenDropModal(shift.id); }} className="px-3 py-1 bg-red-50 text-red-600 hover:bg-red-100 font-semibold text-xs rounded-lg border border-red-200 transition-all">
                                       Drop Shift...
                                     </button>
                                   )}

@@ -26,13 +26,14 @@ export async function POST(request: Request) {
     for (const file of filesList) {
       const mockFileId = `file_${Math.random().toString(36).substring(2, 11)}`;
       const isVideo = file.type?.startsWith('video/') || file.name?.toLowerCase().endsWith('.mp4') || file.name?.toLowerCase().endsWith('.mov');
-      const ext = isVideo ? 'mp4' : 'png';
+      const isAudio = file.type?.startsWith('audio/') || file.name?.toLowerCase().endsWith('.mp3') || file.name?.toLowerCase().endsWith('.wav') || file.name?.toLowerCase().endsWith('.m4a') || file.name?.toLowerCase().endsWith('.ogg') || file.name?.toLowerCase().endsWith('.webm');
+      const ext = isVideo ? 'mp4' : isAudio ? 'mp3' : 'png';
       
       const mockSignedUrl = `https://storage.akirapa.local/patient-media/${clientId}/${mockFileId}.${ext}?token=${Math.random().toString(36).substring(2, 20)}&expires=${Math.round(expiration.getTime() / 1000)}`;
       generatedUrls.push(mockSignedUrl);
       filesMetadata.push({
         name: file.name,
-        type: file.type || (isVideo ? 'video/mp4' : 'image/png'),
+        type: file.type || (isVideo ? 'video/mp4' : isAudio ? 'audio/mp3' : 'image/png'),
         url: mockSignedUrl
       });
     }
