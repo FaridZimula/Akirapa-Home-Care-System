@@ -1,7 +1,6 @@
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
 }
 
 generator client {
@@ -47,6 +46,7 @@ model User {
   auditLogs      AuditLog[]
   availabilities Availability[]
   shiftOffers    ShiftOffer[]
+  notifications  Notification[]
 }
 
 model Client {
@@ -220,3 +220,16 @@ model VerificationToken {
 
   @@unique([email, token, purpose])
 }
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String
+  message   String
+  type      String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
