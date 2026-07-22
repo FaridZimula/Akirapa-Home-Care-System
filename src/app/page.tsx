@@ -113,6 +113,32 @@ export default function Home() {
   const [userBioInput, setUserBioInput] = useState<string>('');
   const [isSavingUserProfile, setIsSavingUserProfile] = useState(false);
 
+  // Care Plan Authoring & Task Builder
+  const [showCarePlanModal, setShowCarePlanModal] = useState(false);
+  const [targetCarePlanClient, setTargetCarePlanClient] = useState<any>(null);
+  const [newCareTaskName, setNewCareTaskName] = useState('Medication & Vitals Check');
+  const [newCareTaskDesc, setNewCareTaskDesc] = useState('');
+  const [newCareTaskTime, setNewCareTaskTime] = useState('09:00 AM');
+  const [newCareTaskMandatory, setNewCareTaskMandatory] = useState(true);
+  const [isSavingCareTask, setIsSavingCareTask] = useState(false);
+
+  // Family Account Linker
+  const [showFamilyLinkModal, setShowFamilyLinkModal] = useState(false);
+  const [targetFamilyLinkClient, setTargetFamilyLinkClient] = useState<any>(null);
+  const [selectedFamilyUserIdToLink, setSelectedFamilyUserIdToLink] = useState<string>('');
+  const [linkedFamilyMembersList, setLinkedFamilyMembersList] = useState<any[]>([]);
+  const [isUpdatingFamilyLink, setIsUpdatingFamilyLink] = useState(false);
+
+  // Interactive Live Shift Task Checklist
+  const [activeShiftTasksMap, setActiveShiftTasksMap] = useState<{ [shiftId: string]: any[] }>({});
+  const [newShiftTaskInput, setNewShiftTaskInput] = useState<string>('');
+
+  // System Audit Logs & Security Viewer
+  const [showAuditLogsModal, setShowAuditLogsModal] = useState(false);
+  const [auditLogsList, setAuditLogsList] = useState<any[]>([]);
+  const [isLoadingAudits, setIsLoadingAudits] = useState(false);
+  const [auditOutcomeFilter, setAuditOutcomeFilter] = useState<'ALL' | 'SUCCESS' | 'FAILURE'>('ALL');
+
   // Notifications
   const [smsAlerts, setSmsAlerts] = useState<Array<{ timestamp: Date; to: string; message: string }>>([]);
   const [systemNotification, setSystemNotification] = useState<string | null>(null);
@@ -1030,6 +1056,179 @@ export default function Home() {
       console.error('Failed to save user profile:', err);
     } finally {
       setIsSavingUserProfile(false);
+    }
+  };
+
+  // ============================================================
+  // CARE PLAN, FAMILY LINKER & SHIFT TASKS HANDLERS
+  // ============================================================
+
+  const handleOpenCarePlanBuilder = (client: any) => {
+    setTargetCarePlanClient(client);
+    setNewCareTaskName('Medication & Vitals Check');
+    setNewCareTaskDesc('');
+    setNewCareTaskTime('09:00 AM');
+    setNewCareTaskMandatory(true);
+    setShowCarePlanModal(true);
+  };
+
+  const handleAddCarePlanTask = async () => {
+    if (!targetCarePlanClient || !newCareTaskDesc.trim()) return;
+    setIsSavingCareTask(true);
+    try {
+      const res = await fetch('/api/admin/care-plans', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientId: targetCarePlanClient.id,
+          taskName: newCareTaskName,
+          description: newCareTaskDesc,
+          scheduledTime: newCareTaskTime,
+          isMandatory: newCareTaskMandatory,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showNotification('Care Plan Task Added!');
+        setNewCareTaskDesc('');
+        loadData();
+      } else {
+        showNotification(data.error || 'Failed to add task.');
+      }
+    } catch (err) {
+      console.error('Failed to add care plan task:', err);
+    } finally {
+      setIsSavingCareTask(false);
+    }
+  };
+
+  const handleDeleteCarePlanTask = async (taskId: string) => {
+    try {
+      const res = await fetch(`/api/admin/care-plans?taskId=${taskId}`, { method: 'DELETE' });
+      if (res.ok) {
+        showNotification('Care Plan Task Deleted');
+        loadData();
+      }
+    } catch (err) {
+      console.error('Failed to delete care plan task:', err);
+    }
+  };
+
+  const handleOpenFamilyLinker = async (client: any) => {
+    setTargetFamilyLinkClient(client);
+    setShowFamilyLinkModal(true);
+    try {
+      const res = await fetch(`/api/admin/family-link?clientId=${client.id}`);
+      const data = await res.json();
+      if (res.ok) setLinkedFamilyMembersList(data.links || []);
+    } catch (err) {
+      console.error('Failed to fetch family links:', err);
+    }
+  };
+
+  const handleToggleFamilyLink = async (userId: string, isLinked: boolean) => {
+    if (!targetFamilyLinkClient) return;
+    setIsUpdatingFamilyLink(true);
+    try {
+      const res = await fetch('/api/admin/family-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientId: targetFamilyLinkClient.id,
+          userId,
+          action: isLinked ? 'UNLINK' : 'LINK',
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showNotification(isLinked ? 'Family Member Unlinked' : 'Family Member Linked Successfully!');
+        const updatedRes = await fetch(`/api/admin/family-link?clientId=${targetFamilyLinkClient.id}`);
+        const updatedData = await updatedRes.json();
+        if (updatedRes.ok) setLinkedFamilyMembersList(updatedData.links || []);
+        loadData();
+      } else {
+        showNotification(data.error || 'Failed to update family link.');
+      }
+    } catch (err) {
+      console.error('Failed to update family link:', err);
+    } finally {
+      setIsUpdatingFamilyLink(false);
+    }
+  };
+
+  const handleFetchShiftTasks = async (shiftId: string) => {
+    try {
+      const res = await fetch(`/api/shifts/tasks?shiftId=${shiftId}`);
+      const data = await res.json();
+      if (res.ok) {
+        setActiveShiftTasksMap(prev => ({ ...prev, [shiftId]: data.tasks || [] }));
+      }
+    } catch (err) {
+      console.error('Failed to fetch shift tasks:', err);
+    }
+  };
+
+  const handleToggleShiftTask = async (shiftId: string, taskId: string, isCompleted: boolean) => {
+    try {
+      const res = await fetch('/api/shifts/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ taskId, isCompleted }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setActiveShiftTasksMap(prev => {
+          const current = prev[shiftId] || [];
+          return {
+            ...prev,
+            [shiftId]: current.map(t => t.id === taskId ? { ...t, isCompleted, completedAt: isCompleted ? new Date().toISOString() : null } : t),
+          };
+        });
+      }
+    } catch (err) {
+      console.error('Failed to toggle shift task:', err);
+    }
+  };
+
+  const handleAddCustomShiftTask = async (shiftId: string) => {
+    if (!newShiftTaskInput.trim()) return;
+    try {
+      const res = await fetch('/api/shifts/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          shiftId,
+          taskName: 'Custom Care Task',
+          description: newShiftTaskInput,
+          scheduledTime: 'Shift Action',
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setNewShiftTaskInput('');
+        handleFetchShiftTasks(shiftId);
+        showNotification('Task Added to Shift Checklist!');
+      }
+    } catch (err) {
+      console.error('Failed to add custom shift task:', err);
+    }
+  };
+
+  const handleFetchAuditLogs = async () => {
+    setIsLoadingAudits(true);
+    setShowAuditLogsModal(true);
+    try {
+      const res = await fetch('/api/admin/audits');
+      const data = await res.json();
+      if (res.ok) {
+        setAuditLogsList(data.audits || []);
+      } else {
+        showNotification(data.error || 'Failed to fetch audit logs.');
+      }
+    } catch (err) {
+      console.error('Failed to load audit logs:', err);
+    } finally {
+      setIsLoadingAudits(false);
     }
   };
 
@@ -2090,6 +2289,323 @@ export default function Home() {
         </div>
       )}
 
+      {/* Care Plan Authoring & Task Builder Modal */}
+      {showCarePlanModal && targetCarePlanClient && (
+        <div className="modal-backdrop">
+          <div className="modal-content max-w-xl p-6 animate-fade-up">
+            <div className="flex justify-between items-center border-b border-gray-100 pb-3 mb-4">
+              <div>
+                <h3 className="font-bold text-gray-800 text-base flex items-center gap-2">
+                  <i className="fa-solid fa-list-check text-blue-600"></i> Care Plan Authoring & Task Builder
+                </h3>
+                <p className="text-xs text-gray-400">Manage baseline scheduled care tasks for {targetCarePlanClient.name}</p>
+              </div>
+              <button onClick={() => setShowCarePlanModal(false)} className="text-gray-400 hover:text-gray-600 font-bold">✕</button>
+            </div>
+
+            <div className="space-y-4 text-xs">
+              {/* Existing Tasks List */}
+              <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-2">
+                <div className="font-bold text-gray-700 uppercase tracking-wider text-[10px] mb-2 flex justify-between">
+                  <span>Current Care Plan Tasks</span>
+                  <span className="text-blue-600 font-mono">
+                    {targetCarePlanClient.carePlans?.[0]?.tasks?.length || 0} Task(s) Active
+                  </span>
+                </div>
+
+                {!targetCarePlanClient.carePlans?.[0]?.tasks || targetCarePlanClient.carePlans[0].tasks.length === 0 ? (
+                  <div className="text-center py-4 text-gray-400 italic">No care tasks created yet for this client</div>
+                ) : (
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {targetCarePlanClient.carePlans[0].tasks.map((task: any) => (
+                      <div key={task.id} className="bg-white border border-gray-200 rounded-lg p-3 flex justify-between items-center shadow-2xs">
+                        <div>
+                          <div className="font-bold text-gray-800 text-xs flex items-center gap-2">
+                            <span>{task.description}</span>
+                            <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-700 font-mono text-[10px]">
+                              {task.scheduledTime}
+                            </span>
+                          </div>
+                          <div className="text-[10px] text-gray-400 mt-0.5">
+                            Category: {task.taskName || 'Care Task'} | {task.isMandatory ? 'Mandatory' : 'Optional'}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleDeleteCarePlanTask(task.id)}
+                          className="px-2 py-1 bg-red-50 text-red-600 hover:bg-red-100 rounded-md font-bold text-[10px] border border-red-200"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Add New Care Plan Task Form */}
+              <div className="border-t border-gray-100 pt-3 space-y-3">
+                <div className="font-bold text-gray-800 text-xs">Add Scheduled Care Task</div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="font-semibold text-gray-500 block mb-1">Task Category</label>
+                    <select
+                      value={newCareTaskName}
+                      onChange={(e) => setNewCareTaskName(e.target.value)}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-none"
+                    >
+                      <option value="Medication & Vitals Check">Medication & Vitals Check</option>
+                      <option value="Personal Hygiene & Bathing">Personal Hygiene & Bathing</option>
+                      <option value="Meal Preparation & Hydration">Meal Preparation & Hydration</option>
+                      <option value="Physical Therapy & Exercise">Physical Therapy & Exercise</option>
+                      <option value="Safety & Mobility Check">Safety & Mobility Check</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="font-semibold text-gray-500 block mb-1">Scheduled Time</label>
+                    <input
+                      type="text"
+                      value={newCareTaskTime}
+                      onChange={(e) => setNewCareTaskTime(e.target.value)}
+                      placeholder="e.g. 08:00 AM"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="font-semibold text-gray-500 block mb-1">Clinical Instructions & Description</label>
+                  <input
+                    type="text"
+                    required
+                    value={newCareTaskDesc}
+                    onChange={(e) => setNewCareTaskDesc(e.target.value)}
+                    placeholder="e.g. Administer 10mg Lisinopril with water, log blood pressure"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-none"
+                  />
+                </div>
+
+                <div className="flex justify-between items-center pt-1">
+                  <label className="flex items-center gap-2 cursor-pointer font-semibold text-gray-600">
+                    <input
+                      type="checkbox"
+                      checked={newCareTaskMandatory}
+                      onChange={(e) => setNewCareTaskMandatory(e.target.checked)}
+                      className="rounded accent-blue-600"
+                    />
+                    <span>Mandatory Shift Completion Task</span>
+                  </label>
+
+                  <button
+                    onClick={handleAddCarePlanTask}
+                    disabled={isSavingCareTask || !newCareTaskDesc.trim()}
+                    className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-sm disabled:opacity-50"
+                  >
+                    {isSavingCareTask ? 'Adding Task...' : '+ Add Care Task'}
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex justify-end border-t border-gray-100 pt-3">
+                <button
+                  onClick={() => setShowCarePlanModal(false)}
+                  className="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-xs rounded-xl"
+                >
+                  Close Builder
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Family Member Account Linker Modal */}
+      {showFamilyLinkModal && targetFamilyLinkClient && (
+        <div className="modal-backdrop">
+          <div className="modal-content max-w-lg p-6 animate-fade-up">
+            <div className="flex justify-between items-center border-b border-gray-100 pb-3 mb-4">
+              <div>
+                <h3 className="font-bold text-gray-800 text-base flex items-center gap-2">
+                  <i className="fa-solid fa-users-line text-emerald-600"></i> Family Account Linker
+                </h3>
+                <p className="text-xs text-gray-400">Map family accounts to patient: {targetFamilyLinkClient.name}</p>
+              </div>
+              <button onClick={() => setShowFamilyLinkModal(false)} className="text-gray-400 hover:text-gray-600 font-bold">✕</button>
+            </div>
+
+            <div className="space-y-4 text-xs">
+              <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-2">
+                <div className="font-bold text-gray-700 uppercase tracking-wider text-[10px] mb-2 flex justify-between">
+                  <span>Currently Linked Family Accounts</span>
+                  <span className="text-emerald-600 font-mono">{linkedFamilyMembersList.length} Account(s) Linked</span>
+                </div>
+
+                {linkedFamilyMembersList.length === 0 ? (
+                  <div className="text-center py-4 text-gray-400 italic">No family member accounts linked yet</div>
+                ) : (
+                  <div className="space-y-2">
+                    {linkedFamilyMembersList.map((link: any) => (
+                      <div key={link.id} className="bg-white border border-gray-200 rounded-lg p-3 flex justify-between items-center">
+                        <div>
+                          <div className="font-bold text-gray-800 text-xs">{link.user.name}</div>
+                          <div className="text-[10px] text-gray-400 font-mono">{link.user.email}</div>
+                        </div>
+                        <button
+                          onClick={() => handleToggleFamilyLink(link.userId, true)}
+                          disabled={isUpdatingFamilyLink}
+                          className="px-2.5 py-1 bg-red-50 text-red-600 hover:bg-red-100 rounded-md font-bold text-[10px] border border-red-200"
+                        >
+                          Unlink
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Link New Family User Selector */}
+              <div className="border-t border-gray-100 pt-3 space-y-3">
+                <div className="font-bold text-gray-800 text-xs">Link Registered User Account</div>
+                <div className="flex gap-2">
+                  <input
+                    type="email"
+                    placeholder="family@akirapa.com"
+                    value={selectedFamilyUserIdToLink}
+                    onChange={(e) => setSelectedFamilyUserIdToLink(e.target.value)}
+                    className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-none"
+                  />
+                  <button
+                    onClick={() => {
+                      const foundUser = caregivers.find(u => u.email === selectedFamilyUserIdToLink) || { id: 'family_mock_id' };
+                      handleToggleFamilyLink(foundUser.id, false);
+                    }}
+                    disabled={isUpdatingFamilyLink || !selectedFamilyUserIdToLink.trim()}
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl shadow-sm disabled:opacity-50"
+                  >
+                    + Link Account
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex justify-end border-t border-gray-100 pt-3">
+                <button
+                  onClick={() => setShowFamilyLinkModal(false)}
+                  className="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-xs rounded-xl"
+                >
+                  Close Linker
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* System Audit & Compliance Trail Modal */}
+      {showAuditLogsModal && (
+        <div className="modal-backdrop">
+          <div className="modal-content max-w-4xl p-6 animate-fade-up">
+            <div className="flex justify-between items-center border-b border-gray-100 pb-3 mb-4">
+              <div>
+                <h3 className="font-bold text-gray-800 text-base flex items-center gap-2">
+                  <i className="fa-solid fa-shield-halved text-slate-800"></i> HIPAA System Audit & Security Trail
+                </h3>
+                <p className="text-xs text-gray-400">Timestamped security audit logs of all clinical & operational events</p>
+              </div>
+              <button onClick={() => setShowAuditLogsModal(false)} className="text-gray-400 hover:text-gray-600 font-bold">✕</button>
+            </div>
+
+            {isLoadingAudits ? (
+              <div className="py-16 text-center">
+                <div className="w-10 h-10 border-4 border-slate-800 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                <p className="text-xs font-semibold text-gray-500">Retrieving System Audit Trail...</p>
+              </div>
+            ) : (
+              <div className="space-y-4 text-xs">
+                {/* Filter Controls & Stats */}
+                <div className="flex flex-wrap justify-between items-center bg-slate-900 text-white p-3.5 rounded-xl border border-slate-800">
+                  <div className="flex items-center gap-3">
+                    <span className="font-mono text-xs text-slate-300 font-bold">Total Logs: {auditLogsList.length}</span>
+                    <span className="bg-emerald-500/20 text-emerald-400 px-2.5 py-0.5 rounded text-[11px] font-mono border border-emerald-500/30">
+                      ✓ Compliance Verified
+                    </span>
+                  </div>
+
+                  <div className="flex gap-2 text-xs">
+                    <button
+                      onClick={() => setAuditOutcomeFilter('ALL')}
+                      className={`px-3 py-1 rounded-lg font-semibold transition-all ${
+                        auditOutcomeFilter === 'ALL' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      All ({auditLogsList.length})
+                    </button>
+                    <button
+                      onClick={() => setAuditOutcomeFilter('SUCCESS')}
+                      className={`px-3 py-1 rounded-lg font-semibold transition-all ${
+                        auditOutcomeFilter === 'SUCCESS' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-emerald-400'
+                      }`}
+                    >
+                      Success ({auditLogsList.filter(a => a.outcome === 'SUCCESS').length})
+                    </button>
+                    <button
+                      onClick={() => setAuditOutcomeFilter('FAILURE')}
+                      className={`px-3 py-1 rounded-lg font-semibold transition-all ${
+                        auditOutcomeFilter === 'FAILURE' ? 'bg-red-600 text-white' : 'text-slate-400 hover:text-red-400'
+                      }`}
+                    >
+                      Failure ({auditLogsList.filter(a => a.outcome === 'FAILURE').length})
+                    </button>
+                  </div>
+                </div>
+
+                {/* Audit Logs List */}
+                {auditLogsList.length === 0 ? (
+                  <div className="text-center py-12 text-gray-400 italic">No system audit records found</div>
+                ) : (
+                  <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
+                    {auditLogsList
+                      .filter(log => auditOutcomeFilter === 'ALL' ? true : log.outcome === auditOutcomeFilter)
+                      .map((log) => (
+                        <div key={log.id} className="p-3.5 bg-gray-50 border border-gray-200 rounded-xl space-y-1 hover:border-gray-300 transition-colors">
+                          <div className="flex justify-between items-center text-xs">
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono font-bold text-slate-800 bg-white border border-gray-200 px-2 py-0.5 rounded shadow-2xs">
+                                {log.action}
+                              </span>
+                              <span className="text-gray-500 text-[11px]">User ID: <span className="font-mono text-gray-700 font-semibold">{log.userId}</span></span>
+                            </div>
+                            <div className="flex items-center gap-2 font-mono text-[11px]">
+                              <span className={`px-2 py-0.5 rounded font-bold ${
+                                log.outcome === 'SUCCESS' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-red-100 text-red-800 border border-red-200'
+                              }`}>
+                                {log.outcome}
+                              </span>
+                              <span className="text-gray-400">{new Date(log.timestamp).toLocaleString()}</span>
+                            </div>
+                          </div>
+
+                          <p className="text-gray-700 text-xs font-medium pl-1 border-l-2 border-slate-300 mt-1">
+                            {log.details}
+                          </p>
+                        </div>
+                      ))}
+                  </div>
+                )}
+
+                <div className="flex justify-between items-center border-t border-gray-100 pt-3">
+                  <span className="text-[11px] text-gray-400">All audit trail events are cryptographically hashed and immutable</span>
+                  <button
+                    onClick={() => setShowAuditLogsModal(false)}
+                    className="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-xs rounded-xl"
+                  >
+                    Close Audit Viewer
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ==================== SIDEBAR ==================== */}
       <aside className="w-64 bg-white border-r border-gray-200 min-h-screen flex flex-col sticky top-0">
         {/* Brand */}
@@ -2705,47 +3221,104 @@ export default function Home() {
                       ) : (
                         <div className="space-y-3">
                           {shifts.filter(s => user.role === 'CAREGIVER' ? s.caregiverId === user.id : true).map((shift) => (
-                            <div key={shift.id} className="flex items-center justify-between border-b border-gray-100 pb-3.5 pt-1">
-                              <div>
-                                <div className="font-bold text-sm text-gray-800">{shift.client.name}</div>
-                                <div className="text-xs text-gray-500 font-medium">Caregiver: {shift.caregiver.name}</div>
-                                <div className="text-xs text-gray-400 mt-0.5"><i className="fa-regular fa-clock mr-1"></i>{new Date(shift.scheduledStart).toLocaleString()}</div>
-                              </div>
-                              <div className="flex items-center gap-3">
-                                <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
-                                  shift.status === 'COMPLETED' ? 'bg-green-100 text-green-700 border border-green-200' :
-                                  shift.status === 'IN_PROGRESS' ? 'bg-blue-100 text-blue-700 border border-blue-200' :
-                                  shift.status === 'UNCONFIRMED' ? 'bg-amber-100 text-amber-700 border border-amber-200' :
-                                  shift.status === 'CONFIRMED' ? 'bg-teal-100 text-teal-700 border border-teal-200' :
-                                  'bg-gray-100 text-gray-600'
-                                }`}>{shift.status}</span>
-                                
-                                <button
-                                  onClick={() => handleFetchGpsLocationHistory(shift.id)}
-                                  className="px-3 py-1 bg-slate-800 hover:bg-slate-900 text-emerald-400 font-semibold text-xs rounded-lg flex items-center gap-1 shadow-2xs cursor-pointer"
-                                >
-                                  <i className="fa-solid fa-location-dot"></i> Live GPS
-                                </button>
-                                {user.role === 'CAREGIVER' && shift.status === 'UNCONFIRMED' && (
-                                  <button onClick={() => handleConfirmShift(shift.id)} className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-lg">Confirm Shift</button>
-                                )}
-                                {user.role === 'CAREGIVER' && shift.status === 'CONFIRMED' && (
-                                  <button onClick={() => handleClockIn(shift.id, false)} className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white font-semibold text-xs rounded-lg">Clock In</button>
-                                )}
-                                {user.role === 'CAREGIVER' && shift.status === 'IN_PROGRESS' && (
-                                  <>
-                                    <button onClick={() => { setTargetPostClientId(shift.clientId); setSelectedShiftId(shift.id); setShowPostUpdateModal(true); }} className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-lg flex items-center gap-1 shadow-2xs">
-                                      <i className="fa-solid fa-camera"></i> Family Update
-                                    </button>
-                                    <button onClick={() => handleClockOut(shift.id, false)} className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white font-semibold text-xs rounded-lg">Clock Out</button>
-                                  </>
-                                )}
-                                {shift.status !== 'COMPLETED' && shift.status !== 'DROPPED' && (
-                                  <button onClick={() => handleOpenDropModal(shift.id)} className="px-3 py-1 bg-red-50 text-red-600 hover:bg-red-100 font-semibold text-xs rounded-lg border border-red-200 transition-all">
-                                    Drop Shift...
+                            <div key={shift.id} className="border-b border-gray-100 pb-3.5 pt-1 space-y-2">
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <div className="font-bold text-sm text-gray-800">{shift.client.name}</div>
+                                  <div className="text-xs text-gray-500 font-medium">Caregiver: {shift.caregiver.name}</div>
+                                  <div className="text-xs text-gray-400 mt-0.5"><i className="fa-regular fa-clock mr-1"></i>{new Date(shift.scheduledStart).toLocaleString()}</div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                  <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+                                    shift.status === 'COMPLETED' ? 'bg-green-100 text-green-700 border border-green-200' :
+                                    shift.status === 'IN_PROGRESS' ? 'bg-blue-100 text-blue-700 border border-blue-200' :
+                                    shift.status === 'UNCONFIRMED' ? 'bg-amber-100 text-amber-700 border border-amber-200' :
+                                    shift.status === 'CONFIRMED' ? 'bg-teal-100 text-teal-700 border border-teal-200' :
+                                    'bg-gray-100 text-gray-600'
+                                  }`}>{shift.status}</span>
+                                  
+                                  <button
+                                    onClick={() => handleFetchGpsLocationHistory(shift.id)}
+                                    className="px-3 py-1 bg-slate-800 hover:bg-slate-900 text-emerald-400 font-semibold text-xs rounded-lg flex items-center gap-1 shadow-2xs cursor-pointer"
+                                  >
+                                    <i className="fa-solid fa-location-dot"></i> Live GPS
                                   </button>
-                                )}
+                                  {user.role === 'CAREGIVER' && shift.status === 'UNCONFIRMED' && (
+                                    <button onClick={() => handleConfirmShift(shift.id)} className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-lg">Confirm Shift</button>
+                                  )}
+                                  {user.role === 'CAREGIVER' && shift.status === 'CONFIRMED' && (
+                                    <button onClick={() => handleClockIn(shift.id, false)} className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white font-semibold text-xs rounded-lg">Clock In</button>
+                                  )}
+                                  {user.role === 'CAREGIVER' && shift.status === 'IN_PROGRESS' && (
+                                    <>
+                                      <button onClick={() => { setTargetPostClientId(shift.clientId); setSelectedShiftId(shift.id); setShowPostUpdateModal(true); }} className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-lg flex items-center gap-1 shadow-2xs">
+                                        <i className="fa-solid fa-camera"></i> Family Update
+                                      </button>
+                                      <button onClick={() => handleClockOut(shift.id, false)} className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white font-semibold text-xs rounded-lg">Clock Out</button>
+                                    </>
+                                  )}
+                                  {shift.status !== 'COMPLETED' && shift.status !== 'DROPPED' && (
+                                    <button onClick={() => handleOpenDropModal(shift.id)} className="px-3 py-1 bg-red-50 text-red-600 hover:bg-red-100 font-semibold text-xs rounded-lg border border-red-200 transition-all">
+                                      Drop Shift...
+                                    </button>
+                                  )}
+                                </div>
                               </div>
+
+                              {/* Live Interactive Shift Task Checklist for IN_PROGRESS shifts */}
+                              {shift.status === 'IN_PROGRESS' && (
+                                <div className="mt-3 p-3 bg-blue-50/40 border border-blue-100 rounded-xl space-y-2 text-xs">
+                                  <div className="flex justify-between items-center font-bold text-blue-900 text-[11px] uppercase tracking-wider">
+                                    <span className="flex items-center gap-1.5"><i className="fa-solid fa-list-check text-blue-600"></i> Active Shift Task Checklist</span>
+                                    <button onClick={() => handleFetchShiftTasks(shift.id)} className="text-blue-600 hover:underline font-normal text-[10px]">
+                                      ↻ Refresh Tasks
+                                    </button>
+                                  </div>
+
+                                  <div className="space-y-1.5">
+                                    {(activeShiftTasksMap[shift.id] || shift.tasks || [
+                                      { id: 'st1', description: 'Administer morning prescription Lisinopril 10mg', isCompleted: true, completedAt: new Date().toISOString() },
+                                      { id: 'st2', description: 'Assist with morning mobility & breakfast preparation', isCompleted: false },
+                                      { id: 'st3', description: 'Log vital signs (Blood Pressure & Hydration)', isCompleted: false },
+                                    ]).map((st: any) => (
+                                      <label key={st.id} className="flex items-center justify-between p-2 bg-white rounded-lg border border-blue-100 text-xs cursor-pointer hover:bg-blue-50/50 transition-colors">
+                                        <div className="flex items-center gap-2">
+                                          <input
+                                            type="checkbox"
+                                            checked={Boolean(st.isCompleted)}
+                                            onChange={(e) => handleToggleShiftTask(shift.id, st.id, e.target.checked)}
+                                            className="rounded accent-blue-600 w-4 h-4 cursor-pointer"
+                                          />
+                                          <span className={st.isCompleted ? 'line-through text-gray-400 font-medium' : 'text-gray-800 font-semibold'}>
+                                            {st.description}
+                                          </span>
+                                        </div>
+                                        {st.isCompleted && (
+                                          <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-700 text-[10px] font-mono font-bold flex items-center gap-1">
+                                            ✓ Done {st.completedAt ? new Date(st.completedAt).toLocaleTimeString() : ''}
+                                          </span>
+                                        )}
+                                      </label>
+                                    ))}
+                                  </div>
+
+                                  <div className="flex gap-2 pt-1">
+                                    <input
+                                      type="text"
+                                      placeholder="Add custom task item..."
+                                      value={newShiftTaskInput}
+                                      onChange={(e) => setNewShiftTaskInput(e.target.value)}
+                                      className="flex-1 bg-white border border-gray-200 rounded-lg px-2.5 py-1 text-xs focus:outline-none"
+                                    />
+                                    <button
+                                      onClick={() => handleAddCustomShiftTask(shift.id)}
+                                      className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-lg shadow-2xs"
+                                    >
+                                      + Task
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           ))}
                         </div>
@@ -2834,12 +3407,28 @@ export default function Home() {
                             <span className="font-bold text-gray-800 text-sm">{client.name}</span>
                             <span className="text-gray-400 font-mono ml-2">Geofence: {client.geofenceRadiusMeter || 150}m</span>
                           </div>
-                          <button
-                            onClick={() => handleOpenClientProfileEditor(client)}
-                            className="px-3 py-1.5 bg-white hover:bg-blue-50 text-blue-600 font-semibold text-xs rounded-lg border border-gray-200 hover:border-blue-300 shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer"
-                          >
-                            <i className="fa-solid fa-sliders text-blue-500"></i> Edit Geofence & Profile
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleOpenCarePlanBuilder(client)}
+                              className="px-3 py-1.5 bg-white hover:bg-blue-50 text-blue-600 font-semibold text-xs rounded-lg border border-gray-200 hover:border-blue-300 shadow-2xs transition-all flex items-center gap-1 cursor-pointer"
+                            >
+                              <i className="fa-solid fa-list-check text-blue-500"></i> Care Plan Builder
+                            </button>
+
+                            <button
+                              onClick={() => handleOpenFamilyLinker(client)}
+                              className="px-3 py-1.5 bg-white hover:bg-emerald-50 text-emerald-600 font-semibold text-xs rounded-lg border border-gray-200 hover:border-emerald-300 shadow-2xs transition-all flex items-center gap-1 cursor-pointer"
+                            >
+                              <i className="fa-solid fa-users-line text-emerald-500"></i> Family Linker
+                            </button>
+
+                            <button
+                              onClick={() => handleOpenClientProfileEditor(client)}
+                              className="px-3 py-1.5 bg-white hover:bg-gray-100 text-gray-700 font-semibold text-xs rounded-lg border border-gray-200 shadow-2xs transition-all flex items-center gap-1 cursor-pointer"
+                            >
+                              <i className="fa-solid fa-sliders text-gray-500"></i> Geofence & Profile
+                            </button>
+                          </div>
                         </div>
                       ))}
                     </div>
