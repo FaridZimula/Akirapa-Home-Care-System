@@ -40,3 +40,30 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const shiftId = searchParams.get('shiftId');
+
+    if (!shiftId) {
+      return NextResponse.json({ error: 'shiftId parameter is required' }, { status: 400 });
+    }
+
+    const locations = await prisma.caregiverLocationHistory.findMany({
+      where: { shiftId },
+      orderBy: { timestamp: 'asc' },
+    });
+
+    const shift = await prisma.shift.findUnique({
+      where: { id: shiftId },
+      include: { client: true, caregiver: true },
+    });
+
+    return NextResponse.json({ locations, shift });
+  } catch (error) {
+    console.error('Failed to fetch location history:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+

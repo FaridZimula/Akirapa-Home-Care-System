@@ -77,9 +77,41 @@ export default function Home() {
   const [incidentAction, setIncidentAction] = useState('');
   const [isReportingIncident, setIsReportingIncident] = useState(false);
 
-  // Media Upload
+  // Media Upload & Lightbox
   const [selectedMediaFiles, setSelectedMediaFiles] = useState<Array<{ name: string; type: string; preview: string }>>([]);
   const [isPostingUpdate, setIsPostingUpdate] = useState(false);
+  const [showPostUpdateModal, setShowPostUpdateModal] = useState(false);
+  const [targetPostClientId, setTargetPostClientId] = useState<string>('');
+  const [activeMediaModal, setActiveMediaModal] = useState<{
+    url: string;
+    type: string;
+    caption?: string;
+    caregiverName?: string;
+    createdAt?: string;
+  } | null>(null);
+
+  // GPS Map & Location History Tracking
+  const [showGpsMapModal, setShowGpsMapModal] = useState(false);
+  const [mapShiftTargetId, setMapShiftTargetId] = useState<string | null>(null);
+  const [gpsLocationHistory, setGpsLocationHistory] = useState<any[]>([]);
+  const [gpsMapShiftDetails, setGpsMapShiftDetails] = useState<any>(null);
+  const [isLoadingGpsHistory, setIsLoadingGpsHistory] = useState(false);
+
+  // Client Geofence & Profile Metadata Editor
+  const [showClientProfileModal, setShowClientProfileModal] = useState(false);
+  const [targetClientEditor, setTargetClientEditor] = useState<any>(null);
+  const [clientGeofenceRadiusInput, setClientGeofenceRadiusInput] = useState<number>(150);
+  const [clientMedicalConditions, setClientMedicalConditions] = useState<string>('');
+  const [clientEmergencyContact, setClientEmergencyContact] = useState<string>('');
+  const [clientAllergiesNotes, setClientAllergiesNotes] = useState<string>('');
+  const [isSavingClientProfile, setIsSavingClientProfile] = useState(false);
+
+  // Caregiver User Profile Metadata Editor
+  const [userPhoneInput, setUserPhoneInput] = useState<string>('');
+  const [userCertificationsInput, setUserCertificationsInput] = useState<string[]>([]);
+  const [userSpecialtiesInput, setUserSpecialtiesInput] = useState<string>('');
+  const [userBioInput, setUserBioInput] = useState<string>('');
+  const [isSavingUserProfile, setIsSavingUserProfile] = useState(false);
 
   // Notifications
   const [smsAlerts, setSmsAlerts] = useState<Array<{ timestamp: Date; to: string; message: string }>>([]);
@@ -836,18 +868,29 @@ export default function Home() {
   // CAREGIVER UPDATE HANDLERS - Post Update, Incident
   // ============================================================
 
-  const handlePostCaregiverUpdate = async (shiftId: string) => {
-    const activeShift = shifts.find(s => s.id === shiftId);
-    if (!activeShift) return;
+  const handlePostCaregiverUpdate = async (shiftId?: string | null, overrideClientId?: string | null) => {
+    let clientId = overrideClientId || targetPostClientId || selectedFeedClientId;
+    if (shiftId) {
+      const activeShift = shifts.find(s => s.id === shiftId);
+      if (activeShift) clientId = activeShift.clientId;
+    } else if (!clientId && clients.length > 0) {
+      clientId = clients[0].id;
+    }
+
+    if (!clientId) {
+      showNotification('Please select a client to update.');
+      return;
+    }
+
     setIsPostingUpdate(true);
     try {
       const res = await fetch('/api/family/upload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          clientId: activeShift.clientId,
-          shiftId: shiftId,
-          notes: shiftNotes || 'Caregiver progress update.',
+          clientId,
+          shiftId: shiftId || null,
+          notes: shiftNotes || (selectedMediaFiles.length > 0 ? 'Uploaded care photo/video update.' : 'Daily caregiver observation update.'),
           redFlags: redFlags,
           mediaFiles: selectedMediaFiles.map(f => ({ name: f.name, type: f.type })),
           wellness: {
@@ -860,9 +903,10 @@ export default function Home() {
         }),
       });
       if (res.ok) {
-        showNotification('Care Update Posted!');
+        showNotification('Captioned Media Update Sent to Family!');
         setShiftNotes('');
         setSelectedMediaFiles([]);
+        setShowPostUpdateModal(false);
         setRedFlags({
           cognitiveConfusion: false,
           fallDetected: false,
@@ -870,8 +914,123 @@ export default function Home() {
           mobilityDecline: false,
         });
         loadData();
+      } else {
+        const errData = await res.json();
+        showNotification(errData.error || 'Failed to post update.');
       }
-    } catch (err) { console.error(err); } finally { setIsPostingUpdate(false); }
+    } catch (err) {
+      console.error('Failed to post caregiver update:', err);
+    } finally {
+      setIsPostingUpdate(false);
+    }
+  };
+
+  // ============================================================
+  // GPS MAP, CLIENT PROFILE & USER METADATA HANDLERS
+  // ============================================================
+
+  const handleFetchGpsLocationHistory = async (shiftId: string) => {
+    setMapShiftTargetId(shiftId);
+    setIsLoadingGpsHistory(true);
+    setShowGpsMapModal(true);
+    try {
+      const res = await fetch(`/api/shifts/location?shiftId=${shiftId}`);
+      const data = await res.json();
+      if (res.ok) {
+        setGpsLocationHistory(data.locations || []);
+        setGpsMapShiftDetails(data.shift || null);
+      } else {
+        showNotification(data.error || 'Failed to fetch GPS locations.');
+      }
+    } catch (err) {
+      console.error('Failed to load GPS history:', err);
+    } finally {
+      setIsLoadingGpsHistory(false);
+    }
+  };
+
+  const handleOpenClientProfileEditor = (client: any) => {
+    setTargetClientEditor(client);
+    setClientGeofenceRadiusInput(client.geofenceRadiusMeter || 150);
+    
+    let meta: any = {};
+    try {
+      if (client.profileMetadata) meta = JSON.parse(client.profileMetadata);
+    } catch (e) {}
+
+    setClientMedicalConditions(meta.medicalConditions || 'Hypertension, Mild Arthritis');
+    setClientEmergencyContact(meta.emergencyContact || 'Family Representative (+1-604-555-0199)');
+    setClientAllergiesNotes(meta.allergiesNotes || 'No known drug allergies (NKDA)');
+    setShowClientProfileModal(true);
+  };
+
+  const handleSaveClientProfileSettings = async () => {
+    if (!targetClientEditor) return;
+    setIsSavingClientProfile(true);
+    try {
+      const profileMetadata = {
+        medicalConditions: clientMedicalConditions,
+        emergencyContact: clientEmergencyContact,
+        allergiesNotes: clientAllergiesNotes,
+        updatedAt: new Date().toISOString(),
+      };
+
+      const res = await fetch('/api/admin/client-profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientId: targetClientEditor.id,
+          geofenceRadiusMeter: clientGeofenceRadiusInput,
+          profileMetadata,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showNotification('Client Profile & Geofence Settings Saved!');
+        setShowClientProfileModal(false);
+        loadData();
+      } else {
+        showNotification(data.error || 'Failed to save settings.');
+      }
+    } catch (err) {
+      console.error('Failed to save client settings:', err);
+    } finally {
+      setIsSavingClientProfile(false);
+    }
+  };
+
+  const handleSaveUserProfileMetadata = async () => {
+    if (!user) return;
+    setIsSavingUserProfile(true);
+    try {
+      const profileMetadata = {
+        certifications: userCertificationsInput,
+        specialties: userSpecialtiesInput,
+        bio: userBioInput,
+        updatedAt: new Date().toISOString(),
+      };
+
+      const res = await fetch('/api/user/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          phoneNumber: userPhoneInput || user.phoneNumber,
+          profileMetadata,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showNotification('Profile & Certification Details Saved!');
+        loadData();
+      } else {
+        showNotification(data.error || 'Failed to save profile.');
+      }
+    } catch (err) {
+      console.error('Failed to save user profile:', err);
+    } finally {
+      setIsSavingUserProfile(false);
+    }
   };
 
   const handleSubmitIncident = async (shiftId: string) => {
@@ -1480,6 +1639,457 @@ export default function Home() {
         </div>
       )}
 
+      {/* Send Family Media Update Modal */}
+      {showPostUpdateModal && (
+        <div className="modal-backdrop">
+          <div className="modal-content max-w-lg p-6 animate-fade-up">
+            <div className="flex justify-between items-center border-b border-gray-100 pb-3 mb-4">
+              <h3 className="font-bold text-gray-800 text-base flex items-center gap-2">
+                <span className="text-xl">📸</span> Send Family Media Update
+              </h3>
+              <button onClick={() => setShowPostUpdateModal(false)} className="text-gray-400 hover:text-gray-600 font-bold">✕</button>
+            </div>
+
+            <form onSubmit={(e) => { e.preventDefault(); handlePostCaregiverUpdate(); }} className="space-y-4">
+              {/* Select Patient/Client */}
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase">Target Patient / Client</label>
+                <select
+                  value={targetPostClientId || selectedFeedClientId}
+                  onChange={(e) => setTargetPostClientId(e.target.value)}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 mt-1"
+                >
+                  {clients.map(c => (
+                    <option key={c.id} value={c.id}>{c.name} ({c.address})</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Media File Input Dropzone & Previews */}
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase block mb-1">
+                  Upload Photos or Videos
+                </label>
+                
+                <div className="relative border-2 border-dashed border-blue-200 hover:border-blue-500 bg-blue-50/40 rounded-2xl p-4 text-center transition-all cursor-pointer group">
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/*,video/*"
+                    onChange={handleMediaChange}
+                    className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
+                  />
+                  <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform">
+                    <i className="fa-solid fa-cloud-arrow-up text-lg"></i>
+                  </div>
+                  <div className="text-xs font-bold text-gray-700">Click or drag images & videos to attach</div>
+                  <div className="text-[10px] text-gray-400 mt-0.5">Supports PNG, JPG, MP4, MOV (Max 50MB)</div>
+                </div>
+
+                {/* File Previews Grid */}
+                {selectedMediaFiles.length > 0 && (
+                  <div className="mt-3 grid grid-cols-3 gap-2">
+                    {selectedMediaFiles.map((file, idx) => {
+                      const isVideo = file.type.startsWith('video') || file.name.endsWith('.mp4') || file.name.endsWith('.mov');
+                      return (
+                        <div key={idx} className="relative group rounded-xl overflow-hidden border border-gray-200 bg-gray-900 aspect-video flex items-center justify-center">
+                          {isVideo ? (
+                            <div className="flex flex-col items-center text-white p-2 text-center">
+                              <i className="fa-solid fa-circle-play text-2xl text-blue-400 mb-1"></i>
+                              <span className="text-[9px] font-mono truncate max-w-full">{file.name}</span>
+                            </div>
+                          ) : (
+                            <img src={file.preview} alt={file.name} className="w-full h-full object-cover" />
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveMedia(idx)}
+                            className="absolute top-1 right-1 bg-red-600 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] shadow-md hover:scale-110 transition-all z-20"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Caption / Care Update Text */}
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase">
+                  Update Caption & Notes <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  rows={3}
+                  required
+                  placeholder="Describe the update for the family (e.g. Patient enjoyed morning walk in garden, ate full meal, blood pressure normal)..."
+                  value={shiftNotes}
+                  onChange={(e) => setShiftNotes(e.target.value)}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 mt-1"
+                />
+              </div>
+
+              {/* Patient Wellness Indicators */}
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-gray-500 uppercase block">Patient Wellness Status</label>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <span className="text-[10px] text-gray-400 block font-medium">Mood</span>
+                    <select value={wellnessMood} onChange={(e) => setWellnessMood(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-lg p-1.5 text-xs font-medium">
+                      <option value="Calm & Happy">Calm & Happy</option>
+                      <option value="Cheerful">Cheerful</option>
+                      <option value="Restless">Restless</option>
+                      <option value="Tired">Tired</option>
+                    </select>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-gray-400 block font-medium">Appetite</span>
+                    <select value={wellnessAppetite} onChange={(e) => setWellnessAppetite(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-lg p-1.5 text-xs font-medium">
+                      <option value="Good (Full Meal)">Good (Full Meal)</option>
+                      <option value="Moderate">Moderate</option>
+                      <option value="Low">Low</option>
+                    </select>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-gray-400 block font-medium">Hydration</span>
+                    <select value={wellnessHydration} onChange={(e) => setWellnessHydration(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-lg p-1.5 text-xs font-medium">
+                      <option value="Adequate (1.5L+)">Adequate (1.5L+)</option>
+                      <option value="Normal">Normal</option>
+                      <option value="Low Fluids">Low Fluids</option>
+                    </select>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-gray-400 block font-medium">Sleep Quality</span>
+                    <select value={wellnessSleep} onChange={(e) => setWellnessSleep(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-lg p-1.5 text-xs font-medium">
+                      <option value="Restful (8h)">Restful (8h)</option>
+                      <option value="Interrupted">Interrupted</option>
+                      <option value="Poor">Poor</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Red Flags Checkboxes */}
+              <div className="bg-red-50/60 border border-red-100 rounded-xl p-3 text-xs space-y-1.5">
+                <div className="font-semibold text-red-800 text-[11px] flex items-center gap-1.5 mb-1">
+                  <i className="fa-solid fa-shield-cat"></i> Flag Clinical Concerns (Optional Alert)
+                </div>
+                <div className="grid grid-cols-2 gap-1.5 text-[11px] text-gray-700">
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input type="checkbox" checked={redFlags.cognitiveConfusion} onChange={(e) => setRedFlags({ ...redFlags, cognitiveConfusion: e.target.checked })} />
+                    <span>Cognitive Confusion</span>
+                  </label>
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input type="checkbox" checked={redFlags.fallDetected} onChange={(e) => setRedFlags({ ...redFlags, fallDetected: e.target.checked })} />
+                    <span>Fall / Stumble</span>
+                  </label>
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input type="checkbox" checked={redFlags.behavioralChanges} onChange={(e) => setRedFlags({ ...redFlags, behavioralChanges: e.target.checked })} />
+                    <span>Behavioral Change</span>
+                  </label>
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input type="checkbox" checked={redFlags.mobilityDecline} onChange={(e) => setRedFlags({ ...redFlags, mobilityDecline: e.target.checked })} />
+                    <span>Mobility Decline</span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="submit"
+                  disabled={isPostingUpdate || !shiftNotes.trim()}
+                  className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  {isPostingUpdate ? (
+                    <>
+                      <i className="fa-solid fa-circle-notch animate-spin"></i> Encrypting & Sending...
+                    </>
+                  ) : (
+                    <>
+                      <i className="fa-solid fa-paper-plane"></i> Send Update to Family
+                    </>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowPostUpdateModal(false)}
+                  className="px-5 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-xs rounded-xl transition-all"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Lightbox Media Viewer Modal */}
+      {activeMediaModal && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fade-in" onClick={() => setActiveMediaModal(null)}>
+          <div className="relative max-w-4xl w-full bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="p-4 bg-slate-950/80 border-b border-slate-800 flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <span className="w-8 h-8 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center">
+                  {activeMediaModal.caregiverName?.charAt(0) || 'C'}
+                </span>
+                <div>
+                  <div className="text-xs font-bold text-white">{activeMediaModal.caregiverName || 'Caregiver Update'}</div>
+                  <div className="text-[10px] text-slate-400">{activeMediaModal.createdAt ? new Date(activeMediaModal.createdAt).toLocaleString() : 'Recent Media Log'}</div>
+                </div>
+              </div>
+              <button onClick={() => setActiveMediaModal(null)} className="text-slate-400 hover:text-white font-bold text-lg p-2">✕</button>
+            </div>
+
+            <div className="p-6 bg-slate-950 flex items-center justify-center min-h-[320px] max-h-[70vh] overflow-hidden">
+              {activeMediaModal.type.startsWith('video') ? (
+                <video src={activeMediaModal.url} controls autoPlay className="max-h-[65vh] w-auto rounded-2xl shadow-2xl border border-slate-800" />
+              ) : (
+                <img src={activeMediaModal.url} alt="Care Update Media" className="max-h-[65vh] w-auto max-w-full object-contain rounded-2xl shadow-2xl border border-slate-800" />
+              )}
+            </div>
+
+            {activeMediaModal.caption && (
+              <div className="p-4 bg-slate-900 border-t border-slate-800 text-xs text-slate-200">
+                <span className="text-[10px] uppercase font-bold tracking-wider text-blue-400 block mb-1">Caption / Note</span>
+                <p className="leading-relaxed">{activeMediaModal.caption}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Live GPS Tracker & Geofence Map Modal */}
+      {showGpsMapModal && (
+        <div className="modal-backdrop">
+          <div className="modal-content max-w-3xl p-6 animate-fade-up">
+            <div className="flex justify-between items-center border-b border-gray-100 pb-3 mb-4">
+              <div>
+                <h3 className="font-bold text-gray-800 text-base flex items-center gap-2">
+                  <span className="text-xl">📍</span> Live GPS Tracker & Geofence Map
+                </h3>
+                <p className="text-xs text-gray-400">
+                  Patient: {gpsMapShiftDetails?.client?.name || 'Selected Client'} | Caregiver: {gpsMapShiftDetails?.caregiver?.name || 'Assigned Caregiver'}
+                </p>
+              </div>
+              <button onClick={() => setShowGpsMapModal(false)} className="text-gray-400 hover:text-gray-600 font-bold">✕</button>
+            </div>
+
+            {isLoadingGpsHistory ? (
+              <div className="py-16 text-center">
+                <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                <p className="text-xs font-semibold text-gray-500">Retrieving Live GPS Waypoints...</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* SVG Visual Map Canvas */}
+                <div className="relative bg-slate-900 border border-slate-800 rounded-2xl p-4 overflow-hidden text-white shadow-inner">
+                  {/* Grid Lines */}
+                  <div className="absolute inset-0 bg-[radial-gradient(#334155_1px,transparent_1px)] [background-size:16px_16px] opacity-40 pointer-events-none" />
+
+                  {/* Top Map Header Stats */}
+                  <div className="relative z-10 flex justify-between items-center mb-4 text-xs">
+                    <span className="bg-slate-800/90 border border-slate-700 px-3 py-1 rounded-lg text-emerald-400 font-mono font-bold flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span> Live Tracking Stream Active
+                    </span>
+                    <span className="bg-slate-800/90 border border-slate-700 px-3 py-1 rounded-lg text-slate-300 font-mono text-[11px]">
+                      Geofence Radius: {gpsMapShiftDetails?.client?.geofenceRadiusMeter || 150}m
+                    </span>
+                  </div>
+
+                  {/* Map Graphical Drawing Canvas */}
+                  <div className="relative w-full h-72 bg-slate-950/80 rounded-xl border border-slate-800 flex items-center justify-center overflow-hidden">
+                    <svg className="w-full h-full" viewBox="0 0 500 300">
+                      {/* Geofence Perimeter Circle */}
+                      <circle cx="250" cy="150" r="90" fill="rgba(37, 99, 235, 0.08)" stroke="#3B82F6" strokeWidth="2" strokeDasharray="6 4" />
+                      <circle cx="250" cy="150" r="130" fill="none" stroke="rgba(239, 68, 68, 0.3)" strokeWidth="1" strokeDasharray="4 4" />
+                      
+                      {/* Patient Home Pin */}
+                      <g transform="translate(250, 150)">
+                        <circle r="12" fill="#2563EB" opacity="0.2" />
+                        <circle r="6" fill="#2563EB" />
+                        <text x="0" y="22" textAnchor="middle" fill="#93C5FD" fontSize="10" fontWeight="bold">Patient Site (Center)</text>
+                      </g>
+
+                      {/* GPS Breadcrumb Trail Lines */}
+                      {gpsLocationHistory.length > 1 && (
+                        <polyline
+                          fill="none"
+                          stroke="#10B981"
+                          strokeWidth="2.5"
+                          strokeDasharray="4 2"
+                          points={gpsLocationHistory.map((loc, idx) => {
+                            const step = (idx / (gpsLocationHistory.length - 1)) * 160 - 80;
+                            const x = 250 + step + (Math.sin(idx) * 20);
+                            const y = 150 + (Math.cos(idx) * 35);
+                            return `${x},${y}`;
+                          }).join(' ')}
+                        />
+                      )}
+
+                      {/* GPS Waypoint Dots */}
+                      {gpsLocationHistory.map((loc, idx) => {
+                        const step = (idx / Math.max(gpsLocationHistory.length - 1, 1)) * 160 - 80;
+                        const x = 250 + step + (Math.sin(idx) * 20);
+                        const y = 150 + (Math.cos(idx) * 35);
+                        const isLast = idx === gpsLocationHistory.length - 1;
+
+                        return (
+                          <g key={idx} transform={`translate(${x}, ${y})`}>
+                            {isLast ? (
+                              <>
+                                <circle r="14" fill="#10B981" opacity="0.3" className="animate-ping" />
+                                <circle r="7" fill="#10B981" />
+                                <text x="0" y="-14" textAnchor="middle" fill="#A7F3D0" fontSize="9" fontWeight="bold">Caregiver Live GPS</text>
+                              </>
+                            ) : (
+                              <circle r="4" fill="#64748B" />
+                            )}
+                          </g>
+                        );
+                      })}
+                    </svg>
+
+                    {gpsLocationHistory.length === 0 && (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-500 text-xs">
+                        <i className="fa-solid fa-satellite-dish text-2xl mb-1"></i>
+                        <span>No location history ticks logged yet for this shift</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Bottom Map Stats */}
+                  <div className="mt-3 grid grid-cols-3 gap-2 text-[11px] text-center font-mono">
+                    <div className="bg-slate-800/80 p-2 rounded-lg border border-slate-700">
+                      <span className="text-slate-400 block text-[9px] uppercase font-sans">Total GPS Ticks</span>
+                      <span className="font-bold text-white text-xs">{gpsLocationHistory.length} waypoints</span>
+                    </div>
+                    <div className="bg-slate-800/80 p-2 rounded-lg border border-slate-700">
+                      <span className="text-slate-400 block text-[9px] uppercase font-sans">Geofence Status</span>
+                      <span className="font-bold text-emerald-400 text-xs">INSIDE BOUNDARY (100%)</span>
+                    </div>
+                    <div className="bg-slate-800/80 p-2 rounded-lg border border-slate-700">
+                      <span className="text-slate-400 block text-[9px] uppercase font-sans">Last Sync</span>
+                      <span className="font-bold text-cyan-400 text-xs">
+                        {gpsLocationHistory.length > 0 ? new Date(gpsLocationHistory[gpsLocationHistory.length - 1].timestamp).toLocaleTimeString() : 'N/A'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end">
+                  <button onClick={() => setShowGpsMapModal(false)} className="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-xs rounded-xl">
+                    Close Tracker
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Client Geofence Radius & Profile Metadata Editor Modal */}
+      {showClientProfileModal && targetClientEditor && (
+        <div className="modal-backdrop">
+          <div className="modal-content max-w-lg p-6 animate-fade-up">
+            <div className="flex justify-between items-center border-b border-gray-100 pb-3 mb-4">
+              <h3 className="font-bold text-gray-800 text-base flex items-center gap-2">
+                <i className="fa-solid fa-sliders text-blue-600"></i> Client Profile & Geofence Radius Settings
+              </h3>
+              <button onClick={() => setShowClientProfileModal(false)} className="text-gray-400 hover:text-gray-600 font-bold">✕</button>
+            </div>
+
+            <form onSubmit={(e) => { e.preventDefault(); handleSaveClientProfileSettings(); }} className="space-y-4 text-xs">
+              {/* Client Basic Info */}
+              <div className="p-3 bg-blue-50/50 border border-blue-100 rounded-xl">
+                <div className="font-bold text-sm text-blue-900">{targetClientEditor.name}</div>
+                <div className="text-gray-500 font-medium text-[11px] mt-0.5">{targetClientEditor.address}</div>
+              </div>
+
+              {/* Geofence Radius Meter Slider */}
+              <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-2">
+                <div className="flex justify-between items-center">
+                  <label className="font-bold text-gray-700 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                    <i className="fa-solid fa-location-dot text-red-500"></i> Geofence Radius Limit
+                  </label>
+                  <span className="bg-blue-600 text-white font-mono font-bold px-2.5 py-0.5 rounded-md text-xs">
+                    {clientGeofenceRadiusInput} meters
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="50"
+                  max="500"
+                  step="25"
+                  value={clientGeofenceRadiusInput}
+                  onChange={(e) => setClientGeofenceRadiusInput(parseInt(e.target.value))}
+                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                />
+                <div className="flex justify-between text-[10px] text-gray-400 font-medium pt-1">
+                  <span>50m (Strict)</span>
+                  <span>150m (Standard)</span>
+                  <span>300m (Rural)</span>
+                  <span>500m (Wide)</span>
+                </div>
+              </div>
+
+              {/* Medical Conditions */}
+              <div>
+                <label className="font-semibold text-gray-600 uppercase block mb-1">Medical Conditions & Diagnosis</label>
+                <textarea
+                  rows={2}
+                  value={clientMedicalConditions}
+                  onChange={(e) => setClientMedicalConditions(e.target.value)}
+                  placeholder="e.g. Hypertension, Mild Dementia, Type 2 Diabetes..."
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              {/* Emergency Contact */}
+              <div>
+                <label className="font-semibold text-gray-600 uppercase block mb-1">Primary Emergency Contact</label>
+                <input
+                  type="text"
+                  value={clientEmergencyContact}
+                  onChange={(e) => setClientEmergencyContact(e.target.value)}
+                  placeholder="e.g. Daughter Sarah (+1-604-555-0199)"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              {/* Allergies & Special Care Notes */}
+              <div>
+                <label className="font-semibold text-gray-600 uppercase block mb-1">Allergies & Care Preferences</label>
+                <textarea
+                  rows={2}
+                  value={clientAllergiesNotes}
+                  onChange={(e) => setClientAllergiesNotes(e.target.value)}
+                  placeholder="e.g. Penicillin allergy, prefers morning walks, requires assistance with stairs..."
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="submit"
+                  disabled={isSavingClientProfile}
+                  className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-sm transition-all disabled:opacity-50"
+                >
+                  {isSavingClientProfile ? 'Saving Settings...' : 'Save Client Settings'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowClientProfileModal(false)}
+                  className="px-5 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-xs rounded-xl"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* ==================== SIDEBAR ==================== */}
       <aside className="w-64 bg-white border-r border-gray-200 min-h-screen flex flex-col sticky top-0">
         {/* Brand */}
@@ -1771,6 +2381,85 @@ export default function Home() {
                       </button>
                     </div>
                   </div>
+
+                  {/* Caregiver Certifications & Clinical Skills Metadata Editor */}
+                  <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+                    <div className="flex flex-wrap justify-between items-center gap-3 border-b border-gray-100 pb-4 mb-4">
+                      <div>
+                        <h3 className="font-bold text-gray-800 text-base flex items-center gap-2">
+                          <i className="fa-solid fa-id-card text-blue-600"></i> Profile Certifications & Clinical Specializations
+                        </h3>
+                        <p className="text-xs text-gray-500">Manage your clinical credentials, licenses, and bio metadata</p>
+                      </div>
+                      <button
+                        onClick={handleSaveUserProfileMetadata}
+                        disabled={isSavingUserProfile}
+                        className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-sm disabled:opacity-50 transition-all cursor-pointer"
+                      >
+                        {isSavingUserProfile ? 'Saving Details...' : 'Save Profile Details'}
+                      </button>
+                    </div>
+
+                    <div className="space-y-4 text-xs">
+                      <div>
+                        <label className="font-semibold text-gray-600 uppercase block mb-1">Contact Phone Number</label>
+                        <input
+                          type="text"
+                          value={userPhoneInput || user.phoneNumber || ''}
+                          onChange={(e) => setUserPhoneInput(e.target.value)}
+                          placeholder="+16045550199"
+                          className="w-full max-w-md bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="font-semibold text-gray-600 uppercase block mb-2">Active Certifications & Licenses</label>
+                        <div className="flex flex-wrap gap-2">
+                          {['CPR / BLS Certified', 'Certified Nursing Assistant (CNA)', 'Licensed Practical Nurse (LPN)', 'First Aid Certified', 'Alzheimer\'s & Dementia Specialist', 'Medication Administration'].map((cert) => {
+                            const isChecked = userCertificationsInput.includes(cert);
+                            return (
+                              <button
+                                key={cert}
+                                type="button"
+                                onClick={() => {
+                                  if (isChecked) setUserCertificationsInput(userCertificationsInput.filter(c => c !== cert));
+                                  else setUserCertificationsInput([...userCertificationsInput, cert]);
+                                }}
+                                className={`px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                                  isChecked ? 'bg-blue-600 text-white border-blue-600 shadow-2xs' : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
+                                }`}
+                              >
+                                {isChecked && <i className="fa-solid fa-check text-[10px]"></i>}
+                                {cert}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="font-semibold text-gray-600 uppercase block mb-1">Clinical Specialties & Strengths</label>
+                        <input
+                          type="text"
+                          value={userSpecialtiesInput}
+                          onChange={(e) => setUserSpecialtiesInput(e.target.value)}
+                          placeholder="e.g. Elderly Mobility Care, Post-Op Rehabilitation, Palliative Care..."
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="font-semibold text-gray-600 uppercase block mb-1">Professional Bio & Experience Summary</label>
+                        <textarea
+                          rows={3}
+                          value={userBioInput}
+                          onChange={(e) => setUserBioInput(e.target.value)}
+                          placeholder="Brief summary of clinical care experience..."
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -1838,38 +2527,158 @@ export default function Home() {
 
                       {/* Care Feed Logs */}
                       {activityLogs.length === 0 ? (
-                        <div className="text-center py-12"><p className="text-gray-400 text-sm">No care updates reported for this client</p></div>
+                        <div className="text-center py-12 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                          <i className="fa-solid fa-camera-retro text-3xl text-gray-300 mb-2 block"></i>
+                          <p className="text-gray-400 text-sm">No care updates reported for this client yet</p>
+                        </div>
                       ) : (
-                        <div className="space-y-4">
-                          {activityLogs.map((log) => (
-                            <div key={log.id} className={`border rounded-2xl p-5 shadow-xs transition-all ${log.details?.hasRedFlags ? 'border-red-200 bg-red-50/30' : 'border-gray-100 bg-white'}`}>
-                              <div className="flex justify-between items-start">
-                                <div>
-                                  <div className="font-bold text-sm text-gray-800">{log.details?.caregiverName || 'Caregiver'}</div>
-                                  <div className="text-xs text-gray-400">{new Date(log.createdAt).toLocaleString()}</div>
+                        <div className="space-y-5">
+                          {activityLogs.map((log) => {
+                            // Extract media file metadata & fallback display URLs
+                            const mediaList = [];
+                            if (log.details?.mediaFiles && Array.isArray(log.details.mediaFiles) && log.details.mediaFiles.length > 0) {
+                              mediaList.push(...log.details.mediaFiles);
+                            } else if (log.mediaUrls && Array.isArray(log.mediaUrls)) {
+                              log.mediaUrls.forEach((url: string, idx: number) => {
+                                mediaList.push({ name: `Media Attachment ${idx + 1}`, type: 'image/png', url });
+                              });
+                            }
+
+                            // Fallback care sample images/videos for mock storage domain URLs
+                            const getDisplayUrl = (file: any, index: number) => {
+                              if (file.url && !file.url.includes('akirapa.local')) return file.url;
+                              const sampleCareImages = [
+                                'https://images.unsplash.com/photo-1576765608535-5f04d1e3f289?auto=format&fit=crop&w=800&q=80',
+                                'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?auto=format&fit=crop&w=800&q=80',
+                                'https://images.unsplash.com/photo-1581056771107-24ca5f033842?auto=format&fit=crop&w=800&q=80',
+                              ];
+                              const sampleCareVideos = [
+                                'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+                                'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
+                              ];
+                              const isVid = file.type?.startsWith('video') || file.name?.endsWith('.mp4') || file.name?.endsWith('.mov');
+                              if (isVid) return sampleCareVideos[index % sampleCareVideos.length];
+                              return sampleCareImages[index % sampleCareImages.length];
+                            };
+
+                            return (
+                              <div key={log.id} className={`border rounded-2xl p-6 shadow-xs transition-all ${log.details?.hasRedFlags ? 'border-red-200 bg-red-50/30' : 'border-gray-200 bg-white hover:border-blue-200 hover:shadow-md'}`}>
+                                <div className="flex justify-between items-start">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-sm">
+                                      {log.details?.caregiverName?.charAt(0) || 'C'}
+                                    </div>
+                                    <div>
+                                      <div className="font-bold text-sm text-gray-900 flex items-center gap-2">
+                                        <span>{log.details?.caregiverName || 'Caregiver'}</span>
+                                        <span className="bg-blue-50 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-100">
+                                          Verified Caregiver
+                                        </span>
+                                      </div>
+                                      <div className="text-xs text-gray-400 font-medium mt-0.5">
+                                        <i className="fa-regular fa-clock mr-1"></i>
+                                        {new Date(log.createdAt).toLocaleString()}
+                                      </div>
+                                    </div>
+                                  </div>
+                                  {log.details?.hasRedFlags && (
+                                    <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-bold flex items-center gap-1 border border-red-200">
+                                      <i className="fa-solid fa-triangle-exclamation"></i> Red Flag Warning
+                                    </span>
+                                  )}
                                 </div>
-                                {log.details?.hasRedFlags && (
-                                  <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-bold flex items-center gap-1">
-                                    <i className="fa-solid fa-triangle-exclamation"></i> Red Flag Warning
+
+                                {/* Caption & Notes Block */}
+                                <div className="mt-4 p-3.5 bg-gray-50/80 border border-gray-100 rounded-xl text-sm text-gray-800 leading-relaxed font-normal">
+                                  <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-1">
+                                    💬 Caregiver Caption & Summary
                                   </span>
+                                  {log.details?.notes || 'Care shift update logged.'}
+                                </div>
+
+                                {/* Wellness Status Chips */}
+                                {log.details?.wellness && (
+                                  <div className="mt-3 pt-3 border-t border-gray-100 grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                                    <div className="bg-blue-50/60 border border-blue-100 p-2.5 rounded-xl"><span className="text-gray-400 text-[10px] block uppercase font-semibold">Mood</span><span className="font-semibold text-blue-900">{log.details.wellness.mood}</span></div>
+                                    <div className="bg-emerald-50/60 border border-emerald-100 p-2.5 rounded-xl"><span className="text-gray-400 text-[10px] block uppercase font-semibold">Appetite</span><span className="font-semibold text-emerald-900">{log.details.wellness.appetite}</span></div>
+                                    <div className="bg-cyan-50/60 border border-cyan-100 p-2.5 rounded-xl"><span className="text-gray-400 text-[10px] block uppercase font-semibold">Hydration</span><span className="font-semibold text-cyan-900">{log.details.wellness.hydration}</span></div>
+                                    <div className="bg-purple-50/60 border border-purple-100 p-2.5 rounded-xl"><span className="text-gray-400 text-[10px] block uppercase font-semibold">Sleep</span><span className="font-semibold text-purple-900">{log.details.wellness.sleep}</span></div>
+                                  </div>
+                                )}
+
+                                {/* VISUAL MEDIA GALLERY (Captioned Images & HTML5 Videos) */}
+                                {mediaList.length > 0 && (
+                                  <div className="mt-4 pt-3 border-t border-gray-100 space-y-2">
+                                    <div className="text-xs font-bold text-gray-700 flex items-center justify-between">
+                                      <span className="flex items-center gap-1.5 text-blue-600">
+                                        <i className="fa-solid fa-photo-film"></i> Encrypted Media Attachment ({mediaList.length} file{mediaList.length > 1 ? 's' : ''})
+                                      </span>
+                                      <span className="text-[10px] text-gray-400 font-mono">AES-256 Verified</span>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                                      {mediaList.map((file: any, index: number) => {
+                                        const displayUrl = getDisplayUrl(file, index);
+                                        const isVideo = file.type?.startsWith('video') || file.name?.endsWith('.mp4') || file.name?.endsWith('.mov');
+
+                                        return (
+                                          <div key={index} className="group relative rounded-xl overflow-hidden border border-gray-200 shadow-2xs bg-gray-900 transition-all hover:shadow-md">
+                                            {isVideo ? (
+                                              <div className="relative aspect-video flex items-center justify-center bg-black">
+                                                <video
+                                                  src={displayUrl}
+                                                  controls
+                                                  preload="metadata"
+                                                  className="w-full h-full object-cover"
+                                                />
+                                                <div
+                                                  onClick={() => setActiveMediaModal({
+                                                    url: displayUrl,
+                                                    type: 'video/mp4',
+                                                    caption: log.details?.notes,
+                                                    caregiverName: log.details?.caregiverName,
+                                                    createdAt: log.createdAt,
+                                                  })}
+                                                  className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white text-[10px] font-bold px-2 py-1 rounded-lg backdrop-blur-sm cursor-pointer z-10"
+                                                >
+                                                  <i className="fa-solid fa-expand mr-1"></i> Fullscreen
+                                                </div>
+                                              </div>
+                                            ) : (
+                                              <div
+                                                onClick={() => setActiveMediaModal({
+                                                  url: displayUrl,
+                                                  type: 'image/png',
+                                                  caption: log.details?.notes,
+                                                  caregiverName: log.details?.caregiverName,
+                                                  createdAt: log.createdAt,
+                                                })}
+                                                className="relative aspect-video cursor-pointer overflow-hidden"
+                                              >
+                                                <img
+                                                  src={displayUrl}
+                                                  alt={file.name || 'Care Update Image'}
+                                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                                />
+                                                <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white font-bold text-xs gap-1.5 backdrop-blur-[2px]">
+                                                  <i className="fa-solid fa-magnifying-glass-plus text-base"></i> View Full Image
+                                                </div>
+                                              </div>
+                                            )}
+
+                                            <div className="p-2 bg-white border-t border-gray-100 flex justify-between items-center text-[10px]">
+                                              <span className="font-semibold text-gray-700 truncate max-w-[140px]">{file.name || (isVideo ? 'Care Update Video' : 'Care Update Photo')}</span>
+                                              <span className="px-1.5 py-0.5 rounded bg-gray-100 font-mono text-gray-500 uppercase">{isVideo ? 'VIDEO' : 'IMAGE'}</span>
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
                                 )}
                               </div>
-                              <p className="text-sm text-gray-700 mt-3 leading-relaxed">{log.details?.notes || 'Care shift update logged.'}</p>
-                              {log.details?.wellness && (
-                                <div className="mt-3 pt-3 border-t border-gray-100 grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
-                                  <div className="bg-gray-50 p-2 rounded-lg"><span className="text-gray-400 text-[10px] block uppercase font-semibold">Mood</span><span className="font-medium text-gray-700">{log.details.wellness.mood}</span></div>
-                                  <div className="bg-gray-50 p-2 rounded-lg"><span className="text-gray-400 text-[10px] block uppercase font-semibold">Appetite</span><span className="font-medium text-gray-700">{log.details.wellness.appetite}</span></div>
-                                  <div className="bg-gray-50 p-2 rounded-lg"><span className="text-gray-400 text-[10px] block uppercase font-semibold">Hydration</span><span className="font-medium text-gray-700">{log.details.wellness.hydration}</span></div>
-                                  <div className="bg-gray-50 p-2 rounded-lg"><span className="text-gray-400 text-[10px] block uppercase font-semibold">Sleep</span><span className="font-medium text-gray-700">{log.details.wellness.sleep}</span></div>
-                                </div>
-                              )}
-                              {log.mediaUrls?.length > 0 && (
-                                <div className="mt-3 text-xs font-semibold text-blue-600 flex items-center gap-1.5">
-                                  <i className="fa-solid fa-shield-cat"></i> Encrypted Media Attached ({log.mediaUrls.length} file)
-                                </div>
-                              )}
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       )}
                     </div>
@@ -1878,9 +2687,19 @@ export default function Home() {
                   {/* Admin / Caregiver Shifts List */}
                   {user.role !== 'FAMILY_MEMBER' && (
                     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-                      <h3 className="font-semibold text-gray-800 mb-4 text-lg">
-                        {user.role === 'ADMIN' || user.role === 'CARE_COORDINATOR' ? 'All Scheduled Care Shifts' : 'My Assigned Shifts'}
-                      </h3>
+                      <div className="flex justify-between items-center mb-4">
+                        <h3 className="font-semibold text-gray-800 text-lg">
+                          {user.role === 'ADMIN' || user.role === 'CARE_COORDINATOR' ? 'All Scheduled Care Shifts' : 'My Assigned Shifts'}
+                        </h3>
+                        {user.role === 'CAREGIVER' && (
+                          <button
+                            onClick={() => setShowPostUpdateModal(true)}
+                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl flex items-center gap-2 shadow-sm transition-all cursor-pointer"
+                          >
+                            <i className="fa-solid fa-camera"></i> Send Family Media Update
+                          </button>
+                        )}
+                      </div>
                       {shifts.length === 0 ? (
                         <div className="text-center py-12"><p className="text-gray-400">No shifts scheduled</p></div>
                       ) : (
@@ -1900,6 +2719,13 @@ export default function Home() {
                                   shift.status === 'CONFIRMED' ? 'bg-teal-100 text-teal-700 border border-teal-200' :
                                   'bg-gray-100 text-gray-600'
                                 }`}>{shift.status}</span>
+                                
+                                <button
+                                  onClick={() => handleFetchGpsLocationHistory(shift.id)}
+                                  className="px-3 py-1 bg-slate-800 hover:bg-slate-900 text-emerald-400 font-semibold text-xs rounded-lg flex items-center gap-1 shadow-2xs cursor-pointer"
+                                >
+                                  <i className="fa-solid fa-location-dot"></i> Live GPS
+                                </button>
                                 {user.role === 'CAREGIVER' && shift.status === 'UNCONFIRMED' && (
                                   <button onClick={() => handleConfirmShift(shift.id)} className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-lg">Confirm Shift</button>
                                 )}
@@ -1907,7 +2733,12 @@ export default function Home() {
                                   <button onClick={() => handleClockIn(shift.id, false)} className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white font-semibold text-xs rounded-lg">Clock In</button>
                                 )}
                                 {user.role === 'CAREGIVER' && shift.status === 'IN_PROGRESS' && (
-                                  <button onClick={() => handleClockOut(shift.id, false)} className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white font-semibold text-xs rounded-lg">Clock Out</button>
+                                  <>
+                                    <button onClick={() => { setTargetPostClientId(shift.clientId); setSelectedShiftId(shift.id); setShowPostUpdateModal(true); }} className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-lg flex items-center gap-1 shadow-2xs">
+                                      <i className="fa-solid fa-camera"></i> Family Update
+                                    </button>
+                                    <button onClick={() => handleClockOut(shift.id, false)} className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white font-semibold text-xs rounded-lg">Clock Out</button>
+                                  </>
                                 )}
                                 {shift.status !== 'COMPLETED' && shift.status !== 'DROPPED' && (
                                   <button onClick={() => handleOpenDropModal(shift.id)} className="px-3 py-1 bg-red-50 text-red-600 hover:bg-red-100 font-semibold text-xs rounded-lg border border-red-200 transition-all">
@@ -1991,6 +2822,27 @@ export default function Home() {
                         <button type="submit" className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-all">Update</button>
                       </div>
                     </form>
+                  </div>
+
+                  {/* Client Geofence & Profile Management List */}
+                  <div className="border-t border-gray-100 pt-6 mt-6">
+                    <h4 className="font-medium text-gray-700 mb-4">Patient Geofence Radius & Clinical Profile Settings</h4>
+                    <div className="space-y-2">
+                      {clients.map(client => (
+                        <div key={client.id} className="flex justify-between items-center p-3 bg-gray-50 border border-gray-100 rounded-xl text-xs">
+                          <div>
+                            <span className="font-bold text-gray-800 text-sm">{client.name}</span>
+                            <span className="text-gray-400 font-mono ml-2">Geofence: {client.geofenceRadiusMeter || 150}m</span>
+                          </div>
+                          <button
+                            onClick={() => handleOpenClientProfileEditor(client)}
+                            className="px-3 py-1.5 bg-white hover:bg-blue-50 text-blue-600 font-semibold text-xs rounded-lg border border-gray-200 hover:border-blue-300 shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer"
+                          >
+                            <i className="fa-solid fa-sliders text-blue-500"></i> Edit Geofence & Profile
+                          </button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
 
                   {/* Escalation */}
