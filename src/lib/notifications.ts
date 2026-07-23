@@ -4,7 +4,7 @@ export interface CreateNotificationPayload {
   userId: string;
   title: string;
   message: string;
-  type: 'SHIFT_ASSIGNED' | 'SHIFT_DROPPED' | 'CLINICAL_ALERT' | 'EXCEPTION_OVERRIDE' | 'SYSTEM_ALERT';
+  type: 'SHIFT_ASSIGNED' | 'SHIFT_DROPPED' | 'CLINICAL_ALERT' | 'EXCEPTION_OVERRIDE' | 'SYSTEM_ALERT' | 'NEW_MESSAGE';
 }
 
 export async function createNotification(payload: CreateNotificationPayload) {

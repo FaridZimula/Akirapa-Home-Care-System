@@ -7,7 +7,7 @@ export default function Home() {
   const { user, loading: authLoading, login, logout } = useAuth();
   
   // Navigation state
-  const [currentView, setCurrentView] = useState<'dashboard' | 'profile' | 'listings' | 'create' | 'purchases' | 'business' | 'interested' | 'settings' | 'audit' | 'financials'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'profile' | 'listings' | 'create' | 'purchases' | 'business' | 'interested' | 'settings' | 'audit' | 'financials' | 'messages'>('dashboard');
   
   // Auth flow states
   const [viewState, setViewState] = useState<'splash' | 'login' | 'signup' | 'forgot_password' | 'dashboard'>('splash');
@@ -201,6 +201,14 @@ export default function Home() {
   const [editingPayRateFor, setEditingPayRateFor] = useState<string | null>(null);
   const [payRateInput, setPayRateInput] = useState('');
   const [isSavingPayRate, setIsSavingPayRate] = useState(false);
+
+  // Messaging (caregiver <-> family, monitored by admin/coordinator)
+  const [messageConversations, setMessageConversations] = useState<Array<{ id: string; name: string }>>([]);
+  const [selectedMessageClientId, setSelectedMessageClientId] = useState<string>('');
+  const [messageThread, setMessageThread] = useState<any[]>([]);
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+  const [messageText, setMessageText] = useState('');
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
 
   // 2. Real-Time Notification Center (/api/notifications)
   const [dbNotifications, setDbNotifications] = useState<any[]>([]);
@@ -494,6 +502,64 @@ export default function Home() {
     }
   };
 
+  const loadMessageConversations = async () => {
+    try {
+      const res = await fetch('/api/messages/conversations');
+      const data = await res.json();
+      if (res.ok) {
+        setMessageConversations(data.conversations || []);
+        setSelectedMessageClientId(prev => prev || data.conversations?.[0]?.id || '');
+      }
+    } catch (err) {
+      console.error('Failed to load conversations:', err);
+    }
+  };
+
+  const loadMessageThread = async (clientId: string, silent = false) => {
+    if (!clientId) return;
+    if (!silent) setIsLoadingMessages(true);
+    try {
+      const res = await fetch(`/api/messages?clientId=${clientId}`);
+      const data = await res.json();
+      if (res.ok) setMessageThread(data.messages || []);
+    } catch (err) {
+      console.error('Failed to load messages:', err);
+    } finally {
+      if (!silent) setIsLoadingMessages(false);
+    }
+  };
+
+  const handleSendMessage = async () => {
+    if (!selectedMessageClientId) return;
+    const attachment = selectedMediaFiles[0];
+    if (!messageText.trim() && !attachment) return;
+
+    setIsSendingMessage(true);
+    try {
+      const res = await fetch('/api/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientId: selectedMessageClientId,
+          text: messageText.trim() || undefined,
+          mediaFile: attachment ? { name: attachment.name, type: attachment.type } : undefined,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setMessageText('');
+        setSelectedMediaFiles([]);
+        loadMessageThread(selectedMessageClientId, true);
+      } else {
+        showNotification(data.error || 'Failed to send message.');
+      }
+    } catch (err) {
+      console.error('Failed to send message:', err);
+    } finally {
+      setIsSendingMessage(false);
+    }
+  };
+
   const loadData = async () => {
     try {
       // 1. Fetch scheduling data (clients, caregivers, shifts)
@@ -549,6 +615,21 @@ export default function Home() {
       loadFinancials();
     }
   }, [currentView, user]);
+
+  // Messaging: load the conversation list once the Messages view opens
+  useEffect(() => {
+    if (currentView === 'messages' && user) {
+      loadMessageConversations();
+    }
+  }, [currentView, user]);
+
+  // Messaging: load + poll the selected thread while the view is open
+  useEffect(() => {
+    if (currentView !== 'messages' || !selectedMessageClientId) return;
+    loadMessageThread(selectedMessageClientId);
+    const interval = setInterval(() => loadMessageThread(selectedMessageClientId, true), 5000);
+    return () => clearInterval(interval);
+  }, [currentView, selectedMessageClientId]);
 
   // ============================================================
   // INTELLIGENT SUGGESTIONS
@@ -3140,6 +3221,9 @@ export default function Home() {
                   <i className="fa-solid fa-sack-dollar w-5 text-center"></i> Payroll
                 </button>
               )}
+              <button onClick={() => setCurrentView('messages')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'messages' ? 'bg-purple-50 text-purple-600 border-r-2 border-purple-600' : 'text-gray-600 hover:bg-gray-50'}`}>
+                <i className="fa-solid fa-comments w-5 text-center"></i> Message Monitoring
+              </button>
               <button onClick={() => setCurrentView('audit')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'audit' ? 'bg-purple-50 text-purple-600 border-r-2 border-purple-600' : 'text-gray-600 hover:bg-gray-50'}`}>
                 <i className="fa-solid fa-shield-halved w-5 text-center"></i> Audit Logs
               </button>
@@ -3152,6 +3236,9 @@ export default function Home() {
               <button onClick={() => setCurrentView('listings')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'listings' ? 'bg-purple-50 text-purple-600 border-r-2 border-purple-600' : 'text-gray-600 hover:bg-gray-50'}`}>
                 <i className="fa-solid fa-clock w-5 text-center"></i> My Shifts
               </button>
+              <button onClick={() => setCurrentView('messages')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'messages' ? 'bg-purple-50 text-purple-600 border-r-2 border-purple-600' : 'text-gray-600 hover:bg-gray-50'}`}>
+                <i className="fa-solid fa-comments w-5 text-center"></i> Messages
+              </button>
               <button onClick={() => setCurrentView('interested')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'interested' ? 'bg-purple-50 text-purple-600 border-r-2 border-purple-600' : 'text-gray-600 hover:bg-gray-50'}`}>
                 <i className="fa-solid fa-bell w-5 text-center"></i> Alerts
               </button>
@@ -3163,6 +3250,9 @@ export default function Home() {
             <>
               <button onClick={() => setCurrentView('listings')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'listings' ? 'bg-purple-50 text-purple-600 border-r-2 border-purple-600' : 'text-gray-600 hover:bg-gray-50'}`}>
                 <i className="fa-solid fa-heart-pulse w-5 text-center"></i> Care Feed
+              </button>
+              <button onClick={() => setCurrentView('messages')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'messages' ? 'bg-purple-50 text-purple-600 border-r-2 border-purple-600' : 'text-gray-600 hover:bg-gray-50'}`}>
+                <i className="fa-solid fa-comments w-5 text-center"></i> Messages
               </button>
               <button onClick={() => setCurrentView('purchases')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'purchases' ? 'bg-purple-50 text-purple-600 border-r-2 border-purple-600' : 'text-gray-600 hover:bg-gray-50'}`}>
                 <i className="fa-solid fa-file-invoice w-5 text-center"></i> Documents
@@ -3196,6 +3286,7 @@ export default function Home() {
               {currentView === 'interested' && 'Alerts & Notifications'}
               {currentView === 'audit' && 'Audit Logs'}
               {currentView === 'financials' && 'Payroll'}
+              {currentView === 'messages' && (user.role === 'ADMIN' || user.role === 'CARE_COORDINATOR' ? 'Message Monitoring' : 'Messages')}
             </h2>
             <div className="relative flex-1 max-w-md ml-4">
               <i className="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
@@ -4180,6 +4271,110 @@ export default function Home() {
                   ) : (
                     <div className="text-center py-12"><p className="text-gray-400">Unable to load payroll data.</p></div>
                   )}
+                </div>
+              )}
+
+              {/* ===== MESSAGES VIEW (caregiver/family compose, admin/coordinator monitor read-only) ===== */}
+              {currentView === 'messages' && (
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4" style={{ height: 'calc(100vh - 180px)' }}>
+                  {/* Conversation list */}
+                  <div className="md:col-span-1 bg-white rounded-2xl shadow-sm border border-gray-100 p-4 overflow-y-auto">
+                    <h3 className="font-semibold text-gray-800 text-sm mb-3">Conversations</h3>
+                    {messageConversations.length === 0 ? (
+                      <p className="text-xs text-gray-400">No conversations available yet.</p>
+                    ) : (
+                      <div className="space-y-1">
+                        {messageConversations.map(c => (
+                          <button
+                            key={c.id}
+                            onClick={() => setSelectedMessageClientId(c.id)}
+                            className={`w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${selectedMessageClientId === c.id ? 'bg-purple-50 text-purple-600' : 'text-gray-600 hover:bg-gray-50'}`}
+                          >
+                            {c.name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Thread */}
+                  <div className="md:col-span-3 bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden">
+                    {(user.role === 'ADMIN' || user.role === 'CARE_COORDINATOR') && (
+                      <div className="px-4 py-2 bg-amber-50 border-b border-amber-100 text-[11px] text-amber-800 font-semibold flex items-center gap-1.5">
+                        <i className="fa-solid fa-eye"></i> Monitoring view — read-only, access is logged for accountability
+                      </div>
+                    )}
+
+                    <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                      {!selectedMessageClientId ? (
+                        <p className="text-center text-gray-400 text-sm py-8">Select a conversation to view messages.</p>
+                      ) : isLoadingMessages ? (
+                        <div className="text-center py-8"><div className="w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto" /></div>
+                      ) : messageThread.length === 0 ? (
+                        <p className="text-center text-gray-400 text-sm py-8">No messages yet. Start the conversation below.</p>
+                      ) : (
+                        messageThread.map((m: any) => {
+                          const isMine = m.senderId === user.id;
+                          return (
+                            <div key={m.id} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
+                              <div className={`max-w-[70%] rounded-2xl px-4 py-2.5 ${isMine ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-800'}`}>
+                                <div className={`text-[10px] font-semibold mb-1 ${isMine ? 'text-purple-200' : 'text-gray-500'}`}>
+                                  {m.senderName} · {m.senderRole.replace('_', ' ')}
+                                </div>
+                                {m.text && <p className="text-sm whitespace-pre-wrap">{m.text}</p>}
+                                {m.mediaUrl && (
+                                  <div className={`mt-1.5 text-xs flex items-center gap-1.5 ${isMine ? 'text-purple-100' : 'text-gray-600'}`}>
+                                    <i className={`fa-solid ${m.mediaType === 'video' ? 'fa-video' : m.mediaType === 'audio' ? 'fa-microphone' : 'fa-image'}`}></i>
+                                    {m.mediaName || (m.mediaType === 'video' ? 'Video attached' : m.mediaType === 'audio' ? 'Voice note attached' : 'Photo attached')}
+                                  </div>
+                                )}
+                                <div className={`text-[9px] mt-1 ${isMine ? 'text-purple-200' : 'text-gray-400'}`}>{new Date(m.createdAt).toLocaleString()}</div>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+
+                    {user.role !== 'ADMIN' && user.role !== 'CARE_COORDINATOR' && selectedMessageClientId && (
+                      <div className="border-t border-gray-100 p-3">
+                        {selectedMediaFiles.length > 0 && (
+                          <div className="mb-2 flex items-center gap-2 bg-purple-50 rounded-lg px-3 py-1.5 text-xs text-purple-700">
+                            <i className="fa-solid fa-paperclip"></i> {selectedMediaFiles[0].name}
+                            <button onClick={() => handleRemoveMedia(0)} className="ml-auto text-purple-400 hover:text-purple-700">✕</button>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-2">
+                          <div className="relative">
+                            <input type="file" accept="image/*,video/*,audio/*" onChange={handleMediaChange} className="absolute inset-0 opacity-0 w-9 h-9 cursor-pointer z-10" />
+                            <button type="button" className="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 flex items-center justify-center"><i className="fa-solid fa-paperclip"></i></button>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={isRecordingAudio ? handleStopVoiceRecording : handleStartVoiceRecording}
+                            className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${isRecordingAudio ? 'bg-red-600 text-white animate-pulse' : 'bg-gray-100 hover:bg-gray-200 text-gray-500'}`}
+                          >
+                            <i className="fa-solid fa-microphone"></i>
+                          </button>
+                          <input
+                            type="text"
+                            value={messageText}
+                            onChange={(e) => setMessageText(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }}
+                            placeholder="Type a message..."
+                            className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          />
+                          <button
+                            onClick={handleSendMessage}
+                            disabled={isSendingMessage || (!messageText.trim() && selectedMediaFiles.length === 0)}
+                            className="w-10 h-10 rounded-full bg-purple-600 hover:bg-purple-700 text-white flex items-center justify-center disabled:opacity-50 transition-all shrink-0"
+                          >
+                            <i className="fa-solid fa-paper-plane"></i>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 

@@ -55,6 +55,7 @@ model User {
   availabilities Availability[]
   shiftOffers    ShiftOffer[]
   notifications  Notification[]
+  messages       Message[]
 }
 
 model Client {
@@ -73,6 +74,7 @@ model Client {
   carePlans      CarePlan[]
   familyMembers  LinkedFamilyMember[]
   activityLogs   ActivityLog[]
+  messages       Message[]
 }
 
 model CaregiverPod {
@@ -232,6 +234,20 @@ model VerificationToken {
   createdAt DateTime @default(now())
 
   @@unique([email, token, purpose])
+}
+
+model Message {
+  id            String   @id @default(uuid())
+  clientId      String   // conversation is scoped to a client - all pod caregivers + linked family share one thread
+  senderId      String
+  encryptedText String?  // AES-256-GCM encrypted text content; null for media-only messages
+  mediaUrl      String?  // signed URL for a photo/video/audio attachment
+  mediaType     String?  // 'image' | 'video' | 'audio'
+  mediaName     String?
+  createdAt     DateTime @default(now())
+
+  client        Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  sender        User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
 }
 
 model Notification {
