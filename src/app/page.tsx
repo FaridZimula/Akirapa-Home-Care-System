@@ -7,7 +7,7 @@ export default function Home() {
   const { user, loading: authLoading, login, logout } = useAuth();
   
   // Navigation state
-  const [currentView, setCurrentView] = useState<'dashboard' | 'profile' | 'listings' | 'create' | 'purchases' | 'business' | 'interested' | 'settings' | 'audit'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'profile' | 'listings' | 'create' | 'purchases' | 'business' | 'interested' | 'settings' | 'audit' | 'financials'>('dashboard');
   
   // Auth flow states
   const [viewState, setViewState] = useState<'splash' | 'login' | 'signup' | 'forgot_password' | 'dashboard'>('splash');
@@ -194,6 +194,13 @@ export default function Home() {
   // Caregiver Home Base Location (used for proximity-based shift scheduling)
   const [isSavingLocation, setIsSavingLocation] = useState(false);
   const [savedLocation, setSavedLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+
+  // Admin Payroll Dashboard
+  const [financialsData, setFinancialsData] = useState<any>(null);
+  const [isLoadingFinancials, setIsLoadingFinancials] = useState(false);
+  const [editingPayRateFor, setEditingPayRateFor] = useState<string | null>(null);
+  const [payRateInput, setPayRateInput] = useState('');
+  const [isSavingPayRate, setIsSavingPayRate] = useState(false);
 
   // 2. Real-Time Notification Center (/api/notifications)
   const [dbNotifications, setDbNotifications] = useState<any[]>([]);
@@ -437,6 +444,56 @@ export default function Home() {
     }
   };
 
+  const loadFinancials = async () => {
+    setIsLoadingFinancials(true);
+    try {
+      const res = await fetch('/api/admin/financials');
+      const data = await res.json();
+      if (res.ok) {
+        setFinancialsData(data);
+      } else {
+        showNotification(data.error || 'Failed to load payroll data.');
+      }
+    } catch (err) {
+      console.error('Failed to load financials:', err);
+    } finally {
+      setIsLoadingFinancials(false);
+    }
+  };
+
+  const handleStartEditPayRate = (caregiverId: string, currentRate: number | null) => {
+    setEditingPayRateFor(caregiverId);
+    setPayRateInput(currentRate != null ? String(currentRate) : '');
+  };
+
+  const handleSavePayRate = async (caregiverId: string) => {
+    const rate = parseFloat(payRateInput);
+    if (isNaN(rate) || rate < 0) {
+      showNotification('Enter a valid hourly pay rate.');
+      return;
+    }
+    setIsSavingPayRate(true);
+    try {
+      const res = await fetch('/api/user/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: caregiverId, payRate: rate }),
+      });
+      if (res.ok) {
+        showNotification('Pay rate updated.');
+        setEditingPayRateFor(null);
+        loadFinancials();
+      } else {
+        const data = await res.json();
+        showNotification(data.error || 'Failed to update pay rate.');
+      }
+    } catch (err) {
+      console.error('Failed to save pay rate:', err);
+    } finally {
+      setIsSavingPayRate(false);
+    }
+  };
+
   const loadData = async () => {
     try {
       // 1. Fetch scheduling data (clients, caregivers, shifts)
@@ -486,6 +543,12 @@ export default function Home() {
   };
 
   useEffect(() => { loadData(); }, []);
+
+  useEffect(() => {
+    if (currentView === 'financials' && user?.role === 'ADMIN') {
+      loadFinancials();
+    }
+  }, [currentView, user]);
 
   // ============================================================
   // INTELLIGENT SUGGESTIONS
@@ -3072,6 +3135,11 @@ export default function Home() {
               <button onClick={() => setCurrentView('business')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'business' ? 'bg-purple-50 text-purple-600 border-r-2 border-purple-600' : 'text-gray-600 hover:bg-gray-50'}`}>
                 <i className="fa-solid fa-briefcase w-5 text-center"></i> Business Hub
               </button>
+              {user.role === 'ADMIN' && (
+                <button onClick={() => setCurrentView('financials')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'financials' ? 'bg-purple-50 text-purple-600 border-r-2 border-purple-600' : 'text-gray-600 hover:bg-gray-50'}`}>
+                  <i className="fa-solid fa-sack-dollar w-5 text-center"></i> Payroll
+                </button>
+              )}
               <button onClick={() => setCurrentView('audit')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'audit' ? 'bg-purple-50 text-purple-600 border-r-2 border-purple-600' : 'text-gray-600 hover:bg-gray-50'}`}>
                 <i className="fa-solid fa-shield-halved w-5 text-center"></i> Audit Logs
               </button>
@@ -3127,6 +3195,7 @@ export default function Home() {
               {currentView === 'business' && 'Business Hub'}
               {currentView === 'interested' && 'Alerts & Notifications'}
               {currentView === 'audit' && 'Audit Logs'}
+              {currentView === 'financials' && 'Payroll'}
             </h2>
             <div className="relative flex-1 max-w-md ml-4">
               <i className="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
@@ -3977,6 +4046,139 @@ export default function Home() {
                         </div>
                       ))}
                     </div>
+                  )}
+                </div>
+              )}
+
+              {/* ===== PAYROLL / FINANCIALS VIEW ===== */}
+              {currentView === 'financials' && user.role === 'ADMIN' && (
+                <div className="space-y-6">
+                  {isLoadingFinancials ? (
+                    <div className="py-16 text-center">
+                      <div className="w-10 h-10 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                      <p className="text-xs font-semibold text-gray-500">Calculating this week's payroll...</p>
+                    </div>
+                  ) : financialsData ? (
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="bg-purple-50 rounded-xl p-4 text-center">
+                          <div className="text-2xl font-bold text-purple-600">${financialsData.totalPayroll.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                          <div className="text-sm text-gray-600">Total Payroll (This Week)</div>
+                        </div>
+                        <div className="bg-green-50 rounded-xl p-4 text-center">
+                          <div className="text-2xl font-bold text-green-600">{financialsData.totalHours.toFixed(1)}</div>
+                          <div className="text-sm text-gray-600">Hours Worked</div>
+                        </div>
+                        <div className="bg-amber-50 rounded-xl p-4 text-center">
+                          <div className="text-2xl font-bold text-amber-600">{financialsData.caregiverPayroll.length}</div>
+                          <div className="text-sm text-gray-600">Caregivers Active</div>
+                        </div>
+                      </div>
+
+                      {financialsData.caregiversMissingRate > 0 && (
+                        <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-xl text-sm flex items-center gap-2">
+                          <i className="fa-solid fa-triangle-exclamation"></i>
+                          {financialsData.caregiversMissingRate} caregiver{financialsData.caregiversMissingRate > 1 ? 's have' : ' has'} no pay rate set yet — their wages can't be calculated until you set one below.
+                        </div>
+                      )}
+
+                      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                        <div className="flex justify-between items-center mb-4">
+                          <h3 className="font-semibold text-gray-800">Caregiver Payroll Breakdown</h3>
+                          <span className="text-xs text-gray-400">
+                            Week of {new Date(financialsData.weekStart).toLocaleDateString()} — completed shifts only
+                          </span>
+                        </div>
+
+                        {financialsData.caregiverPayroll.length === 0 ? (
+                          <div className="text-center py-12"><p className="text-gray-400">No completed shifts yet this week</p></div>
+                        ) : (
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                              <thead>
+                                <tr className="text-left text-xs text-gray-500 uppercase border-b border-gray-100">
+                                  <th className="pb-2 font-semibold">Caregiver</th>
+                                  <th className="pb-2 font-semibold">Shifts</th>
+                                  <th className="pb-2 font-semibold">Hours</th>
+                                  <th className="pb-2 font-semibold">Pay Rate</th>
+                                  <th className="pb-2 font-semibold">Wages Owed</th>
+                                  <th className="pb-2 font-semibold"></th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {financialsData.caregiverPayroll.map((c: any) => (
+                                  <tr key={c.id} className="border-b border-gray-50">
+                                    <td className="py-3">
+                                      <div className="font-semibold text-gray-800">{c.name}</div>
+                                      <div className="text-xs text-gray-400">{c.email}</div>
+                                    </td>
+                                    <td className="py-3">
+                                      {c.shiftsCompleted}
+                                      {c.overtimeShifts > 0 && (
+                                        <span className="ml-1.5 px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded text-[10px] font-bold">{c.overtimeShifts} OT</span>
+                                      )}
+                                    </td>
+                                    <td className="py-3">{c.hoursWorked.toFixed(1)} hrs</td>
+                                    <td className="py-3">
+                                      {editingPayRateFor === c.id ? (
+                                        <div className="flex items-center gap-1">
+                                          <span className="text-gray-400">$</span>
+                                          <input
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            autoFocus
+                                            value={payRateInput}
+                                            onChange={(e) => setPayRateInput(e.target.value)}
+                                            className="w-20 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                          />
+                                          <span className="text-gray-400">/hr</span>
+                                        </div>
+                                      ) : c.payRate != null ? (
+                                        `$${c.payRate.toFixed(2)}/hr`
+                                      ) : (
+                                        <span className="text-amber-600 font-medium">Not set</span>
+                                      )}
+                                    </td>
+                                    <td className="py-3 font-semibold text-gray-800">
+                                      {c.wagesOwed != null ? `$${c.wagesOwed.toFixed(2)}` : '—'}
+                                    </td>
+                                    <td className="py-3 text-right">
+                                      {editingPayRateFor === c.id ? (
+                                        <div className="flex gap-1.5 justify-end">
+                                          <button
+                                            onClick={() => handleSavePayRate(c.id)}
+                                            disabled={isSavingPayRate}
+                                            className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs rounded-lg disabled:opacity-50"
+                                          >
+                                            Save
+                                          </button>
+                                          <button
+                                            onClick={() => setEditingPayRateFor(null)}
+                                            className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-xs rounded-lg"
+                                          >
+                                            Cancel
+                                          </button>
+                                        </div>
+                                      ) : (
+                                        <button
+                                          onClick={() => handleStartEditPayRate(c.id, c.payRate)}
+                                          className="px-3 py-1 bg-white hover:bg-purple-50 text-purple-600 font-semibold text-xs rounded-lg border border-gray-200 hover:border-purple-300"
+                                        >
+                                          {c.payRate != null ? 'Edit Rate' : 'Set Rate'}
+                                        </button>
+                                      )}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-center py-12"><p className="text-gray-400">Unable to load payroll data.</p></div>
                   )}
                 </div>
               )}

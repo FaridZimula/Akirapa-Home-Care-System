@@ -10,7 +10,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    const { userId, phoneNumber, profileMetadata, latitude, longitude } = await request.json();
+    const { userId, phoneNumber, profileMetadata, latitude, longitude, payRate } = await request.json();
 
     if (!userId) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
@@ -21,6 +21,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'You can only update your own profile' }, { status: 403 });
     }
 
+    // Pay rate is wage data - only an admin may set it, even on their own profile
+    // update path a caregiver cannot touch it, self-service or otherwise.
+    if (payRate !== undefined && sessionUser.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Only an administrator can set pay rates' }, { status: 403 });
+    }
+
     const updateData: any = {};
     if (phoneNumber !== undefined) updateData.phoneNumber = phoneNumber;
     if (profileMetadata !== undefined) {
@@ -28,6 +34,7 @@ export async function POST(request: Request) {
     }
     if (typeof latitude === 'number') updateData.latitude = latitude;
     if (typeof longitude === 'number') updateData.longitude = longitude;
+    if (typeof payRate === 'number') updateData.payRate = payRate;
 
     const updatedUser = await prisma.user.update({
       where: { id: userId },
@@ -41,6 +48,7 @@ export async function POST(request: Request) {
         profileMetadata: true,
         latitude: true,
         longitude: true,
+        payRate: true,
       }
     });
 

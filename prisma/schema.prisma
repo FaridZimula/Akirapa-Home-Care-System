@@ -44,6 +44,9 @@ model User {
   latitude        Float?
   longitude       Float?
 
+  // Caregiver's hourly pay rate (USD), admin-set only, used for payroll reporting
+  payRate         Float?
+
   // Relations
   podAssignments CaregiverPod[]
   assignedShifts Shift[]
