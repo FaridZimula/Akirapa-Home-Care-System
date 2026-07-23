@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { logAudit } from '@/lib/audit';
+import { hashPassword } from '@/lib/password';
+import { createSessionCookie, sessionCookieOptions } from '@/lib/session';
 import { UserRole, PodRole, ShiftStatus } from '@prisma/client';
 
 export async function POST(request: Request) {
@@ -118,7 +120,7 @@ export async function POST(request: Request) {
     const user = await prisma.user.create({
       data: {
         email,
-        passwordHash: password, // Plain-text passwords for mock prototype simplicity
+        passwordHash: await hashPassword(password),
         name,
         role: finalRole,
         phoneNumber: phoneNumber || '+16045550199',
@@ -366,18 +368,9 @@ export async function POST(request: Request) {
       },
     });
 
-    // Set mock session cookie
-    response.cookies.set('session_user', JSON.stringify({
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-      phoneNumber: user.phoneNumber,
-    }), {
-      path: '/',
-      httpOnly: false,
-      maxAge: 60 * 15, // 15 mins session matching idle timeout
-    });
+    // Set signed, httpOnly session cookie
+    const session = createSessionCookie(user.id);
+    response.cookies.set(session.name, session.value, sessionCookieOptions(session.maxAge));
 
     return response;
   } catch (error) {

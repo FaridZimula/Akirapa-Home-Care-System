@@ -1,10 +1,12 @@
 import crypto from 'crypto';
 
 const ALGORITHM = 'aes-256-gcm';
-// Default key for development/prototyping. In production, use process.env.ENCRYPTION_KEY
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY 
-  ? crypto.scryptSync(process.env.ENCRYPTION_KEY, 'salt', 32)
-  : Buffer.from('f656723d-dcf3-4586-be53-866a23bc'.substring(0, 32), 'utf-8'); // 32 bytes
+
+const rawKey = process.env.ENCRYPTION_KEY;
+if (!rawKey) {
+  throw new Error('ENCRYPTION_KEY environment variable must be set to encrypt/decrypt clinical records.');
+}
+const ENCRYPTION_KEY = crypto.scryptSync(rawKey, 'salt', 32);
 
 export function encrypt(text: string): string {
   const iv = crypto.randomBytes(12);

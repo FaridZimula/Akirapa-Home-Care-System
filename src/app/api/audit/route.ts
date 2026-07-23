@@ -1,19 +1,27 @@
 import { NextResponse } from 'next/server';
 import { logAudit } from '@/lib/audit';
+import { getSessionUser } from '@/lib/session';
 
 export async function POST(request: Request) {
   try {
-    const { userId, action, details, outcome } = await request.json();
+    const sessionUser = await getSessionUser();
+    if (!sessionUser) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
 
-    if (!userId || !action || !details || !outcome) {
+    const { action, details, outcome } = await request.json();
+
+    if (!action || !details || !outcome) {
       return NextResponse.json(
         { error: 'Missing required audit parameters' },
         { status: 400 }
       );
     }
 
+    // userId always comes from the verified session, never from the request body,
+    // so a caller cannot forge audit entries under another user's identity.
     const logEntry = await logAudit({
-      userId,
+      userId: sessionUser.id,
       action,
       details,
       outcome,

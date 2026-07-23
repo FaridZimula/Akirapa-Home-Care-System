@@ -1,12 +1,15 @@
 const { PrismaClient, UserRole, ShiftStatus, PodRole } = require('@prisma/client');
 const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
 
 const prisma = new PrismaClient();
+const SEED_PASSWORD_HASH = bcrypt.hashSync('akirapa2634!', 10);
 
 const ALGORITHM = 'aes-256-gcm';
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY 
-  ? crypto.scryptSync(process.env.ENCRYPTION_KEY, 'salt', 32)
-  : Buffer.from('f656723d-dcf3-4586-be53-866a23bc'.substring(0, 32), 'utf-8');
+if (!process.env.ENCRYPTION_KEY) {
+  throw new Error('ENCRYPTION_KEY environment variable must be set to encrypt/decrypt clinical records.');
+}
+const ENCRYPTION_KEY = crypto.scryptSync(process.env.ENCRYPTION_KEY, 'salt', 32);
 
 function encrypt(text) {
   const iv = crypto.randomBytes(12);
@@ -40,7 +43,7 @@ async function main() {
   const admin = await prisma.user.create({
     data: {
       email: 'admin@akirapa.com',
-      passwordHash: 'akirapa2634!',
+      passwordHash: SEED_PASSWORD_HASH,
       name: 'Elena Rostova',
       role: UserRole.ADMIN,
       phoneNumber: '+16045550101',
@@ -50,7 +53,7 @@ async function main() {
   const coordinator = await prisma.user.create({
     data: {
       email: 'coordinator@akirapa.com',
-      passwordHash: 'akirapa2634!',
+      passwordHash: SEED_PASSWORD_HASH,
       name: 'Grace Taylor',
       role: UserRole.CARE_COORDINATOR,
       phoneNumber: '+16045550102',
@@ -60,7 +63,7 @@ async function main() {
   const primaryCaregiver = await prisma.user.create({
     data: {
       email: 'primary@akirapa.com',
-      passwordHash: 'akirapa2634!',
+      passwordHash: SEED_PASSWORD_HASH,
       name: 'Amara Okafor',
       role: UserRole.CAREGIVER,
       phoneNumber: '+16045550103',
@@ -70,7 +73,7 @@ async function main() {
   const backupCaregiver1 = await prisma.user.create({
     data: {
       email: 'backup1@akirapa.com',
-      passwordHash: 'akirapa2634!',
+      passwordHash: SEED_PASSWORD_HASH,
       name: 'Brendan Miller',
       role: UserRole.CAREGIVER,
       phoneNumber: '+16045550104',
@@ -80,7 +83,7 @@ async function main() {
   const backupCaregiver2 = await prisma.user.create({
     data: {
       email: 'backup2@akirapa.com',
-      passwordHash: 'akirapa2634!',
+      passwordHash: SEED_PASSWORD_HASH,
       name: 'Chloe Chen',
       role: UserRole.CAREGIVER,
       phoneNumber: '+16045550105',
@@ -90,7 +93,7 @@ async function main() {
   const familyMember = await prisma.user.create({
     data: {
       email: 'family@akirapa.com',
-      passwordHash: 'akirapa2634!',
+      passwordHash: SEED_PASSWORD_HASH,
       name: 'David Jenkins',
       role: UserRole.FAMILY_MEMBER,
       phoneNumber: '+16045550106',

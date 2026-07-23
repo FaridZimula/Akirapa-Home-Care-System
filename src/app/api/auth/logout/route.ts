@@ -1,30 +1,24 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import { logAudit } from '@/lib/audit';
+import { getSessionUser, SESSION_COOKIE_NAME } from '@/lib/session';
 
 export async function POST() {
   try {
-    const cookieStore = await cookies();
-    const sessionCookie = cookieStore.get('session_user');
-    
-    if (sessionCookie?.value) {
-      try {
-        const user = JSON.parse(sessionCookie.value);
-        await logAudit({
-          userId: user.id,
-          action: 'LOGOUT',
-          details: `User logged out: ${user.email}`,
-          outcome: 'SUCCESS',
-        });
-      } catch (err) {
-        console.error('Failed to parse session cookie for audit logging during logout:', err);
-      }
+    const user = await getSessionUser();
+
+    if (user) {
+      await logAudit({
+        userId: user.id,
+        action: 'LOGOUT',
+        details: `User logged out: ${user.email}`,
+        outcome: 'SUCCESS',
+      });
     }
 
     const response = NextResponse.json({ success: true });
-    
+
     // Clear session cookie
-    response.cookies.set('session_user', '', {
+    response.cookies.set(SESSION_COOKIE_NAME, '', {
       path: '/',
       maxAge: -1,
     });

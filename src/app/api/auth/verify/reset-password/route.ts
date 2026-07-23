@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { hashPassword } from '@/lib/password';
 
 export async function POST(request: Request) {
   try {
@@ -38,11 +39,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No user found with this email' }, { status: 404 });
     }
 
-    // Update password (prototype stores in passwordHash field)
+    // Update password
     await prisma.user.update({
       where: { email },
       data: {
-        passwordHash: newPassword,
+        passwordHash: await hashPassword(newPassword),
       },
     });
 

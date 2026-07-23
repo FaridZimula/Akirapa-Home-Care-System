@@ -1,6 +1,8 @@
 import { PrismaClient, UserRole, ShiftStatus, PodRole } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
+const SEED_PASSWORD_HASH = bcrypt.hashSync('akirapa2634!', 10);
 
 async function main() {
   console.log('Seeding database...');
@@ -22,7 +24,7 @@ async function main() {
   const admin = await prisma.user.create({
     data: {
       email: 'admin@akirapa.com',
-      passwordHash: 'akirapa2634!',
+      passwordHash: SEED_PASSWORD_HASH,
       name: 'Elena Rostova',
       role: UserRole.ADMIN,
       phoneNumber: '+16045550101',
@@ -32,7 +34,7 @@ async function main() {
   const coordinator = await prisma.user.create({
     data: {
       email: 'coordinator@akirapa.com',
-      passwordHash: 'akirapa2634!',
+      passwordHash: SEED_PASSWORD_HASH,
       name: 'Grace Taylor',
       role: UserRole.CARE_COORDINATOR,
       phoneNumber: '+16045550102',
@@ -42,7 +44,7 @@ async function main() {
   const primaryCaregiver = await prisma.user.create({
     data: {
       email: 'primary@akirapa.com',
-      passwordHash: 'akirapa2634!',
+      passwordHash: SEED_PASSWORD_HASH,
       name: 'Amara Okafor',
       role: UserRole.CAREGIVER,
       phoneNumber: '+16045550103',
@@ -52,7 +54,7 @@ async function main() {
   const backupCaregiver1 = await prisma.user.create({
     data: {
       email: 'backup1@akirapa.com',
-      passwordHash: 'akirapa2634!',
+      passwordHash: SEED_PASSWORD_HASH,
       name: 'Brendan Miller',
       role: UserRole.CAREGIVER,
       phoneNumber: '+16045550104',
@@ -62,7 +64,7 @@ async function main() {
   const backupCaregiver2 = await prisma.user.create({
     data: {
       email: 'backup2@akirapa.com',
-      passwordHash: 'akirapa2634!',
+      passwordHash: SEED_PASSWORD_HASH,
       name: 'Chloe Chen',
       role: UserRole.CAREGIVER,
       phoneNumber: '+16045550105',
@@ -72,7 +74,7 @@ async function main() {
   const familyMember = await prisma.user.create({
     data: {
       email: 'family@akirapa.com',
-      passwordHash: 'akirapa2634!',
+      passwordHash: SEED_PASSWORD_HASH,
       name: 'David Jenkins',
       role: UserRole.FAMILY_MEMBER,
       phoneNumber: '+16045550106',

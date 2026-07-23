@@ -2,13 +2,42 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { logAudit } from '@/lib/audit';
 import { encrypt } from '@/lib/crypto';
+import { getSessionUser } from '@/lib/session';
 
 export async function POST(request: Request) {
   try {
+    const sessionUser = await getSessionUser();
+    if (!sessionUser) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
     const { clientId, shiftId, mediaName, mediaType, notes, mediaFiles, redFlags, wellness } = await request.json();
 
     if (!clientId) {
       return NextResponse.json({ error: 'Client ID is required' }, { status: 400 });
+    }
+
+    // Verify the caller actually has a relationship to this client before letting
+    // them attach media/notes to that client's care record.
+    const isSupervisor = sessionUser.role === 'ADMIN' || sessionUser.role === 'CARE_COORDINATOR';
+    if (!isSupervisor) {
+      if (sessionUser.role === 'FAMILY_MEMBER') {
+        const link = await prisma.linkedFamilyMember.findUnique({
+          where: { clientId_userId: { clientId, userId: sessionUser.id } },
+        });
+        if (!link) {
+          return NextResponse.json({ error: 'You are not linked to this client' }, { status: 403 });
+        }
+      } else if (sessionUser.role === 'CAREGIVER') {
+        const pod = await prisma.caregiverPod.findUnique({
+          where: { clientId_caregiverId: { clientId, caregiverId: sessionUser.id } },
+        });
+        if (!pod) {
+          return NextResponse.json({ error: 'You are not assigned to this client' }, { status: 403 });
+        }
+      } else {
+        return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
+      }
     }
 
     let filesList = [];
@@ -38,19 +67,16 @@ export async function POST(request: Request) {
     }
 
     // Determine caregiver name dynamically from shift if possible
-    let caregiverName = 'Amara Okafor';
-    let auditUserId = 'FAMILY_MOCK';
-    
+    let caregiverName = sessionUser.name;
+    const auditUserId = sessionUser.id;
+
     if (shiftId) {
       const shift = await prisma.shift.findUnique({
         where: { id: shiftId },
         include: { caregiver: true },
       });
-      if (shift) {
-        auditUserId = shift.caregiverId;
-        if (shift.caregiver) {
-          caregiverName = shift.caregiver.name;
-        }
+      if (shift?.caregiver) {
+        caregiverName = shift.caregiver.name;
       }
     }
 

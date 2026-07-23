@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { logAudit } from '@/lib/audit';
+import { getSessionUser } from '@/lib/session';
 import { ShiftStatus } from '@prisma/client';
 import { encrypt } from '@/lib/crypto';
 
@@ -22,14 +23,19 @@ function computeHaversineDistance(lat1: number, lon1: number, lat2: number, lon2
 
 export async function POST(request: Request) {
   try {
-    const { 
-      shiftId, 
-      completedTaskIds, 
-      redFlags, 
-      notes, 
-      latitude, 
-      longitude, 
-      isOverride, 
+    const sessionUser = await getSessionUser();
+    if (!sessionUser) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
+    const {
+      shiftId,
+      completedTaskIds,
+      redFlags,
+      notes,
+      latitude,
+      longitude,
+      isOverride,
       overrideReason,
       mediaFiles,
       handover
@@ -46,6 +52,18 @@ export async function POST(request: Request) {
 
     if (!shift) {
       return NextResponse.json({ error: 'Shift not found' }, { status: 404 });
+    }
+
+    const isAssignedCaregiver = shift.caregiverId === sessionUser.id;
+    const isSupervisor = sessionUser.role === 'ADMIN' || sessionUser.role === 'CARE_COORDINATOR';
+    if (!isAssignedCaregiver && !isSupervisor) {
+      await logAudit({
+        userId: sessionUser.id,
+        action: 'CLOCK_OUT_FORBIDDEN',
+        details: `User ${sessionUser.email} attempted to clock out a shift not assigned to them (shift ${shiftId}).`,
+        outcome: 'FAILURE',
+      });
+      return NextResponse.json({ error: 'You are not authorized to act on this shift' }, { status: 403 });
     }
 
     if (shift.status !== ShiftStatus.IN_PROGRESS) {

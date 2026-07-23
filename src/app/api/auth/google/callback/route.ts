@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { logAudit } from '@/lib/audit';
+import { hashPassword } from '@/lib/password';
+import { createSessionCookie, sessionCookieOptions } from '@/lib/session';
+import crypto from 'crypto';
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
@@ -69,21 +72,16 @@ export async function GET(request: Request) {
     if (!user) {
       isNewUser = true;
 
-      // Assign a default role
-      // In the care system, a random sign up is default to FAMILY_MEMBER
-      let role: 'ADMIN' | 'FAMILY_MEMBER' | 'CAREGIVER' = 'FAMILY_MEMBER';
-      
-      // Developer convenience: If the email matches admin@akirapa.com or contains admin, upgrade to ADMIN role
-      if (email === 'admin@akirapa.com' || email.toLowerCase().includes('admin')) {
-        role = 'ADMIN';
-      }
-
+      // OAuth sign-ups are always provisioned as FAMILY_MEMBER. Elevated roles
+      // (ADMIN, CARE_COORDINATOR, CAREGIVER) must be granted directly in the
+      // database - they can never be self-assigned via a public sign-up flow.
       user = await prisma.user.create({
         data: {
           email,
           name,
-          passwordHash: `google_${Math.random().toString(36).substring(7)}`, // Google OAuth users use random password placeholders
-          role: role === 'ADMIN' ? 'ADMIN' : 'FAMILY_MEMBER',
+          // Google OAuth users authenticate via Google only; this hash is never used for password login.
+          passwordHash: await hashPassword(crypto.randomBytes(24).toString('hex')),
+          role: 'FAMILY_MEMBER',
           phoneNumber: '+16045550199',
         },
       });
@@ -113,18 +111,9 @@ export async function GET(request: Request) {
     // Construct Response & Redirect
     const response = NextResponse.redirect(new URL('/', requestUrl.origin));
 
-    // Set cookie session user
-    response.cookies.set('session_user', JSON.stringify({
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-      phoneNumber: user.phoneNumber,
-    }), {
-      path: '/',
-      httpOnly: false, // Accessible by client AuthContext state matching login route
-      maxAge: 60 * 15, // 15 mins session expiration matching timeout limits
-    });
+    // Set signed, httpOnly session cookie
+    const session = createSessionCookie(user.id);
+    response.cookies.set(session.name, session.value, sessionCookieOptions(session.maxAge));
 
     return response;
 
