@@ -78,6 +78,8 @@ async function main() {
       name: 'Amara Okafor',
       role: UserRole.CAREGIVER,
       phoneNumber: '+16045550103',
+      latitude: 49.2850,
+      longitude: -123.1350, // West End, Vancouver - ~1.5km from downtown clients
       profileMetadata: JSON.stringify({
         bio: 'Compassionate Certified Nursing Assistant with 7 years of specialized elderly memory care experience.',
         certifications: ['CPR / BLS Certified', 'Certified Nursing Assistant (CNA)', 'Alzheimer\'s & Dementia Specialist'],
@@ -93,6 +95,8 @@ async function main() {
       name: 'Brendan Miller',
       role: UserRole.CAREGIVER,
       phoneNumber: '+16045550104',
+      latitude: 49.2680,
+      longitude: -123.1550, // Kitsilano, Vancouver - ~4km from downtown clients
       profileMetadata: JSON.stringify({
         bio: 'Licensed Practical Nurse specializing in post-stroke rehabilitation and vital sign monitoring.',
         certifications: ['Licensed Practical Nurse (LPN)', 'First Aid Certified', 'Medication Administration'],
@@ -108,6 +112,8 @@ async function main() {
       name: 'Chloe Chen',
       role: UserRole.CAREGIVER,
       phoneNumber: '+16045550105',
+      latitude: 49.2488,
+      longitude: -122.9805, // Burnaby - ~10km east of downtown clients
       profileMetadata: JSON.stringify({
         bio: 'Dedicated home health caregiver with expertise in palliative care and nutrition preparation.',
         certifications: ['CPR / BLS Certified', 'First Aid Certified'],
@@ -120,6 +126,8 @@ async function main() {
     data: {
       email: 'derrick@akirapa.com',
       passwordHash: SEED_PASSWORD_HASH,
+      latitude: 49.1666,
+      longitude: -123.1336, // Richmond - ~13km south of downtown clients
       name: 'Derrick Vance',
       role: UserRole.CAREGIVER,
       phoneNumber: '+16045550107',

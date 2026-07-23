@@ -160,6 +160,8 @@ export async function POST(request: Request) {
         name: user.name,
         role: user.role,
         phoneNumber: user.phoneNumber,
+        latitude: user.latitude,
+        longitude: user.longitude,
       },
     });
 

@@ -9,6 +9,8 @@ export interface User {
   name: string;
   role: 'ADMIN' | 'CARE_COORDINATOR' | 'CAREGIVER' | 'FAMILY_MEMBER';
   phoneNumber?: string;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 interface AuthContextType {

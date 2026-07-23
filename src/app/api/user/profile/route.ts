@@ -1,13 +1,24 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { logAudit } from '@/lib/audit';
+import { getSessionUser } from '@/lib/session';
 
 export async function POST(request: Request) {
   try {
-    const { userId, phoneNumber, profileMetadata } = await request.json();
+    const sessionUser = await getSessionUser();
+    if (!sessionUser) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
+    const { userId, phoneNumber, profileMetadata, latitude, longitude } = await request.json();
 
     if (!userId) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
+    }
+
+    const isSupervisor = sessionUser.role === 'ADMIN' || sessionUser.role === 'CARE_COORDINATOR';
+    if (sessionUser.id !== userId && !isSupervisor) {
+      return NextResponse.json({ error: 'You can only update your own profile' }, { status: 403 });
     }
 
     const updateData: any = {};
@@ -15,6 +26,8 @@ export async function POST(request: Request) {
     if (profileMetadata !== undefined) {
       updateData.profileMetadata = typeof profileMetadata === 'string' ? profileMetadata : JSON.stringify(profileMetadata);
     }
+    if (typeof latitude === 'number') updateData.latitude = latitude;
+    if (typeof longitude === 'number') updateData.longitude = longitude;
 
     const updatedUser = await prisma.user.update({
       where: { id: userId },
@@ -26,6 +39,8 @@ export async function POST(request: Request) {
         role: true,
         phoneNumber: true,
         profileMetadata: true,
+        latitude: true,
+        longitude: true,
       }
     });
 

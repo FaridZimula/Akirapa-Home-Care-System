@@ -1,6 +1,7 @@
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 generator client {
@@ -38,7 +39,11 @@ model User {
   phoneNumber     String?
   createdAt       DateTime      @default(now())
   profileMetadata String?       // JSON-serialized string of additional intake/job details
-  
+
+  // Caregiver's home base location, used for proximity-based shift scheduling
+  latitude        Float?
+  longitude       Float?
+
   // Relations
   podAssignments CaregiverPod[]
   assignedShifts Shift[]
@@ -103,6 +108,11 @@ model Shift {
   isOverrideException  Boolean       @default(false)
   overrideReason       String?
   overrideApprovedBy   String?       // Reference to Admin User ID
+
+  // Overtime Justification
+  isOvertime           Boolean       @default(false)
+  overtimeReason       String?
+  overtimeEvidenceUrl  String?       // Signed URL / storage path for attached evidence
 
   // Relations
   client      Client                     @relation(fields: [clientId], references: [id])

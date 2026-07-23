@@ -1,23 +1,22 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { logAudit } from '@/lib/audit';
-import { getSessionUser } from '@/lib/session';
+import { getSessionUser, createSessionCookie, sessionCookieOptions } from '@/lib/session';
+import { computeHaversineDistance } from '@/lib/geo';
 import { ShiftStatus } from '@prisma/client';
 
-// Haversine formula to compute distance between two coordinates in meters
-function computeHaversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371e3; // Earth radius in meters
-  const phi1 = (lat1 * Math.PI) / 180;
-  const phi2 = (lat2 * Math.PI) / 180;
-  const deltaPhi = ((lat2 - lat1) * Math.PI) / 180;
-  const deltaLambda = ((lon2 - lon1) * Math.PI) / 180;
+// Grace period added past the shift's scheduled end so the caregiver's session
+// survives long enough to complete the mandatory clock-out questionnaire even
+// if they run into overtime.
+const OVERTIME_GRACE_MS = 4 * 60 * 60 * 1000; // 4 hours
 
-  const a =
-    Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
-    Math.cos(phi1) * Math.cos(phi2) * Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-  return R * c; // in meters
+// Keeps the caregiver's session alive for the shift's duration (+ overtime grace)
+// instead of the normal 15-minute idle window, by re-issuing the session cookie
+// on the clock-in response.
+function extendSessionForShift(response: NextResponse, userId: string, scheduledEnd: Date) {
+  const extendedExpiry = new Date(scheduledEnd.getTime() + OVERTIME_GRACE_MS);
+  const session = createSessionCookie(userId, extendedExpiry);
+  response.cookies.set(session.name, session.value, sessionCookieOptions(session.maxAge));
 }
 
 export async function POST(request: Request) {
@@ -83,11 +82,17 @@ export async function POST(request: Request) {
         outcome: 'SUCCESS',
       });
 
-      return NextResponse.json({
+      const overrideResponse = NextResponse.json({
         success: true,
         shift: updatedShift,
         message: 'Clock-in submitted via administrator manual override request.',
       });
+      // Only extend the session of the caregiver clocking themself in - not a
+      // supervisor performing the override on someone else's behalf.
+      if (sessionUser.id === shift.caregiverId) {
+        extendSessionForShift(overrideResponse, sessionUser.id, shift.scheduledEnd);
+      }
+      return overrideResponse;
     }
 
     // 2. Geofenced Validation Path
@@ -151,12 +156,16 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       shift: updatedShift,
       distance: Math.round(distance),
       message: 'Clock-in validated successfully within patient boundary.',
     });
+    if (sessionUser.id === shift.caregiverId) {
+      extendSessionForShift(response, sessionUser.id, shift.scheduledEnd);
+    }
+    return response;
   } catch (error) {
     console.error('Clock-in error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

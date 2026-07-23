@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { computeHaversineDistance } from '@/lib/geo';
 import { ShiftStatus, PodRole } from '@prisma/client';
 
 // Convert a Date object to a time string "HH:MM"
@@ -31,7 +32,17 @@ export async function GET(request: Request) {
     const startTimeStr = timeToString(start);
     const endTimeStr = timeToString(end);
 
-    // 1. Fetch all caregivers
+    // 1. Fetch the client's location (for distance-based ranking)
+    const client = await prisma.client.findUnique({
+      where: { id: clientId },
+      select: { latitude: true, longitude: true },
+    });
+
+    if (!client) {
+      return NextResponse.json({ error: 'Client not found' }, { status: 404 });
+    }
+
+    // 2. Fetch all caregivers
     const caregivers = await prisma.user.findMany({
       where: { role: 'CAREGIVER' },
       select: {
@@ -39,13 +50,15 @@ export async function GET(request: Request) {
         name: true,
         email: true,
         phoneNumber: true,
+        latitude: true,
+        longitude: true,
         availabilities: {
           where: { dayOfWeek }
         }
       }
     });
 
-    // 2. Fetch the client's pod assignment
+    // 3. Fetch the client's pod assignment
     const podAssignments = await prisma.caregiverPod.findMany({
       where: { clientId },
       select: {
@@ -57,7 +70,7 @@ export async function GET(request: Request) {
     const podMap = new Map<string, PodRole>();
     podAssignments.forEach(p => podMap.set(p.caregiverId, p.role));
 
-    // 3. Fetch overlapping shifts in the proposed time block
+    // 4. Fetch overlapping shifts in the proposed time block
     // A shift overlaps if its start/end window intersects the proposed window
     const overlappingShifts = await prisma.shift.findMany({
       where: {
@@ -100,7 +113,19 @@ export async function GET(request: Request) {
       conflictsMap.set(s.caregiverId, current);
     });
 
-    // 4. Rank each caregiver
+    // 5. Rank each caregiver
+    //
+    // Distance is the primary signal (nearest caregiver to the client wins), but
+    // availability and pod continuity still shift the effective ranking by a
+    // bounded amount rather than being pure tie-breakers - a caregiver a few km
+    // closer can outrank a further-away primary/available match, but a caregiver
+    // on the other side of the city won't beat a nearby one just for being
+    // "primary". Bonuses are expressed in km-equivalents:
+    const AVAILABLE_BONUS_KM = 20;
+    const PRIMARY_POD_BONUS_KM = 15;
+    const BACKUP_POD_BONUS_KM = 8;
+    const UNKNOWN_LOCATION_PENALTY_KM = 500; // caregivers with no saved location rank behind all known-distance ones
+
     const suggestions = caregivers.map(cg => {
       const podRole = podMap.get(cg.id) || null;
       const conflicts = conflictsMap.get(cg.id) || [];
@@ -112,8 +137,12 @@ export async function GET(request: Request) {
         return startTimeStr >= slot.startTime && endTimeStr <= slot.endTime;
       });
 
-      // Calculate score for sorting
-      // Lower score is better (Ranks 1 to 5)
+      const hasKnownLocation = cg.latitude != null && cg.longitude != null && client.latitude != null && client.longitude != null;
+      const distanceKm = hasKnownLocation
+        ? computeHaversineDistance(cg.latitude as number, cg.longitude as number, client.latitude as number, client.longitude as number) / 1000
+        : null;
+
+      // Qualitative tier, kept for display/labeling purposes.
       let rank = 4; // Default: Not in pod, not available
       let rankLabel = 'Not in Pod / Availability Unknown';
 
@@ -136,6 +165,17 @@ export async function GET(request: Request) {
         rankLabel = `Booking Conflict: Busy with ${conflicts.map(c => c.clientName).join(', ')}`;
       }
 
+      const distanceLabel = distanceKm !== null ? `${distanceKm < 1 ? Math.round(distanceKm * 1000) + 'm' : distanceKm.toFixed(1) + 'km'} away` : 'Location unknown';
+
+      // Composite sort score - lower is better. Conflicted caregivers are always
+      // pushed to the bottom regardless of distance, since they physically can't
+      // take the shift.
+      let sortScore = (distanceKm ?? UNKNOWN_LOCATION_PENALTY_KM);
+      if (isAvailable) sortScore -= AVAILABLE_BONUS_KM;
+      if (podRole === PodRole.PRIMARY) sortScore -= PRIMARY_POD_BONUS_KM;
+      else if (podRole) sortScore -= BACKUP_POD_BONUS_KM;
+      if (hasConflict) sortScore += 100000;
+
       return {
         id: cg.id,
         name: cg.name,
@@ -146,12 +186,15 @@ export async function GET(request: Request) {
         hasConflict,
         conflicts,
         rank,
-        rankLabel,
+        rankLabel: `${rankLabel} — ${distanceLabel}`,
+        distanceKm: distanceKm !== null ? Math.round(distanceKm * 10) / 10 : null,
+        distanceLabel,
+        sortScore,
       };
     });
 
-    // Sort by rank ascending
-    suggestions.sort((a, b) => a.rank - b.rank);
+    // Sort by composite score ascending (nearest + best-matched first)
+    suggestions.sort((a, b) => a.sortScore - b.sortScore);
 
     return NextResponse.json({
       shiftDetails: {

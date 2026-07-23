@@ -54,6 +54,14 @@ export default function Home() {
   const [clockOutOverrideReason, setClockOutOverrideReason] = useState('');
   const [shiftNotes, setShiftNotes] = useState('');
   const [selectedShiftId, setSelectedShiftId] = useState<string | null>(null);
+
+  // Mandatory Clock-Out Questionnaire (manual or auto-triggered at shift end)
+  const [showClockOutModal, setShowClockOutModal] = useState(false);
+  const [clockOutTargetShiftId, setClockOutTargetShiftId] = useState<string | null>(null);
+  const [isForcedClockOut, setIsForcedClockOut] = useState(false);
+  const [clockOutOvertimeReason, setClockOutOvertimeReason] = useState('');
+  const [isSubmittingClockOut, setIsSubmittingClockOut] = useState(false);
+  const autoClockOutTriggeredRef = useRef<Set<string>>(new Set());
   
   // Red Flags
   const [redFlags, setRedFlags] = useState({
@@ -183,6 +191,10 @@ export default function Home() {
   const [newSlotStart, setNewSlotStart] = useState('08:00');
   const [newSlotEnd, setNewSlotEnd] = useState('17:00');
 
+  // Caregiver Home Base Location (used for proximity-based shift scheduling)
+  const [isSavingLocation, setIsSavingLocation] = useState(false);
+  const [savedLocation, setSavedLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+
   // 2. Real-Time Notification Center (/api/notifications)
   const [dbNotifications, setDbNotifications] = useState<any[]>([]);
   const [showNotificationDrawer, setShowNotificationDrawer] = useState(false);
@@ -229,7 +241,7 @@ export default function Home() {
     let barClass = 'strength-weak';
 
     if (score === 2) { label = 'Fair'; color = 'bg-amber-100 text-amber-800 border-amber-200'; barClass = 'strength-fair'; }
-    else if (score === 3) { label = 'Strong'; color = 'bg-blue-100 text-blue-800 border-blue-200'; barClass = 'strength-strong'; }
+    else if (score === 3) { label = 'Strong'; color = 'bg-purple-100 text-purple-800 border-purple-200'; barClass = 'strength-strong'; }
     else if (score >= 4) { label = 'Excellent'; color = 'bg-green-100 text-green-800 border-green-200'; barClass = 'strength-excellent'; }
 
     return { score, label, color, barClass, checks };
@@ -397,6 +409,34 @@ export default function Home() {
     }
   };
 
+  const handleUpdateMyLocation = async () => {
+    if (!user) return;
+    setIsSavingLocation(true);
+    try {
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10000 });
+      });
+      const { latitude, longitude } = position.coords;
+
+      const res = await fetch('/api/user/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, latitude, longitude }),
+      });
+      if (res.ok) {
+        setSavedLocation({ latitude, longitude });
+        showNotification('Home base location updated - this improves nearest-caregiver shift matching.');
+      } else {
+        const data = await res.json();
+        showNotification(data.error || 'Failed to update location.');
+      }
+    } catch (err: any) {
+      showNotification(`Could not get location: ${err.message || 'Permission denied or unavailable'}`);
+    } finally {
+      setIsSavingLocation(false);
+    }
+  };
+
   const loadData = async () => {
     try {
       // 1. Fetch scheduling data (clients, caregivers, shifts)
@@ -524,6 +564,30 @@ export default function Home() {
 
     return () => clearInterval(interval);
   }, [shifts, distanceOffset, user, useRealGPS]);
+
+  // ============================================================
+  // AUTO SIGN-OUT AT SHIFT END
+  // Once a caregiver's active shift reaches its scheduled end time, force the
+  // clock-out questionnaire open (it cannot be dismissed without submitting).
+  // ============================================================
+
+  useEffect(() => {
+    if (!user || user.role !== 'CAREGIVER') return;
+
+    const checkShiftEnd = () => {
+      const activeShift = shifts.find(s => s.status === 'IN_PROGRESS' && s.caregiverId === user.id);
+      if (!activeShift) return;
+
+      if (isShiftOvertime(activeShift) && !autoClockOutTriggeredRef.current.has(activeShift.id)) {
+        autoClockOutTriggeredRef.current.add(activeShift.id);
+        openClockOutModal(activeShift.id, true);
+      }
+    };
+
+    checkShiftEnd();
+    const interval = setInterval(checkShiftEnd, 30000);
+    return () => clearInterval(interval);
+  }, [shifts, user]);
 
   // ============================================================
   // AUTHENTICATION HANDLERS
@@ -813,10 +877,35 @@ export default function Home() {
     } catch (err) { console.error(err); }
   };
 
+  // Whether the given shift is currently past its scheduled end time (overtime).
+  const isShiftOvertime = (shift: any) => !!shift && new Date() > new Date(shift.scheduledEnd);
+
+  const openClockOutModal = (shiftId: string, forced = false) => {
+    setClockOutError(null);
+    setClockOutTargetShiftId(shiftId);
+    setIsForcedClockOut(forced);
+    setShiftNotes('');
+    setSelectedMediaFiles([]);
+    setRedFlags({
+      cognitiveConfusion: false,
+      fallDetected: false,
+      behavioralChanges: false,
+      mobilityDecline: false,
+    });
+    setClockOutOvertimeReason('');
+    setShowClockOutModal(true);
+  };
+
   const handleClockOut = async (shiftId: string, isOverride = false) => {
     setClockOutError(null);
     const activeShift = shifts.find(s => s.id === shiftId);
     if (!activeShift) return;
+
+    const overtime = isShiftOvertime(activeShift);
+    if (overtime && !clockOutOvertimeReason.trim()) {
+      setClockOutError('This shift has run past its scheduled end time. Please provide an overtime reason before clocking out.');
+      return;
+    }
 
     let lat = activeShift.client.latitude;
     let lng = activeShift.client.longitude;
@@ -841,6 +930,7 @@ export default function Home() {
 
     const activeShiftTaskIds = activeShift.tasks?.map((t: any) => t.id) || [];
 
+    setIsSubmittingClockOut(true);
     try {
       const res = await fetch('/api/shifts/clock-out', {
         method: 'POST',
@@ -855,6 +945,8 @@ export default function Home() {
           isOverride,
           overrideReason: isOverride ? clockOutOverrideReason : undefined,
           mediaFiles: selectedMediaFiles.map(f => ({ name: f.name, type: f.type })),
+          overtimeReason: overtime ? clockOutOvertimeReason : undefined,
+          overtimeEvidenceFile: overtime && selectedMediaFiles[0] ? { name: selectedMediaFiles[0].name, type: selectedMediaFiles[0].type } : undefined,
         }),
       });
       const data = await res.json();
@@ -870,12 +962,25 @@ export default function Home() {
         });
         setShowClockOutOverrideInput(false);
         setClockOutOverrideReason('');
-        loadData();
+        setClockOutOvertimeReason('');
+        setShowClockOutModal(false);
+        setClockOutTargetShiftId(null);
+
+        // The caregiver's time on this shift is done - sign them out automatically.
+        if (user?.role === 'CAREGIVER') {
+          await logout();
+        } else {
+          loadData();
+        }
       } else {
         setClockOutError(data.error);
         if (data.allowOverride) setShowClockOutOverrideInput(true);
       }
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSubmittingClockOut(false);
+    }
   };
 
   const handleOpenDropModal = (shiftId: string) => {
@@ -1462,11 +1567,11 @@ export default function Home() {
       : 'Select an Account Portal below to initialize system...';
 
     return (
-      <div className="relative min-h-screen bg-gradient-to-br from-slate-50 via-sky-50/70 to-teal-50/60 text-slate-800 flex items-center justify-center p-6 overflow-hidden selection:bg-blue-500 selection:text-white">
+      <div className="relative min-h-screen bg-gradient-to-br from-slate-50 via-purple-50/70 to-teal-50/60 text-slate-800 flex items-center justify-center p-6 overflow-hidden selection:bg-purple-500 selection:text-white">
         {/* Animated Ambient Light Blobs */}
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-sky-300/30 rounded-full blur-3xl pointer-events-none animate-blob-1" />
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-300/30 rounded-full blur-3xl pointer-events-none animate-blob-1" />
         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-teal-300/30 rounded-full blur-3xl pointer-events-none animate-blob-2" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-blue-400/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-purple-400/15 rounded-full blur-3xl pointer-events-none" />
 
         {/* Background Radial Dots */}
         <div className="absolute inset-0 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:24px_24px] opacity-40 pointer-events-none" />
@@ -1476,12 +1581,12 @@ export default function Home() {
           
           {/* Heartbeat Pulse Logo Container */}
           <div className="relative w-24 h-24 mx-auto mb-6 flex items-center justify-center">
-            <div className="absolute inset-0 rounded-3xl bg-gradient-to-tr from-blue-600 via-cyan-500 to-teal-400 opacity-60 blur-md animate-light-pulse-ring" />
-            <div className="relative w-24 h-24 bg-white border border-blue-200/80 rounded-3xl flex flex-col items-center justify-center shadow-md">
-              <span className="text-3xl font-black tracking-wider bg-gradient-to-r from-blue-700 via-cyan-600 to-teal-600 bg-clip-text text-transparent">
+            <div className="absolute inset-0 rounded-3xl bg-gradient-to-tr from-purple-600 via-emerald-500 to-teal-400 opacity-60 blur-md animate-light-pulse-ring" />
+            <div className="relative w-24 h-24 bg-white border border-purple-200/80 rounded-3xl flex flex-col items-center justify-center shadow-md">
+              <span className="text-3xl font-black tracking-wider bg-gradient-to-r from-purple-700 via-emerald-600 to-teal-600 bg-clip-text text-transparent">
                 AK
               </span>
-              <span className="text-[9px] font-bold text-blue-600 tracking-widest uppercase">Care</span>
+              <span className="text-[9px] font-bold text-purple-600 tracking-widest uppercase">Care</span>
             </div>
           </div>
 
@@ -1489,25 +1594,25 @@ export default function Home() {
           <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-slate-900">
             Akirapa
           </h1>
-          <p className="text-xs font-bold text-blue-600 tracking-widest uppercase mt-1">
+          <p className="text-xs font-bold text-purple-600 tracking-widest uppercase mt-1">
             In-Home Care Systems Platform
           </p>
 
           {/* Animated Heartbeat / ECG Waveform Graphic */}
           <div className="my-6 flex justify-center items-center gap-1.5 opacity-90">
-            <svg className="w-full h-8 text-blue-600 max-w-[240px]" viewBox="0 0 200 40" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg className="w-full h-8 text-purple-600 max-w-[240px]" viewBox="0 0 200 40" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M0 20H40L48 5L58 35L68 12L76 25L84 20H200" strokeDasharray="300" strokeDashoffset="0" className="animate-pulse" />
             </svg>
           </div>
 
           {/* Real-time Status Badges */}
-          <div className="bg-white/90 border border-blue-100 rounded-2xl p-4 mb-6 text-left space-y-2.5 shadow-sm">
+          <div className="bg-white/90 border border-purple-100 rounded-2xl p-4 mb-6 text-left space-y-2.5 shadow-sm">
             <div className="flex justify-between items-center text-xs">
               <span className="font-semibold text-slate-700 flex items-center gap-2">
                 <span className={`w-2 h-2 rounded-full ${isInitializing ? 'bg-emerald-500 animate-ping' : 'bg-amber-400'}`} />
                 {activeStatusText}
               </span>
-              <span className="font-mono text-blue-600 font-bold">{splashProgress}%</span>
+              <span className="font-mono text-purple-600 font-bold">{splashProgress}%</span>
             </div>
 
             {/* Shimmer Progress Bar */}
@@ -1538,9 +1643,9 @@ export default function Home() {
                 type="button"
                 disabled={isInitializing}
                 onClick={() => handlePortalSelect('CAREGIVER')}
-                className="p-3.5 bg-white/90 hover:bg-blue-50/90 border border-blue-200/80 hover:border-blue-500 rounded-2xl transition-all transform hover:-translate-y-0.5 active:scale-95 shadow-sm text-center group cursor-pointer disabled:opacity-50"
+                className="p-3.5 bg-white/90 hover:bg-purple-50/90 border border-purple-200/80 hover:border-purple-500 rounded-2xl transition-all transform hover:-translate-y-0.5 active:scale-95 shadow-sm text-center group cursor-pointer disabled:opacity-50"
               >
-                <div className="w-9 h-9 mx-auto mb-1.5 bg-blue-100/90 text-blue-600 rounded-xl flex items-center justify-center text-base group-hover:scale-110 transition-transform">
+                <div className="w-9 h-9 mx-auto mb-1.5 bg-purple-100/90 text-purple-600 rounded-xl flex items-center justify-center text-base group-hover:scale-110 transition-transform">
                   🩺
                 </div>
                 <div className="text-xs font-extrabold text-slate-900">Caregiver</div>
@@ -1598,21 +1703,21 @@ export default function Home() {
 
         {/* Selected Portal Indicator Banner */}
         {selectedPortalRole && (
-          <div className="mb-6 p-3 rounded-2xl bg-blue-50/90 border border-blue-200 flex items-center justify-between">
+          <div className="mb-6 p-3 rounded-2xl bg-purple-50/90 border border-purple-200 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-lg">
                 {selectedPortalRole === 'CAREGIVER' ? '🩺' : selectedPortalRole === 'CLIENT' ? '🏠' : '🛡️'}
               </span>
               <div>
-                <div className="text-xs font-bold text-blue-900">
+                <div className="text-xs font-bold text-purple-900">
                   {selectedPortalRole === 'CAREGIVER' ? 'Caregiver Portal' : selectedPortalRole === 'CLIENT' ? 'Family Care Portal' : 'Administrator Portal'} Login
                 </div>
-                <div className="text-[10px] text-blue-700">Pre-selected from splash screen entry</div>
+                <div className="text-[10px] text-purple-700">Pre-selected from splash screen entry</div>
               </div>
             </div>
             <button
               onClick={() => setSelectedPortalRole(null)}
-              className="text-[10px] font-semibold text-blue-600 hover:underline cursor-pointer"
+              className="text-[10px] font-semibold text-purple-600 hover:underline cursor-pointer"
             >
               Change
             </button>
@@ -1620,8 +1725,8 @@ export default function Home() {
         )}
 
         <div className="text-center mb-8">
-          <div className="w-14 h-14 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto">
-            <span className="text-2xl font-bold text-blue-600">AK</span>
+          <div className="w-14 h-14 bg-purple-100 rounded-2xl flex items-center justify-center mx-auto">
+            <span className="text-2xl font-bold text-purple-600">AK</span>
           </div>
           <h2 className="text-2xl font-bold text-gray-800 mt-4">Welcome Back</h2>
           <p className="text-sm text-gray-500">Sign in to your Akirapa account</p>
@@ -1641,7 +1746,7 @@ export default function Home() {
         <form onSubmit={(e) => { e.preventDefault(); handlePortalLogin(loginEmail, loginPassword); }} className="space-y-4">
           <div>
             <label className="text-xs font-semibold text-gray-500 uppercase">Email address</label>
-            <input type="email" required placeholder="email@akirapa.com" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all" />
+            <input type="email" required placeholder="email@akirapa.com" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all" />
           </div>
           <div>
             <label className="text-xs font-semibold text-gray-500 uppercase">Password</label>
@@ -1652,7 +1757,7 @@ export default function Home() {
                 placeholder="••••••••"
                 value={loginPassword}
                 onChange={(e) => setLoginPassword(e.target.value)}
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-4 pr-11 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-4 pr-11 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
               />
               <button
                 type="button"
@@ -1675,16 +1780,16 @@ export default function Home() {
             {renderPasswordStrengthMeter(loginPassword)}
           </div>
           <div className="flex justify-end">
-            <button type="button" onClick={() => setViewState('forgot_password')} className="text-xs text-blue-600 hover:underline">Forgot password?</button>
+            <button type="button" onClick={() => setViewState('forgot_password')} className="text-xs text-purple-600 hover:underline">Forgot password?</button>
           </div>
           {loginError && <div className="bg-red-50 text-red-600 p-3 rounded-xl text-xs font-semibold flex items-center gap-2"><i className="fa-solid fa-triangle-exclamation"></i> {loginError}</div>}
-          <button type="submit" disabled={isLoggingIn || !loginEmail || !loginPassword} className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-xl transition-all disabled:opacity-50">
+          <button type="submit" disabled={isLoggingIn || !loginEmail || !loginPassword} className="w-full py-3.5 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-sm rounded-xl transition-all disabled:opacity-50">
             {isLoggingIn ? 'Signing in...' : 'Sign In with Email'}
           </button>
         </form>
 
         <p className="text-center text-sm text-gray-500 mt-6">
-          Don't have an account? <button onClick={() => setViewState('signup')} className="text-blue-600 font-semibold hover:underline">Create Account</button>
+          Don't have an account? <button onClick={() => setViewState('signup')} className="text-purple-600 font-semibold hover:underline">Create Account</button>
         </p>
       </div>
     </div>
@@ -1695,8 +1800,8 @@ export default function Home() {
       <div className="max-w-md w-full bg-white rounded-3xl shadow-xl p-8 max-h-[90vh] overflow-y-auto">
         <button onClick={() => { setViewState('login'); setSignupError(null); }} className="text-sm text-gray-400 hover:text-gray-600">← Back</button>
         <div className="text-center mb-6">
-          <div className="w-14 h-14 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto">
-            <span className="text-2xl font-bold text-blue-600">AK</span>
+          <div className="w-14 h-14 bg-purple-100 rounded-2xl flex items-center justify-center mx-auto">
+            <span className="text-2xl font-bold text-purple-600">AK</span>
           </div>
           <h2 className="text-2xl font-bold text-gray-800 mt-4">Create Account</h2>
           <p className="text-sm text-gray-500">Join Akirapa Care Network</p>
@@ -1705,11 +1810,11 @@ export default function Home() {
         <form onSubmit={handleRegister} className="space-y-4">
           <div>
             <label className="text-xs font-semibold text-gray-500 uppercase">Full Name</label>
-            <input type="text" required placeholder="Jane Doe" value={signupName} onChange={(e) => setSignupName(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <input type="text" required placeholder="Jane Doe" value={signupName} onChange={(e) => setSignupName(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
           </div>
           <div>
             <label className="text-xs font-semibold text-gray-500 uppercase">Email</label>
-            <input type="email" required placeholder="jane@example.com" value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <input type="email" required placeholder="jane@example.com" value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
           </div>
           <div>
             <label className="text-xs font-semibold text-gray-500 uppercase">Password</label>
@@ -1720,7 +1825,7 @@ export default function Home() {
                 placeholder="••••••••"
                 value={signupPassword}
                 onChange={(e) => setSignupPassword(e.target.value)}
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-4 pr-11 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-4 pr-11 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
               <button
                 type="button"
@@ -1744,17 +1849,17 @@ export default function Home() {
           </div>
           <div>
             <label className="text-xs font-semibold text-gray-500 uppercase">Phone</label>
-            <input type="text" placeholder="+16045550199" value={signupPhone} onChange={(e) => setSignupPhone(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <input type="text" placeholder="+16045550199" value={signupPhone} onChange={(e) => setSignupPhone(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
           </div>
           <div>
             <label className="text-xs font-semibold text-gray-500 uppercase">I am a</label>
             <div className="flex gap-2 mt-1">
-              <button type="button" onClick={() => setSignupRole('CAREGIVER')} className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${signupRole === 'CAREGIVER' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>Caregiver</button>
-              <button type="button" onClick={() => setSignupRole('CLIENT')} className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${signupRole === 'CLIENT' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>Client/Family</button>
+              <button type="button" onClick={() => setSignupRole('CAREGIVER')} className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${signupRole === 'CAREGIVER' ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>Caregiver</button>
+              <button type="button" onClick={() => setSignupRole('CLIENT')} className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${signupRole === 'CLIENT' ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>Client/Family</button>
             </div>
           </div>
           {signupError && <div className="bg-red-50 text-red-600 p-3 rounded-xl text-xs font-semibold"><i className="fa-solid fa-triangle-exclamation"></i> {signupError}</div>}
-          <button type="submit" disabled={isSigningUp} className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-xl transition-all disabled:opacity-50">
+          <button type="submit" disabled={isSigningUp} className="w-full py-3.5 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-sm rounded-xl transition-all disabled:opacity-50">
             {isSigningUp ? 'Creating...' : 'Create Account'}
           </button>
         </form>
@@ -1767,7 +1872,7 @@ export default function Home() {
       <div className="max-w-md w-full bg-white rounded-3xl shadow-xl p-8">
         <button onClick={() => { setViewState('login'); setForgotError(null); }} className="text-sm text-gray-400 hover:text-gray-600">← Back</button>
         <div className="text-center mb-6">
-          <div className="w-14 h-14 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto"><i className="fa-solid fa-key text-blue-600 text-xl"></i></div>
+          <div className="w-14 h-14 bg-purple-100 rounded-2xl flex items-center justify-center mx-auto"><i className="fa-solid fa-key text-purple-600 text-xl"></i></div>
           <h2 className="text-2xl font-bold text-gray-800 mt-4">Reset Password</h2>
           <p className="text-sm text-gray-500">Secure OTP verification</p>
         </div>
@@ -1775,11 +1880,11 @@ export default function Home() {
         <form onSubmit={isForgotCodeSent ? handleResetPasswordSubmit : handleSendForgotCode} className="space-y-4">
           <div>
             <label className="text-xs font-semibold text-gray-500 uppercase">Email</label>
-            <input type="email" required disabled={isForgotCodeSent} placeholder="email@akirapa.com" value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50" />
+            <input type="email" required disabled={isForgotCodeSent} placeholder="email@akirapa.com" value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50" />
           </div>
           {isForgotCodeSent && (
             <>
-              <div><label className="text-xs font-semibold text-gray-500 uppercase">6-Digit Code</label><input type="text" maxLength={6} placeholder="192804" value={forgotCode} onChange={(e) => setForgotCode(e.target.value.replace(/\D/g, ''))} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-center text-base font-bold tracking-widest focus:outline-none focus:ring-2 focus:ring-blue-500" /></div>
+              <div><label className="text-xs font-semibold text-gray-500 uppercase">6-Digit Code</label><input type="text" maxLength={6} placeholder="192804" value={forgotCode} onChange={(e) => setForgotCode(e.target.value.replace(/\D/g, ''))} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-center text-base font-bold tracking-widest focus:outline-none focus:ring-2 focus:ring-purple-500" /></div>
               <div>
                 <label className="text-xs font-semibold text-gray-500 uppercase">New Password</label>
                 <div className="relative">
@@ -1789,7 +1894,7 @@ export default function Home() {
                     placeholder="••••••••"
                     value={forgotNewPassword}
                     onChange={(e) => setForgotNewPassword(e.target.value)}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-4 pr-11 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-4 pr-11 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                   />
                   <button
                     type="button"
@@ -1814,7 +1919,7 @@ export default function Home() {
             </>
           )}
           {forgotError && <div className="bg-red-50 text-red-600 p-3 rounded-xl text-xs font-semibold"><i className="fa-solid fa-triangle-exclamation"></i> {forgotError}</div>}
-          <button type="submit" disabled={isSendingForgotCode || isResettingPassword || !forgotEmail} className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-xl transition-all disabled:opacity-50">
+          <button type="submit" disabled={isSendingForgotCode || isResettingPassword || !forgotEmail} className="w-full py-3.5 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-sm rounded-xl transition-all disabled:opacity-50">
             {isForgotCodeSent ? (isResettingPassword ? 'Resetting...' : 'Reset Password') : (isSendingForgotCode ? 'Sending...' : 'Send Reset Code')}
           </button>
         </form>
@@ -1834,7 +1939,7 @@ export default function Home() {
   if (!user) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center"><div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto" /><p className="text-sm text-gray-400 mt-4">Verifying session...</p></div>
+        <div className="text-center"><div className="w-10 h-10 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto" /><p className="text-sm text-gray-400 mt-4">Verifying session...</p></div>
       </div>
     );
   }
@@ -1847,7 +1952,7 @@ export default function Home() {
     <div className="min-h-screen bg-gray-50 flex">
       {/* Notification Banner */}
       {systemNotification && (
-        <div className="fixed top-6 right-6 bg-blue-600 text-white px-6 py-4 rounded-2xl shadow-xl z-50 flex items-center gap-3 animate-fade-up border border-blue-500/30">
+        <div className="fixed top-6 right-6 bg-purple-600 text-white px-6 py-4 rounded-2xl shadow-xl z-50 flex items-center gap-3 animate-fade-up border border-purple-500/30">
           <i className="fa-solid fa-circle-check"></i>
           <span className="text-sm font-semibold">{systemNotification}</span>
         </div>
@@ -1867,9 +1972,9 @@ export default function Home() {
               if (activeShift) handleSubmitIncident(activeShift.id);
               else showNotification('No active shift found.');
             }} className="space-y-4">
-              <div><label className="text-xs font-semibold text-gray-500 uppercase">Incident Type</label><select value={incidentType} onChange={(e) => setIncidentType(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"><option value="Fall">Fall Incident</option><option value="Injury">Physical Injury</option><option value="Medication Error">Medication Error</option><option value="Behavioral Incident">Behavioral Incident</option></select></div>
-              <div><label className="text-xs font-semibold text-gray-500 uppercase">Description</label><textarea rows={3} required placeholder="Describe what happened..." value={incidentDescription} onChange={(e) => setIncidentDescription(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" /></div>
-              <div><label className="text-xs font-semibold text-gray-500 uppercase">Action Taken</label><textarea rows={2} placeholder="Immediate action..." value={incidentAction} onChange={(e) => setIncidentAction(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" /></div>
+              <div><label className="text-xs font-semibold text-gray-500 uppercase">Incident Type</label><select value={incidentType} onChange={(e) => setIncidentType(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"><option value="Fall">Fall Incident</option><option value="Injury">Physical Injury</option><option value="Medication Error">Medication Error</option><option value="Behavioral Incident">Behavioral Incident</option></select></div>
+              <div><label className="text-xs font-semibold text-gray-500 uppercase">Description</label><textarea rows={3} required placeholder="Describe what happened..." value={incidentDescription} onChange={(e) => setIncidentDescription(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" /></div>
+              <div><label className="text-xs font-semibold text-gray-500 uppercase">Action Taken</label><textarea rows={2} placeholder="Immediate action..." value={incidentAction} onChange={(e) => setIncidentAction(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" /></div>
               <div className="flex gap-3"><button type="submit" disabled={isReportingIncident} className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold text-sm rounded-xl transition-all disabled:opacity-50">{isReportingIncident ? 'Filing...' : 'File Report'}</button><button type="button" onClick={() => setShowIncidentModal(false)} className="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-sm rounded-xl transition-all">Cancel</button></div>
             </form>
           </div>
@@ -1905,7 +2010,7 @@ export default function Home() {
                 <p className="text-xs text-gray-500">Please provide a reason for dropping this shift. The system will automatically attempt to escalate and reassign to a secondary backup caregiver in the patient's pod.</p>
                 <div>
                   <label className="text-xs font-semibold text-gray-600 uppercase">Reason for Drop</label>
-                  <textarea rows={3} required placeholder="State your emergency or scheduling conflict..." value={dropReasonText} onChange={(e) => setDropReasonText(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 mt-1" />
+                  <textarea rows={3} required placeholder="State your emergency or scheduling conflict..." value={dropReasonText} onChange={(e) => setDropReasonText(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1" />
                 </div>
                 <div className="flex gap-3">
                   <button onClick={handleConfirmDropShiftWithReason} disabled={isDroppingShift || !dropReasonText.trim()} className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold text-sm rounded-xl transition-all disabled:opacity-50">
@@ -1918,6 +2023,193 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      {/* Mandatory Clock-Out Questionnaire Modal (manual or auto-triggered at shift end) */}
+      {showClockOutModal && (() => {
+        const targetShift = shifts.find(s => s.id === clockOutTargetShiftId);
+        const overtime = isShiftOvertime(targetShift);
+
+        return (
+          <div className="modal-backdrop">
+            <div className="modal-content max-w-lg p-6 animate-fade-up">
+              <div className="flex justify-between items-center border-b border-gray-100 pb-3 mb-4">
+                <h3 className="font-bold text-gray-800 text-base flex items-center gap-2">
+                  <span className="text-xl">{isForcedClockOut ? '⏰' : '📋'}</span>
+                  {isForcedClockOut ? 'Shift Time Complete — Report Required' : 'Clock-Out Report'}
+                </h3>
+                {!isForcedClockOut && (
+                  <button onClick={() => setShowClockOutModal(false)} className="text-gray-400 hover:text-gray-600 font-bold">✕</button>
+                )}
+              </div>
+
+              {isForcedClockOut && (
+                <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800">
+                  Your scheduled shift time has ended. Please complete this report — you'll be signed out automatically once it's submitted.
+                </div>
+              )}
+
+              <form onSubmit={(e) => { e.preventDefault(); if (clockOutTargetShiftId) handleClockOut(clockOutTargetShiftId, false); }} className="space-y-4">
+                {targetShift && (
+                  <div className="p-3 bg-purple-50/80 border border-purple-200 rounded-xl text-xs flex justify-between items-center shadow-2xs">
+                    <div>
+                      <span className="font-bold text-purple-900 block text-xs">{targetShift.client.name}</span>
+                      <span className="text-[10px] text-purple-700 font-mono">Scheduled End: {new Date(targetShift.scheduledEnd).toLocaleString()}</span>
+                    </div>
+                    {overtime && (
+                      <span className="px-2.5 py-0.5 rounded-full bg-amber-500 text-white font-bold text-[10px] uppercase">Overtime</span>
+                    )}
+                  </div>
+                )}
+
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase">
+                    End-of-Shift Notes <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    rows={3}
+                    required
+                    placeholder="Summarize the visit: tasks completed, patient condition, handover notes..."
+                    value={shiftNotes}
+                    onChange={(e) => setShiftNotes(e.target.value)}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
+                  />
+                </div>
+
+                <div className="bg-red-50/60 border border-red-100 rounded-xl p-3 text-xs space-y-1.5">
+                  <div className="font-semibold text-red-800 text-[11px] flex items-center gap-1.5 mb-1">
+                    <i className="fa-solid fa-shield-cat"></i> Flag Clinical Concerns (Optional Alert)
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5 text-[11px] text-gray-700">
+                    <label className="flex items-center gap-1.5 cursor-pointer">
+                      <input type="checkbox" checked={redFlags.cognitiveConfusion} onChange={(e) => setRedFlags({ ...redFlags, cognitiveConfusion: e.target.checked })} />
+                      <span>Cognitive Confusion</span>
+                    </label>
+                    <label className="flex items-center gap-1.5 cursor-pointer">
+                      <input type="checkbox" checked={redFlags.fallDetected} onChange={(e) => setRedFlags({ ...redFlags, fallDetected: e.target.checked })} />
+                      <span>Fall / Stumble</span>
+                    </label>
+                    <label className="flex items-center gap-1.5 cursor-pointer">
+                      <input type="checkbox" checked={redFlags.behavioralChanges} onChange={(e) => setRedFlags({ ...redFlags, behavioralChanges: e.target.checked })} />
+                      <span>Behavioral Change</span>
+                    </label>
+                    <label className="flex items-center gap-1.5 cursor-pointer">
+                      <input type="checkbox" checked={redFlags.mobilityDecline} onChange={(e) => setRedFlags({ ...redFlags, mobilityDecline: e.target.checked })} />
+                      <span>Mobility Decline</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase block mb-1">
+                    Attach Evidence / Photos {overtime && <span className="text-red-500">*</span>}
+                  </label>
+                  <div className="relative border-2 border-dashed border-purple-200 hover:border-purple-500 bg-purple-50/40 rounded-2xl p-4 text-center transition-all cursor-pointer group">
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*,video/*,audio/*"
+                      onChange={handleMediaChange}
+                      className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
+                    />
+                    <div className="w-10 h-10 bg-purple-100 text-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform">
+                      <i className="fa-solid fa-cloud-arrow-up text-lg"></i>
+                    </div>
+                    <div className="text-xs font-bold text-gray-700">Click or drag photos/videos to attach</div>
+                  </div>
+                  {selectedMediaFiles.length > 0 && (
+                    <div className="mt-3 grid grid-cols-3 gap-2">
+                      {selectedMediaFiles.map((file, idx) => (
+                        <div key={idx} className="relative group rounded-xl overflow-hidden border border-gray-200 bg-gray-900 aspect-video flex items-center justify-center">
+                          <img src={file.preview} alt={file.name} className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveMedia(idx)}
+                            className="absolute top-1 right-1 bg-red-600 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] shadow-md hover:scale-110 transition-all z-20"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {overtime && (
+                  <div className="bg-amber-50/60 border border-amber-200 rounded-xl p-3">
+                    <label className="text-xs font-semibold text-amber-800 uppercase">
+                      Overtime Reason <span className="text-red-500">*</span>
+                    </label>
+                    <p className="text-[10px] text-amber-700 mb-1.5">This shift ran past its scheduled end time. Explain why, and attach supporting evidence above.</p>
+                    <textarea
+                      rows={2}
+                      required
+                      placeholder="e.g. Client required extended assistance with evening medication..."
+                      value={clockOutOvertimeReason}
+                      onChange={(e) => setClockOutOvertimeReason(e.target.value)}
+                      className="w-full bg-white border border-amber-200 rounded-xl p-3 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    />
+                  </div>
+                )}
+
+                {showClockOutOverrideInput && (
+                  <div className="bg-red-50/60 border border-red-200 rounded-xl p-3">
+                    <label className="text-xs font-semibold text-red-800 uppercase">
+                      Outside Patient Boundary — Override Reason <span className="text-red-500">*</span>
+                    </label>
+                    <p className="text-[10px] text-red-700 mb-1.5">GPS location is outside the client's geofence. Provide a reason to submit a manual override instead.</p>
+                    <textarea
+                      rows={2}
+                      required
+                      placeholder="e.g. Escorted client to a nearby pharmacy..."
+                      value={clockOutOverrideReason}
+                      onChange={(e) => setClockOutOverrideReason(e.target.value)}
+                      className="w-full bg-white border border-red-200 rounded-xl p-3 text-xs focus:outline-none focus:ring-2 focus:ring-red-500"
+                    />
+                  </div>
+                )}
+
+                {clockOutError && (
+                  <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-xl p-2.5">{clockOutError}</div>
+                )}
+
+                <div className="flex gap-3 pt-2">
+                  {showClockOutOverrideInput ? (
+                    <button
+                      type="button"
+                      disabled={isSubmittingClockOut || !clockOutOverrideReason.trim() || (overtime && !clockOutOvertimeReason.trim())}
+                      onClick={() => clockOutTargetShiftId && handleClockOut(clockOutTargetShiftId, true)}
+                      className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold text-xs rounded-xl transition-all disabled:opacity-50"
+                    >
+                      {isSubmittingClockOut ? 'Submitting...' : 'Submit Manual Override'}
+                    </button>
+                  ) : (
+                    <button
+                      type="submit"
+                      disabled={isSubmittingClockOut || !shiftNotes.trim() || (overtime && (!clockOutOvertimeReason.trim() || selectedMediaFiles.length === 0))}
+                      className="flex-1 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs rounded-xl shadow-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      {isSubmittingClockOut ? (
+                        <><i className="fa-solid fa-circle-notch animate-spin"></i> Submitting & Signing Out...</>
+                      ) : (
+                        <><i className="fa-solid fa-right-from-bracket"></i> Submit & Clock Out</>
+                      )}
+                    </button>
+                  )}
+                  {!isForcedClockOut && (
+                    <button
+                      type="button"
+                      onClick={() => { setShowClockOutModal(false); setShowClockOutOverrideInput(false); setClockOutError(null); }}
+                      className="px-5 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-xs rounded-xl transition-all"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </div>
+              </form>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Send Family Media Update Modal */}
       {showPostUpdateModal && (
@@ -1936,12 +2228,12 @@ export default function Home() {
                 const activeShift = shifts.find(s => s.id === selectedShiftId);
                 if (!activeShift) return null;
                 return (
-                  <div className="p-3 bg-blue-50/80 border border-blue-200 rounded-xl text-xs flex justify-between items-center shadow-2xs">
+                  <div className="p-3 bg-purple-50/80 border border-purple-200 rounded-xl text-xs flex justify-between items-center shadow-2xs">
                     <div>
-                      <span className="font-bold text-blue-900 block text-xs">Linked Shift: {activeShift.client.name}</span>
-                      <span className="text-[10px] text-blue-700 font-mono">Scheduled: {new Date(activeShift.scheduledStart).toLocaleString()}</span>
+                      <span className="font-bold text-purple-900 block text-xs">Linked Shift: {activeShift.client.name}</span>
+                      <span className="text-[10px] text-purple-700 font-mono">Scheduled: {new Date(activeShift.scheduledStart).toLocaleString()}</span>
                     </div>
-                    <span className="px-2.5 py-0.5 rounded-full bg-blue-600 text-white font-bold text-[10px] uppercase">
+                    <span className="px-2.5 py-0.5 rounded-full bg-purple-600 text-white font-bold text-[10px] uppercase">
                       {activeShift.status}
                     </span>
                   </div>
@@ -1954,7 +2246,7 @@ export default function Home() {
                 <select
                   value={targetPostClientId || selectedFeedClientId}
                   onChange={(e) => setTargetPostClientId(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 mt-1"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
                 >
                   {clients.map(c => (
                     <option key={c.id} value={c.id}>{c.name} ({c.address})</option>
@@ -1968,7 +2260,7 @@ export default function Home() {
                   Upload Photos, Videos or Audio Messages
                 </label>
                 
-                <div className="relative border-2 border-dashed border-blue-200 hover:border-blue-500 bg-blue-50/40 rounded-2xl p-4 text-center transition-all cursor-pointer group">
+                <div className="relative border-2 border-dashed border-purple-200 hover:border-purple-500 bg-purple-50/40 rounded-2xl p-4 text-center transition-all cursor-pointer group">
                   <input
                     type="file"
                     multiple
@@ -1976,7 +2268,7 @@ export default function Home() {
                     onChange={handleMediaChange}
                     className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
                   />
-                  <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform">
+                  <div className="w-10 h-10 bg-purple-100 text-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform">
                     <i className="fa-solid fa-cloud-arrow-up text-lg"></i>
                   </div>
                   <div className="text-xs font-bold text-gray-700">Click or drag photos, videos & audio clips to attach</div>
@@ -2021,7 +2313,7 @@ export default function Home() {
                         <div key={idx} className="relative group rounded-xl overflow-hidden border border-gray-200 bg-gray-900 aspect-video flex items-center justify-center">
                           {isVideo ? (
                             <div className="flex flex-col items-center text-white p-2 text-center">
-                              <i className="fa-solid fa-circle-play text-2xl text-blue-400 mb-1"></i>
+                              <i className="fa-solid fa-circle-play text-2xl text-purple-400 mb-1"></i>
                               <span className="text-[9px] font-mono truncate max-w-full">{file.name}</span>
                             </div>
                           ) : isAudio ? (
@@ -2058,7 +2350,7 @@ export default function Home() {
                   placeholder="Describe the update for the family (e.g. Patient enjoyed morning walk in garden, ate full meal, blood pressure normal)..."
                   value={shiftNotes}
                   onChange={(e) => setShiftNotes(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 mt-1"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
                 />
               </div>
 
@@ -2131,7 +2423,7 @@ export default function Home() {
                 <button
                   type="submit"
                   disabled={isPostingUpdate || !shiftNotes.trim()}
-                  className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+                  className="flex-1 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs rounded-xl shadow-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
                 >
                   {isPostingUpdate ? (
                     <>
@@ -2162,7 +2454,7 @@ export default function Home() {
           <div className="relative max-w-4xl w-full bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="p-4 bg-slate-950/80 border-b border-slate-800 flex justify-between items-center">
               <div className="flex items-center gap-2">
-                <span className="w-8 h-8 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center">
+                <span className="w-8 h-8 rounded-full bg-purple-600 text-white font-bold text-xs flex items-center justify-center">
                   {activeMediaModal.caregiverName?.charAt(0) || 'C'}
                 </span>
                 <div>
@@ -2183,7 +2475,7 @@ export default function Home() {
 
             {activeMediaModal.caption && (
               <div className="p-4 bg-slate-900 border-t border-slate-800 text-xs text-slate-200">
-                <span className="text-[10px] uppercase font-bold tracking-wider text-blue-400 block mb-1">Caption / Note</span>
+                <span className="text-[10px] uppercase font-bold tracking-wider text-purple-400 block mb-1">Caption / Note</span>
                 <p className="leading-relaxed">{activeMediaModal.caption}</p>
               </div>
             )}
@@ -2209,7 +2501,7 @@ export default function Home() {
 
             {isLoadingGpsHistory ? (
               <div className="py-16 text-center">
-                <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                <div className="w-10 h-10 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
                 <p className="text-xs font-semibold text-gray-500">Retrieving Live GPS Waypoints...</p>
               </div>
             ) : (
@@ -2233,14 +2525,14 @@ export default function Home() {
                   <div className="relative w-full h-72 bg-slate-950/80 rounded-xl border border-slate-800 flex items-center justify-center overflow-hidden">
                     <svg className="w-full h-full" viewBox="0 0 500 300">
                       {/* Geofence Perimeter Circle */}
-                      <circle cx="250" cy="150" r="90" fill="rgba(37, 99, 235, 0.08)" stroke="#3B82F6" strokeWidth="2" strokeDasharray="6 4" />
+                      <circle cx="250" cy="150" r="90" fill="rgba(147, 51, 234, 0.08)" stroke="#A855F7" strokeWidth="2" strokeDasharray="6 4" />
                       <circle cx="250" cy="150" r="130" fill="none" stroke="rgba(239, 68, 68, 0.3)" strokeWidth="1" strokeDasharray="4 4" />
-                      
+
                       {/* Patient Home Pin */}
                       <g transform="translate(250, 150)">
-                        <circle r="12" fill="#2563EB" opacity="0.2" />
-                        <circle r="6" fill="#2563EB" />
-                        <text x="0" y="22" textAnchor="middle" fill="#93C5FD" fontSize="10" fontWeight="bold">Patient Site (Center)</text>
+                        <circle r="12" fill="#9333EA" opacity="0.2" />
+                        <circle r="6" fill="#9333EA" />
+                        <text x="0" y="22" textAnchor="middle" fill="#D8B4FE" fontSize="10" fontWeight="bold">Patient Site (Center)</text>
                       </g>
 
                       {/* GPS Breadcrumb Trail Lines */}
@@ -2302,7 +2594,7 @@ export default function Home() {
                     </div>
                     <div className="bg-slate-800/80 p-2 rounded-lg border border-slate-700">
                       <span className="text-slate-400 block text-[9px] uppercase font-sans">Last Sync</span>
-                      <span className="font-bold text-cyan-400 text-xs">
+                      <span className="font-bold text-emerald-400 text-xs">
                         {gpsLocationHistory.length > 0 ? new Date(gpsLocationHistory[gpsLocationHistory.length - 1].timestamp).toLocaleTimeString() : 'N/A'}
                       </span>
                     </div>
@@ -2326,15 +2618,15 @@ export default function Home() {
           <div className="modal-content max-w-lg p-6 animate-fade-up">
             <div className="flex justify-between items-center border-b border-gray-100 pb-3 mb-4">
               <h3 className="font-bold text-gray-800 text-base flex items-center gap-2">
-                <i className="fa-solid fa-sliders text-blue-600"></i> Client Profile & Geofence Radius Settings
+                <i className="fa-solid fa-sliders text-purple-600"></i> Client Profile & Geofence Radius Settings
               </h3>
               <button onClick={() => setShowClientProfileModal(false)} className="text-gray-400 hover:text-gray-600 font-bold">✕</button>
             </div>
 
             <form onSubmit={(e) => { e.preventDefault(); handleSaveClientProfileSettings(); }} className="space-y-4 text-xs">
               {/* Client Basic Info */}
-              <div className="p-3 bg-blue-50/50 border border-blue-100 rounded-xl">
-                <div className="font-bold text-sm text-blue-900">{targetClientEditor.name}</div>
+              <div className="p-3 bg-purple-50/50 border border-purple-100 rounded-xl">
+                <div className="font-bold text-sm text-purple-900">{targetClientEditor.name}</div>
                 <div className="text-gray-500 font-medium text-[11px] mt-0.5">{targetClientEditor.address}</div>
               </div>
 
@@ -2344,7 +2636,7 @@ export default function Home() {
                   <label className="font-bold text-gray-700 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
                     <i className="fa-solid fa-location-dot text-red-500"></i> Geofence Radius Limit
                   </label>
-                  <span className="bg-blue-600 text-white font-mono font-bold px-2.5 py-0.5 rounded-md text-xs">
+                  <span className="bg-purple-600 text-white font-mono font-bold px-2.5 py-0.5 rounded-md text-xs">
                     {clientGeofenceRadiusInput} meters
                   </span>
                 </div>
@@ -2355,7 +2647,7 @@ export default function Home() {
                   step="25"
                   value={clientGeofenceRadiusInput}
                   onChange={(e) => setClientGeofenceRadiusInput(parseInt(e.target.value))}
-                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
                 />
                 <div className="flex justify-between text-[10px] text-gray-400 font-medium pt-1">
                   <span>50m (Strict)</span>
@@ -2373,7 +2665,7 @@ export default function Home() {
                   value={clientMedicalConditions}
                   onChange={(e) => setClientMedicalConditions(e.target.value)}
                   placeholder="e.g. Hypertension, Mild Dementia, Type 2 Diabetes..."
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
 
@@ -2385,7 +2677,7 @@ export default function Home() {
                   value={clientEmergencyContact}
                   onChange={(e) => setClientEmergencyContact(e.target.value)}
                   placeholder="e.g. Daughter Sarah (+1-604-555-0199)"
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
 
@@ -2397,7 +2689,7 @@ export default function Home() {
                   value={clientAllergiesNotes}
                   onChange={(e) => setClientAllergiesNotes(e.target.value)}
                   placeholder="e.g. Penicillin allergy, prefers morning walks, requires assistance with stairs..."
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
 
@@ -2405,7 +2697,7 @@ export default function Home() {
                 <button
                   type="submit"
                   disabled={isSavingClientProfile}
-                  className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-sm transition-all disabled:opacity-50"
+                  className="flex-1 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs rounded-xl shadow-sm transition-all disabled:opacity-50"
                 >
                   {isSavingClientProfile ? 'Saving Settings...' : 'Save Client Settings'}
                 </button>
@@ -2429,7 +2721,7 @@ export default function Home() {
             <div className="flex justify-between items-center border-b border-gray-100 pb-3 mb-4">
               <div>
                 <h3 className="font-bold text-gray-800 text-base flex items-center gap-2">
-                  <i className="fa-solid fa-list-check text-blue-600"></i> Care Plan Authoring & Task Builder
+                  <i className="fa-solid fa-list-check text-purple-600"></i> Care Plan Authoring & Task Builder
                 </h3>
                 <p className="text-xs text-gray-400">Manage baseline scheduled care tasks for {targetCarePlanClient.name}</p>
               </div>
@@ -2441,7 +2733,7 @@ export default function Home() {
               <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-2">
                 <div className="font-bold text-gray-700 uppercase tracking-wider text-[10px] mb-2 flex justify-between">
                   <span>Current Care Plan Tasks</span>
-                  <span className="text-blue-600 font-mono">
+                  <span className="text-purple-600 font-mono">
                     {targetCarePlanClient.carePlans?.[0]?.tasks?.length || 0} Task(s) Active
                   </span>
                 </div>
@@ -2455,7 +2747,7 @@ export default function Home() {
                         <div>
                           <div className="font-bold text-gray-800 text-xs flex items-center gap-2">
                             <span>{task.description}</span>
-                            <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-700 font-mono text-[10px]">
+                            <span className="px-2 py-0.5 rounded bg-purple-50 text-purple-700 font-mono text-[10px]">
                               {task.scheduledTime}
                             </span>
                           </div>
@@ -2523,7 +2815,7 @@ export default function Home() {
                       type="checkbox"
                       checked={newCareTaskMandatory}
                       onChange={(e) => setNewCareTaskMandatory(e.target.checked)}
-                      className="rounded accent-blue-600"
+                      className="rounded accent-purple-600"
                     />
                     <span>Mandatory Shift Completion Task</span>
                   </label>
@@ -2531,7 +2823,7 @@ export default function Home() {
                   <button
                     onClick={handleAddCarePlanTask}
                     disabled={isSavingCareTask || !newCareTaskDesc.trim()}
-                    className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-sm disabled:opacity-50"
+                    className="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs rounded-xl shadow-sm disabled:opacity-50"
                   >
                     {isSavingCareTask ? 'Adding Task...' : '+ Add Care Task'}
                   </button>
@@ -2744,7 +3036,7 @@ export default function Home() {
         {/* Brand */}
         <div className="px-6 py-6 border-b border-gray-100">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-sm">AK</div>
+            <div className="w-8 h-8 bg-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-sm">AK</div>
             <span className="font-semibold text-gray-800">Akirapa</span>
           </div>
         </div>
@@ -2752,7 +3044,7 @@ export default function Home() {
         {/* Profile Section */}
         <div className="px-6 py-4 border-b border-gray-100">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold text-lg">
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center text-white font-bold text-lg">
               {user.name?.charAt(0) || 'U'}
             </div>
             <div className="min-w-0">
@@ -2764,23 +3056,23 @@ export default function Home() {
 
         {/* Navigation */}
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          <button onClick={() => setCurrentView('dashboard')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'dashboard' ? 'bg-blue-50 text-blue-600 border-r-2 border-blue-600' : 'text-gray-600 hover:bg-gray-50'}`}>
+          <button onClick={() => setCurrentView('dashboard')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'dashboard' ? 'bg-purple-50 text-purple-600 border-r-2 border-purple-600' : 'text-gray-600 hover:bg-gray-50'}`}>
             <i className="fa-solid fa-gauge-high w-5 text-center"></i> Dashboard
           </button>
           
           {/* Admin/Coordinator Views */}
           {(user.role === 'ADMIN' || user.role === 'CARE_COORDINATOR') && (
             <>
-              <button onClick={() => setCurrentView('listings')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'listings' ? 'bg-blue-50 text-blue-600 border-r-2 border-blue-600' : 'text-gray-600 hover:bg-gray-50'}`}>
+              <button onClick={() => setCurrentView('listings')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'listings' ? 'bg-purple-50 text-purple-600 border-r-2 border-purple-600' : 'text-gray-600 hover:bg-gray-50'}`}>
                 <i className="fa-solid fa-calendar-check w-5 text-center"></i> Shifts
               </button>
-              <button onClick={() => setCurrentView('create')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'create' ? 'bg-blue-50 text-blue-600 border-r-2 border-blue-600' : 'text-gray-600 hover:bg-gray-50'}`}>
+              <button onClick={() => setCurrentView('create')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'create' ? 'bg-purple-50 text-purple-600 border-r-2 border-purple-600' : 'text-gray-600 hover:bg-gray-50'}`}>
                 <i className="fa-solid fa-plus-circle w-5 text-center"></i> Create Shift
               </button>
-              <button onClick={() => setCurrentView('business')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'business' ? 'bg-blue-50 text-blue-600 border-r-2 border-blue-600' : 'text-gray-600 hover:bg-gray-50'}`}>
+              <button onClick={() => setCurrentView('business')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'business' ? 'bg-purple-50 text-purple-600 border-r-2 border-purple-600' : 'text-gray-600 hover:bg-gray-50'}`}>
                 <i className="fa-solid fa-briefcase w-5 text-center"></i> Business Hub
               </button>
-              <button onClick={() => setCurrentView('audit')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'audit' ? 'bg-blue-50 text-blue-600 border-r-2 border-blue-600' : 'text-gray-600 hover:bg-gray-50'}`}>
+              <button onClick={() => setCurrentView('audit')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'audit' ? 'bg-purple-50 text-purple-600 border-r-2 border-purple-600' : 'text-gray-600 hover:bg-gray-50'}`}>
                 <i className="fa-solid fa-shield-halved w-5 text-center"></i> Audit Logs
               </button>
             </>
@@ -2789,10 +3081,10 @@ export default function Home() {
           {/* Caregiver Views */}
           {user.role === 'CAREGIVER' && (
             <>
-              <button onClick={() => setCurrentView('listings')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'listings' ? 'bg-blue-50 text-blue-600 border-r-2 border-blue-600' : 'text-gray-600 hover:bg-gray-50'}`}>
+              <button onClick={() => setCurrentView('listings')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'listings' ? 'bg-purple-50 text-purple-600 border-r-2 border-purple-600' : 'text-gray-600 hover:bg-gray-50'}`}>
                 <i className="fa-solid fa-clock w-5 text-center"></i> My Shifts
               </button>
-              <button onClick={() => setCurrentView('interested')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'interested' ? 'bg-blue-50 text-blue-600 border-r-2 border-blue-600' : 'text-gray-600 hover:bg-gray-50'}`}>
+              <button onClick={() => setCurrentView('interested')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'interested' ? 'bg-purple-50 text-purple-600 border-r-2 border-purple-600' : 'text-gray-600 hover:bg-gray-50'}`}>
                 <i className="fa-solid fa-bell w-5 text-center"></i> Alerts
               </button>
             </>
@@ -2801,17 +3093,17 @@ export default function Home() {
           {/* Family Views */}
           {user.role === 'FAMILY_MEMBER' && (
             <>
-              <button onClick={() => setCurrentView('listings')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'listings' ? 'bg-blue-50 text-blue-600 border-r-2 border-blue-600' : 'text-gray-600 hover:bg-gray-50'}`}>
+              <button onClick={() => setCurrentView('listings')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'listings' ? 'bg-purple-50 text-purple-600 border-r-2 border-purple-600' : 'text-gray-600 hover:bg-gray-50'}`}>
                 <i className="fa-solid fa-heart-pulse w-5 text-center"></i> Care Feed
               </button>
-              <button onClick={() => setCurrentView('purchases')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'purchases' ? 'bg-blue-50 text-blue-600 border-r-2 border-blue-600' : 'text-gray-600 hover:bg-gray-50'}`}>
+              <button onClick={() => setCurrentView('purchases')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'purchases' ? 'bg-purple-50 text-purple-600 border-r-2 border-purple-600' : 'text-gray-600 hover:bg-gray-50'}`}>
                 <i className="fa-solid fa-file-invoice w-5 text-center"></i> Documents
               </button>
             </>
           )}
 
           {/* Common Views */}
-          <button onClick={() => setCurrentView('profile')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'profile' ? 'bg-blue-50 text-blue-600 border-r-2 border-blue-600' : 'text-gray-600 hover:bg-gray-50'}`}>
+          <button onClick={() => setCurrentView('profile')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'profile' ? 'bg-purple-50 text-purple-600 border-r-2 border-purple-600' : 'text-gray-600 hover:bg-gray-50'}`}>
             <i className="fa-solid fa-user w-5 text-center"></i> My Profile
           </button>
           
@@ -2838,7 +3130,7 @@ export default function Home() {
             </h2>
             <div className="relative flex-1 max-w-md ml-4">
               <i className="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
-              <input type="text" placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all" />
+              <input type="text" placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all" />
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -2859,13 +3151,13 @@ export default function Home() {
                 <div className="notification-dropdown animate-fade-up">
                   <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50">
                     <div className="flex items-center gap-2">
-                      <i className="fa-solid fa-bell text-blue-600"></i>
+                      <i className="fa-solid fa-bell text-purple-600"></i>
                       <span className="font-semibold text-sm text-gray-800">Notifications</span>
-                      <span className="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-0.5 rounded-full">
+                      <span className="bg-purple-100 text-purple-700 text-xs font-bold px-2 py-0.5 rounded-full">
                         {dbNotifications.filter(n => !n.isRead).length} unread
                       </span>
                     </div>
-                    <button onClick={handleMarkAllNotificationsRead} className="text-xs font-semibold text-blue-600 hover:underline">
+                    <button onClick={handleMarkAllNotificationsRead} className="text-xs font-semibold text-purple-600 hover:underline">
                       Mark all read
                     </button>
                   </div>
@@ -2874,7 +3166,7 @@ export default function Home() {
                       <div className="p-6 text-center text-xs text-gray-400">No notifications</div>
                     ) : (
                       dbNotifications.map(n => (
-                        <div key={n.id} onClick={() => handleMarkNotificationRead(n.id)} className={`p-4 hover:bg-gray-50 transition-all cursor-pointer ${!n.isRead ? 'bg-blue-50/40' : ''}`}>
+                        <div key={n.id} onClick={() => handleMarkNotificationRead(n.id)} className={`p-4 hover:bg-gray-50 transition-all cursor-pointer ${!n.isRead ? 'bg-purple-50/40' : ''}`}>
                           <div className="flex justify-between items-start mb-1">
                             <span className="font-semibold text-xs text-gray-800">{n.title}</span>
                             <span className="text-[10px] text-gray-400">{new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
@@ -2888,7 +3180,7 @@ export default function Home() {
               )}
             </div>
 
-            <button onClick={() => setCurrentView('profile')} className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-sm font-bold">
+            <button onClick={() => setCurrentView('profile')} className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center text-white text-sm font-bold">
               {user.name?.charAt(0) || 'U'}
             </button>
           </div>
@@ -2897,7 +3189,7 @@ export default function Home() {
         {/* Content Area */}
         <div className="flex-1 p-8">
           {loading ? (
-            <div className="flex items-center justify-center h-64"><div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" /></div>
+            <div className="flex items-center justify-center h-64"><div className="w-10 h-10 border-4 border-purple-600 border-t-transparent rounded-full animate-spin" /></div>
           ) : (
             <>
               {/* ===== DASHBOARD VIEW ===== */}
@@ -2907,7 +3199,7 @@ export default function Home() {
                     <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
                       <div className="flex items-center justify-between">
                         <div><div className="text-sm text-gray-500">Total Clients</div><div className="text-2xl font-bold text-gray-800">{clients.length}</div></div>
-                        <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600"><i className="fa-solid fa-users text-xl"></i></div>
+                        <div className="w-12 h-12 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-600"><i className="fa-solid fa-users text-xl"></i></div>
                       </div>
                     </div>
                     <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
@@ -2939,7 +3231,7 @@ export default function Home() {
                       <div className="space-y-3">
                         {activityLogs.slice(0, 5).map((log) => (
                           <div key={log.id} className="flex items-start gap-3 pb-3 border-b border-gray-100 last:border-0">
-                            <div className={`w-2 h-2 rounded-full mt-2 ${log.details?.hasRedFlags ? 'bg-red-500' : 'bg-blue-600'}`}></div>
+                            <div className={`w-2 h-2 rounded-full mt-2 ${log.details?.hasRedFlags ? 'bg-red-500' : 'bg-purple-600'}`}></div>
                             <div><div className="text-sm text-gray-700">{log.details?.notes || 'Care update'}</div><div className="text-xs text-gray-400">{new Date(log.createdAt).toLocaleString()}</div></div>
                           </div>
                         ))}
@@ -2954,12 +3246,12 @@ export default function Home() {
                 <div className="max-w-4xl mx-auto space-y-6">
                   <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
                     <div className="flex flex-col items-center text-center">
-                      <div className="w-32 h-32 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-5xl font-bold shadow-lg">
+                      <div className="w-32 h-32 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center text-white text-5xl font-bold shadow-lg">
                         {user.name?.charAt(0) || 'U'}
                       </div>
                       <h2 className="text-2xl font-bold text-gray-800 mt-4">{user.name}</h2>
                       <p className="text-gray-500">{user.email}</p>
-                      <span className="mt-2 px-4 py-1 bg-blue-50 text-blue-600 rounded-full text-sm font-medium">{user.role}</span>
+                      <span className="mt-2 px-4 py-1 bg-purple-50 text-purple-600 rounded-full text-sm font-medium">{user.role}</span>
                       {user.phoneNumber && <p className="text-sm text-gray-500 mt-2"><i className="fa-solid fa-phone mr-2"></i>{user.phoneNumber}</p>}
                     </div>
                     <div className="grid grid-cols-2 gap-4 mt-8">
@@ -2968,16 +3260,48 @@ export default function Home() {
                     </div>
                   </div>
 
+                  {/* Caregiver Home Base Location (used for proximity-based shift scheduling) */}
+                  {user.role === 'CAREGIVER' && (
+                    <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+                      <div className="flex flex-wrap justify-between items-center gap-3">
+                        <div>
+                          <h3 className="font-bold text-gray-800 text-base flex items-center gap-2">
+                            <i className="fa-solid fa-location-dot text-purple-600"></i> My Home Base Location
+                          </h3>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {(() => {
+                              const loc = savedLocation ?? (user.latitude != null && user.longitude != null ? { latitude: user.latitude, longitude: user.longitude } : null);
+                              return loc
+                                ? `Saved: ${loc.latitude.toFixed(4)}, ${loc.longitude.toFixed(4)}`
+                                : 'Not set yet — used to match you with nearby clients when scheduling.';
+                            })()}
+                          </p>
+                        </div>
+                        <button
+                          onClick={handleUpdateMyLocation}
+                          disabled={isSavingLocation}
+                          className="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs rounded-xl shadow-sm disabled:opacity-50 transition-all flex items-center gap-2"
+                        >
+                          {isSavingLocation ? (
+                            <><i className="fa-solid fa-circle-notch animate-spin"></i> Updating...</>
+                          ) : (
+                            <><i className="fa-solid fa-location-crosshairs"></i> Use My Current Location</>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Caregiver Weekly Working Availability Schedule Manager */}
                   <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
                     <div className="flex flex-wrap justify-between items-center gap-3 border-b border-gray-100 pb-4 mb-4">
                       <div>
                         <h3 className="font-bold text-gray-800 text-base flex items-center gap-2">
-                          <i className="fa-solid fa-calendar-days text-blue-600"></i> Weekly Working Availability Schedule
+                          <i className="fa-solid fa-calendar-days text-purple-600"></i> Weekly Working Availability Schedule
                         </h3>
                         <p className="text-xs text-gray-500">Define recurring weekly working hours for automated shift matching</p>
                       </div>
-                      <button onClick={handleSaveAvailability} disabled={isSavingSchedule} className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-sm disabled:opacity-50 transition-all">
+                      <button onClick={handleSaveAvailability} disabled={isSavingSchedule} className="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs rounded-xl shadow-sm disabled:opacity-50 transition-all">
                         {isSavingSchedule ? 'Saving...' : 'Save Schedule'}
                       </button>
                     </div>
@@ -3036,14 +3360,14 @@ export default function Home() {
                     <div className="flex flex-wrap justify-between items-center gap-3 border-b border-gray-100 pb-4 mb-4">
                       <div>
                         <h3 className="font-bold text-gray-800 text-base flex items-center gap-2">
-                          <i className="fa-solid fa-id-card text-blue-600"></i> Profile Certifications & Clinical Specializations
+                          <i className="fa-solid fa-id-card text-purple-600"></i> Profile Certifications & Clinical Specializations
                         </h3>
                         <p className="text-xs text-gray-500">Manage your clinical credentials, licenses, and bio metadata</p>
                       </div>
                       <button
                         onClick={handleSaveUserProfileMetadata}
                         disabled={isSavingUserProfile}
-                        className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-sm disabled:opacity-50 transition-all cursor-pointer"
+                        className="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs rounded-xl shadow-sm disabled:opacity-50 transition-all cursor-pointer"
                       >
                         {isSavingUserProfile ? 'Saving Details...' : 'Save Profile Details'}
                       </button>
@@ -3057,7 +3381,7 @@ export default function Home() {
                           value={userPhoneInput || user.phoneNumber || ''}
                           onChange={(e) => setUserPhoneInput(e.target.value)}
                           placeholder="+16045550199"
-                          className="w-full max-w-md bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full max-w-md bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-purple-500"
                         />
                       </div>
 
@@ -3075,7 +3399,7 @@ export default function Home() {
                                   else setUserCertificationsInput([...userCertificationsInput, cert]);
                                 }}
                                 className={`px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
-                                  isChecked ? 'bg-blue-600 text-white border-blue-600 shadow-2xs' : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
+                                  isChecked ? 'bg-purple-600 text-white border-purple-600 shadow-2xs' : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
                                 }`}
                               >
                                 {isChecked && <i className="fa-solid fa-check text-[10px]"></i>}
@@ -3093,7 +3417,7 @@ export default function Home() {
                           value={userSpecialtiesInput}
                           onChange={(e) => setUserSpecialtiesInput(e.target.value)}
                           placeholder="e.g. Elderly Mobility Care, Post-Op Rehabilitation, Palliative Care..."
-                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500"
                         />
                       </div>
 
@@ -3104,7 +3428,7 @@ export default function Home() {
                           value={userBioInput}
                           onChange={(e) => setUserBioInput(e.target.value)}
                           placeholder="Brief summary of clinical care experience..."
-                          className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500"
                         />
                       </div>
                     </div>
@@ -3138,7 +3462,7 @@ export default function Home() {
                                   .then(d => setActivityLogs(d.logs || []));
                               }
                             }}
-                            className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-purple-500"
                           >
                             {clients.map(c => (
                               <option key={c.id} value={c.id}>{c.name} ({c.careTier || 'Standard'})</option>
@@ -3153,13 +3477,13 @@ export default function Home() {
                         const carePlan = activeClient?.carePlans?.[0];
                         if (!carePlan || !carePlan.tasks || carePlan.tasks.length === 0) return null;
                         return (
-                          <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-4">
-                            <h4 className="font-bold text-xs text-blue-900 uppercase tracking-wider mb-3 flex items-center gap-2">
-                              <i className="fa-solid fa-list-check text-blue-600"></i> Baseline Care Plan ({carePlan.title})
+                          <div className="bg-purple-50/50 border border-purple-100 rounded-xl p-4">
+                            <h4 className="font-bold text-xs text-purple-900 uppercase tracking-wider mb-3 flex items-center gap-2">
+                              <i className="fa-solid fa-list-check text-purple-600"></i> Baseline Care Plan ({carePlan.title})
                             </h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                               {carePlan.tasks.map((task: any) => (
-                                <div key={task.id} className="bg-white border border-blue-100 rounded-lg p-2.5 text-xs flex justify-between items-center shadow-2xs">
+                                <div key={task.id} className="bg-white border border-purple-100 rounded-lg p-2.5 text-xs flex justify-between items-center shadow-2xs">
                                   <div>
                                     <span className="font-semibold text-gray-800">{task.description}</span>
                                     {task.instructions && <div className="text-[11px] text-gray-400">{task.instructions}</div>}
@@ -3217,16 +3541,16 @@ export default function Home() {
                             };
 
                             return (
-                              <div key={log.id} className={`border rounded-2xl p-6 shadow-xs transition-all ${log.details?.hasRedFlags ? 'border-red-200 bg-red-50/30' : 'border-gray-200 bg-white hover:border-blue-200 hover:shadow-md'}`}>
+                              <div key={log.id} className={`border rounded-2xl p-6 shadow-xs transition-all ${log.details?.hasRedFlags ? 'border-red-200 bg-red-50/30' : 'border-gray-200 bg-white hover:border-purple-200 hover:shadow-md'}`}>
                                 <div className="flex justify-between items-start">
                                   <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-sm">
+                                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-sm">
                                       {log.details?.caregiverName?.charAt(0) || 'C'}
                                     </div>
                                     <div>
                                       <div className="font-bold text-sm text-gray-900 flex items-center gap-2">
                                         <span>{log.details?.caregiverName || 'Caregiver'}</span>
-                                        <span className="bg-blue-50 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-100">
+                                        <span className="bg-purple-50 text-purple-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-purple-100">
                                           Verified Caregiver
                                         </span>
                                       </div>
@@ -3254,9 +3578,9 @@ export default function Home() {
                                 {/* Wellness Status Chips */}
                                 {log.details?.wellness && (
                                   <div className="mt-3 pt-3 border-t border-gray-100 grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
-                                    <div className="bg-blue-50/60 border border-blue-100 p-2.5 rounded-xl"><span className="text-gray-400 text-[10px] block uppercase font-semibold">Mood</span><span className="font-semibold text-blue-900">{log.details.wellness.mood}</span></div>
+                                    <div className="bg-purple-50/60 border border-purple-100 p-2.5 rounded-xl"><span className="text-gray-400 text-[10px] block uppercase font-semibold">Mood</span><span className="font-semibold text-purple-900">{log.details.wellness.mood}</span></div>
                                     <div className="bg-emerald-50/60 border border-emerald-100 p-2.5 rounded-xl"><span className="text-gray-400 text-[10px] block uppercase font-semibold">Appetite</span><span className="font-semibold text-emerald-900">{log.details.wellness.appetite}</span></div>
-                                    <div className="bg-cyan-50/60 border border-cyan-100 p-2.5 rounded-xl"><span className="text-gray-400 text-[10px] block uppercase font-semibold">Hydration</span><span className="font-semibold text-cyan-900">{log.details.wellness.hydration}</span></div>
+                                    <div className="bg-emerald-50/60 border border-emerald-100 p-2.5 rounded-xl"><span className="text-gray-400 text-[10px] block uppercase font-semibold">Hydration</span><span className="font-semibold text-emerald-900">{log.details.wellness.hydration}</span></div>
                                     <div className="bg-purple-50/60 border border-purple-100 p-2.5 rounded-xl"><span className="text-gray-400 text-[10px] block uppercase font-semibold">Sleep</span><span className="font-semibold text-purple-900">{log.details.wellness.sleep}</span></div>
                                   </div>
                                 )}
@@ -3265,7 +3589,7 @@ export default function Home() {
                                 {mediaList.length > 0 && (
                                   <div className="mt-4 pt-3 border-t border-gray-100 space-y-2">
                                     <div className="text-xs font-bold text-gray-700 flex items-center justify-between">
-                                      <span className="flex items-center gap-1.5 text-blue-600">
+                                      <span className="flex items-center gap-1.5 text-purple-600">
                                         <i className="fa-solid fa-photo-film"></i> Encrypted Media & Audio Attachment ({mediaList.length} file{mediaList.length > 1 ? 's' : ''})
                                       </span>
                                       <span className="text-[10px] text-gray-400 font-mono">AES-256 Verified</span>
@@ -3359,7 +3683,7 @@ export default function Home() {
                         {user.role === 'CAREGIVER' && (
                           <button
                             onClick={() => setShowPostUpdateModal(true)}
-                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl flex items-center gap-2 shadow-sm transition-all cursor-pointer"
+                            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs rounded-xl flex items-center gap-2 shadow-sm transition-all cursor-pointer"
                           >
                             <i className="fa-solid fa-camera"></i> Send Family Media Update
                           </button>
@@ -3378,7 +3702,7 @@ export default function Home() {
                                 }
                               }}
                               className={`border-b border-gray-100 pb-3.5 pt-1 space-y-2 rounded-xl transition-all ${
-                                user.role === 'CAREGIVER' ? 'hover:bg-blue-50/40 p-3 cursor-pointer border border-transparent hover:border-blue-200' : ''
+                                user.role === 'CAREGIVER' ? 'hover:bg-purple-50/40 p-3 cursor-pointer border border-transparent hover:border-purple-200' : ''
                               }`}
                             >
                               <div className="flex items-center justify-between">
@@ -3386,7 +3710,7 @@ export default function Home() {
                                   <div className="font-bold text-sm text-gray-800 flex items-center gap-2">
                                     <span>{shift.client.name}</span>
                                     {user.role === 'CAREGIVER' && (
-                                      <span className="text-[10px] text-blue-600 bg-blue-50 font-semibold px-2 py-0.5 rounded-md border border-blue-100">
+                                      <span className="text-[10px] text-purple-600 bg-purple-50 font-semibold px-2 py-0.5 rounded-md border border-purple-100">
                                         💬 Click card to update family
                                       </span>
                                     )}
@@ -3403,7 +3727,7 @@ export default function Home() {
                                   )}
                                   <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
                                     shift.status === 'COMPLETED' ? 'bg-green-100 text-green-700 border border-green-200' :
-                                    shift.status === 'IN_PROGRESS' ? 'bg-blue-100 text-blue-700 border border-blue-200' :
+                                    shift.status === 'IN_PROGRESS' ? 'bg-purple-100 text-purple-700 border border-purple-200' :
                                     shift.status === 'UNCONFIRMED' ? 'bg-amber-100 text-amber-700 border border-amber-200' :
                                     shift.status === 'CONFIRMED' ? 'bg-teal-100 text-teal-700 border border-teal-200' :
                                     'bg-gray-100 text-gray-600'
@@ -3418,7 +3742,7 @@ export default function Home() {
 
                                   {/* Caregiver Shift Actions */}
                                   {user.role === 'CAREGIVER' && shift.status === 'UNCONFIRMED' && (
-                                    <button onClick={(e) => { e.stopPropagation(); handleConfirmShift(shift.id, false); }} className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-lg cursor-pointer shadow-2xs">Confirm Shift</button>
+                                    <button onClick={(e) => { e.stopPropagation(); handleConfirmShift(shift.id, false); }} className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs rounded-lg cursor-pointer shadow-2xs">Confirm Shift</button>
                                   )}
 
                                   {/* Admin / Coordinator Force Confirm Action */}
@@ -3442,14 +3766,14 @@ export default function Home() {
                                   {user.role === 'CAREGIVER' && (
                                     <button
                                       onClick={(e) => { e.stopPropagation(); handleOpenShiftUpdate(shift); }}
-                                      className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-lg flex items-center gap-1 shadow-2xs cursor-pointer"
+                                      className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs rounded-lg flex items-center gap-1 shadow-2xs cursor-pointer"
                                     >
                                       <i className="fa-solid fa-camera"></i> Family Update
                                     </button>
                                   )}
 
                                   {user.role === 'CAREGIVER' && shift.status === 'IN_PROGRESS' && (
-                                    <button onClick={(e) => { e.stopPropagation(); handleClockOut(shift.id, false); }} className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white font-semibold text-xs rounded-lg cursor-pointer shadow-2xs">Clock Out</button>
+                                    <button onClick={(e) => { e.stopPropagation(); openClockOutModal(shift.id, false); }} className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white font-semibold text-xs rounded-lg cursor-pointer shadow-2xs">Clock Out</button>
                                   )}
                                   {shift.status !== 'COMPLETED' && shift.status !== 'DROPPED' && (
                                     <button onClick={(e) => { e.stopPropagation(); handleOpenDropModal(shift.id); }} className="px-3 py-1 bg-red-50 text-red-600 hover:bg-red-100 font-semibold text-xs rounded-lg border border-red-200 transition-all">
@@ -3461,10 +3785,10 @@ export default function Home() {
 
                               {/* Live Interactive Shift Task Checklist for IN_PROGRESS shifts */}
                               {shift.status === 'IN_PROGRESS' && (
-                                <div className="mt-3 p-3 bg-blue-50/40 border border-blue-100 rounded-xl space-y-2 text-xs">
-                                  <div className="flex justify-between items-center font-bold text-blue-900 text-[11px] uppercase tracking-wider">
-                                    <span className="flex items-center gap-1.5"><i className="fa-solid fa-list-check text-blue-600"></i> Active Shift Task Checklist</span>
-                                    <button onClick={() => handleFetchShiftTasks(shift.id)} className="text-blue-600 hover:underline font-normal text-[10px]">
+                                <div className="mt-3 p-3 bg-purple-50/40 border border-purple-100 rounded-xl space-y-2 text-xs">
+                                  <div className="flex justify-between items-center font-bold text-purple-900 text-[11px] uppercase tracking-wider">
+                                    <span className="flex items-center gap-1.5"><i className="fa-solid fa-list-check text-purple-600"></i> Active Shift Task Checklist</span>
+                                    <button onClick={() => handleFetchShiftTasks(shift.id)} className="text-purple-600 hover:underline font-normal text-[10px]">
                                       ↻ Refresh Tasks
                                     </button>
                                   </div>
@@ -3475,13 +3799,13 @@ export default function Home() {
                                       { id: 'st2', description: 'Assist with morning mobility & breakfast preparation', isCompleted: false },
                                       { id: 'st3', description: 'Log vital signs (Blood Pressure & Hydration)', isCompleted: false },
                                     ]).map((st: any) => (
-                                      <label key={st.id} className="flex items-center justify-between p-2 bg-white rounded-lg border border-blue-100 text-xs cursor-pointer hover:bg-blue-50/50 transition-colors">
+                                      <label key={st.id} className="flex items-center justify-between p-2 bg-white rounded-lg border border-purple-100 text-xs cursor-pointer hover:bg-purple-50/50 transition-colors">
                                         <div className="flex items-center gap-2">
                                           <input
                                             type="checkbox"
                                             checked={Boolean(st.isCompleted)}
                                             onChange={(e) => handleToggleShiftTask(shift.id, st.id, e.target.checked)}
-                                            className="rounded accent-blue-600 w-4 h-4 cursor-pointer"
+                                            className="rounded accent-purple-600 w-4 h-4 cursor-pointer"
                                           />
                                           <span className={st.isCompleted ? 'line-through text-gray-400 font-medium' : 'text-gray-800 font-semibold'}>
                                             {st.description}
@@ -3506,7 +3830,7 @@ export default function Home() {
                                     />
                                     <button
                                       onClick={() => handleAddCustomShiftTask(shift.id)}
-                                      className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-lg shadow-2xs"
+                                      className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs rounded-lg shadow-2xs"
                                     >
                                       + Task
                                     </button>
@@ -3535,28 +3859,28 @@ export default function Home() {
                     <form onSubmit={handleCreateShift} className="space-y-4">
                       <div>
                         <label className="text-sm font-medium text-gray-600">Client</label>
-                        <select value={newShiftClientId} onChange={(e) => setNewShiftClientId(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <select value={newShiftClientId} onChange={(e) => setNewShiftClientId(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
                           {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                         </select>
                       </div>
                       <div>
                         <label className="text-sm font-medium text-gray-600">Caregiver</label>
-                        <select value={newShiftCaregiverId} onChange={(e) => setNewShiftCaregiverId(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <select value={newShiftCaregiverId} onChange={(e) => setNewShiftCaregiverId(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
                           {suggestions.length > 0 ? suggestions.map((s: any) => <option key={s.id} value={s.id} disabled={s.hasConflict}>{s.name} {s.rankLabel ? `- ${s.rankLabel}` : ''}</option>) : caregivers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                         </select>
                         {loadingSuggestions && <div className="text-xs text-gray-400 mt-1"><i className="fa-solid fa-spinner animate-spin mr-1"></i> Finding best match...</div>}
                       </div>
                       <div>
                         <label className="text-sm font-medium text-gray-600">Start Time</label>
-                        <input type="datetime-local" value={newShiftDate} onChange={(e) => setNewShiftDate(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                        <input type="datetime-local" value={newShiftDate} onChange={(e) => setNewShiftDate(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
                       </div>
                       <div>
                         <label className="text-sm font-medium text-gray-600">Duration</label>
-                        <select value={newShiftHours} onChange={(e) => setNewShiftHours(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <select value={newShiftHours} onChange={(e) => setNewShiftHours(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
                           <option value="4">4 Hours</option><option value="6">6 Hours</option><option value="8">8 Hours</option>
                         </select>
                       </div>
-                      <button type="submit" className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-xl transition-all">Create Shift</button>
+                      <button type="submit" className="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-sm rounded-xl transition-all">Create Shift</button>
                     </form>
                   </div>
                 </div>
@@ -3567,7 +3891,7 @@ export default function Home() {
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                   <h3 className="font-semibold text-gray-800 mb-4">Business Hub</h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                    <div className="bg-blue-50 rounded-xl p-4 text-center"><div className="text-2xl font-bold text-blue-600">{clients.length}</div><div className="text-sm text-gray-600">Total Clients</div></div>
+                    <div className="bg-purple-50 rounded-xl p-4 text-center"><div className="text-2xl font-bold text-purple-600">{clients.length}</div><div className="text-sm text-gray-600">Total Clients</div></div>
                     <div className="bg-green-50 rounded-xl p-4 text-center"><div className="text-2xl font-bold text-green-600">{caregivers.length}</div><div className="text-sm text-gray-600">Active Caregivers</div></div>
                     <div className="bg-amber-50 rounded-xl p-4 text-center"><div className="text-2xl font-bold text-amber-600">{shifts.length}</div><div className="text-sm text-gray-600">Total Shifts</div></div>
                   </div>
@@ -3576,17 +3900,17 @@ export default function Home() {
                   <div className="border-t border-gray-100 pt-6 mt-4">
                     <h4 className="font-medium text-gray-700 mb-4">Caregiver Pod Management</h4>
                     <form onSubmit={handleUpdatePod} className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <select value={selectedPodClient} onChange={(e) => setSelectedPodClient(e.target.value)} className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                      <select value={selectedPodClient} onChange={(e) => setSelectedPodClient(e.target.value)} className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
                         {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                       </select>
-                      <select value={selectedPodRole} onChange={(e) => setSelectedPodRole(e.target.value as any)} className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                      <select value={selectedPodRole} onChange={(e) => setSelectedPodRole(e.target.value as any)} className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
                         <option value="PRIMARY">Primary</option><option value="SECONDARY_1">Secondary 1</option><option value="SECONDARY_2">Secondary 2</option>
                       </select>
                       <div className="flex gap-2">
-                        <select value={selectedPodCaregiver} onChange={(e) => setSelectedPodCaregiver(e.target.value)} className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <select value={selectedPodCaregiver} onChange={(e) => setSelectedPodCaregiver(e.target.value)} className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
                           {caregivers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                         </select>
-                        <button type="submit" className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-all">Update</button>
+                        <button type="submit" className="px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold rounded-xl transition-all">Update</button>
                       </div>
                     </form>
                   </div>
@@ -3604,9 +3928,9 @@ export default function Home() {
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() => handleOpenCarePlanBuilder(client)}
-                              className="px-3 py-1.5 bg-white hover:bg-blue-50 text-blue-600 font-semibold text-xs rounded-lg border border-gray-200 hover:border-blue-300 shadow-2xs transition-all flex items-center gap-1 cursor-pointer"
+                              className="px-3 py-1.5 bg-white hover:bg-purple-50 text-purple-600 font-semibold text-xs rounded-lg border border-gray-200 hover:border-purple-300 shadow-2xs transition-all flex items-center gap-1 cursor-pointer"
                             >
-                              <i className="fa-solid fa-list-check text-blue-500"></i> Care Plan Builder
+                              <i className="fa-solid fa-list-check text-purple-500"></i> Care Plan Builder
                             </button>
 
                             <button
@@ -3648,7 +3972,7 @@ export default function Home() {
                     <div className="space-y-3">
                       {smsAlerts.map((alert, i) => (
                         <div key={i} className="flex items-start gap-3 border-b border-gray-100 pb-3">
-                          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600"><i className="fa-solid fa-bell"></i></div>
+                          <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-600"><i className="fa-solid fa-bell"></i></div>
                           <div><div className="text-sm font-medium">{alert.to}</div><div className="text-sm text-gray-600">{alert.message}</div><div className="text-xs text-gray-400 mt-1">{alert.timestamp.toLocaleString()}</div></div>
                         </div>
                       ))}
@@ -3662,7 +3986,7 @@ export default function Home() {
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                   <div className="flex justify-between items-center border-b border-gray-100 pb-4 mb-4">
                     <h3 className="font-semibold text-gray-800">Audit Logs</h3>
-                    <span className="text-xs font-medium text-blue-600 bg-blue-50 px-3 py-1 rounded-full">HIPAA Compliant</span>
+                    <span className="text-xs font-medium text-purple-600 bg-purple-50 px-3 py-1 rounded-full">HIPAA Compliant</span>
                   </div>
                   {auditLogs.length === 0 ? (
                     <p className="text-gray-400 text-sm text-center py-8">No logs recorded</p>
@@ -3674,7 +3998,7 @@ export default function Home() {
                           {auditLogs.map(log => (
                             <tr key={log.id} className="border-b border-gray-100/50 hover:bg-gray-50/30">
                               <td className="py-3 text-gray-500 font-mono text-[10px]">{new Date(log.timestamp).toLocaleString()}</td>
-                              <td className="py-3 font-semibold text-blue-600">{log.action}</td>
+                              <td className="py-3 font-semibold text-purple-600">{log.action}</td>
                               <td className="py-3 text-gray-500 font-mono text-[10px]">{log.userId?.substring(0, 8)}</td>
                               <td className="py-3"><span className={`px-2 py-0.5 rounded text-[10px] font-bold ${log.outcome === 'SUCCESS' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{log.outcome}</span></td>
                               <td className="py-3 text-gray-600 max-w-xs truncate">{log.details}</td>
@@ -3693,13 +4017,13 @@ export default function Home() {
                   <h3 className="font-semibold text-gray-800 mb-4">{user.role === 'FAMILY_MEMBER' ? 'Documents & Invoices' : 'Purchases & Sales'}</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                     <div className="bg-green-50 rounded-xl p-4 text-center"><div className="text-sm text-gray-600">Completed</div><div className="text-2xl font-bold text-green-600">{shifts.filter(s => s.status === 'COMPLETED').length}</div></div>
-                    <div className="bg-blue-50 rounded-xl p-4 text-center"><div className="text-sm text-gray-600">Active</div><div className="text-2xl font-bold text-blue-600">{shifts.filter(s => s.status === 'IN_PROGRESS' || s.status === 'CONFIRMED').length}</div></div>
+                    <div className="bg-purple-50 rounded-xl p-4 text-center"><div className="text-sm text-gray-600">Active</div><div className="text-2xl font-bold text-purple-600">{shifts.filter(s => s.status === 'IN_PROGRESS' || s.status === 'CONFIRMED').length}</div></div>
                   </div>
                   <div className="space-y-3">
                     {shifts.filter(s => s.status === 'COMPLETED' || s.status === 'IN_PROGRESS').slice(0, 5).map((shift) => (
                       <div key={shift.id} className="flex items-center justify-between border-b border-gray-100 pb-3">
                         <div><div className="text-sm font-medium">{shift.client.name}</div><div className="text-xs text-gray-400">{new Date(shift.scheduledStart).toLocaleDateString()}</div></div>
-                        <span className={`text-sm font-semibold ${shift.status === 'COMPLETED' ? 'text-green-600' : 'text-blue-600'}`}>{shift.status}</span>
+                        <span className={`text-sm font-semibold ${shift.status === 'COMPLETED' ? 'text-green-600' : 'text-purple-600'}`}>{shift.status}</span>
                       </div>
                     ))}
                   </div>

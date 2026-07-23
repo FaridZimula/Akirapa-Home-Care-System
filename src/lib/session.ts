@@ -47,14 +47,19 @@ export interface SessionUser {
   name: string;
   role: 'ADMIN' | 'CARE_COORDINATOR' | 'CAREGIVER' | 'FAMILY_MEMBER';
   phoneNumber: string | null;
+  latitude: number | null;
+  longitude: number | null;
 }
 
-export function createSessionCookie(userId: string): { name: string; value: string; maxAge: number } {
-  const exp = Date.now() + SESSION_TTL_MS;
+// expiresAt lets a caller (e.g. clock-in) keep the session alive past the normal
+// 15-minute idle window for the duration of an active shift.
+export function createSessionCookie(userId: string, expiresAt?: Date): { name: string; value: string; maxAge: number } {
+  const exp = expiresAt ? expiresAt.getTime() : Date.now() + SESSION_TTL_MS;
+  const maxAge = Math.max(1, Math.floor((exp - Date.now()) / 1000));
   return {
     name: SESSION_COOKIE_NAME,
     value: encodeToken(userId, exp),
-    maxAge: Math.floor(SESSION_TTL_MS / 1000),
+    maxAge,
   };
 }
 
@@ -86,5 +91,7 @@ export async function getSessionUser(): Promise<SessionUser | null> {
     name: user.name,
     role: user.role,
     phoneNumber: user.phoneNumber,
+    latitude: user.latitude,
+    longitude: user.longitude,
   };
 }

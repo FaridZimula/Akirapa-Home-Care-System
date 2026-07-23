@@ -2,24 +2,9 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { logAudit } from '@/lib/audit';
 import { getSessionUser } from '@/lib/session';
+import { computeHaversineDistance } from '@/lib/geo';
 import { ShiftStatus } from '@prisma/client';
 import { encrypt } from '@/lib/crypto';
-
-// Haversine formula to compute distance between two coordinates in meters
-function computeHaversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371e3; // Earth radius in meters
-  const phi1 = (lat1 * Math.PI) / 180;
-  const phi2 = (lat2 * Math.PI) / 180;
-  const deltaPhi = ((lat2 - lat1) * Math.PI) / 180;
-  const deltaLambda = ((lon2 - lon1) * Math.PI) / 180;
-
-  const a =
-    Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
-    Math.cos(phi1) * Math.cos(phi2) * Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-  return R * c; // in meters
-}
 
 export async function POST(request: Request) {
   try {
@@ -38,7 +23,9 @@ export async function POST(request: Request) {
       isOverride,
       overrideReason,
       mediaFiles,
-      handover
+      handover,
+      overtimeReason,
+      overtimeEvidenceFile,
     } = await request.json();
 
     if (!shiftId) {
@@ -72,6 +59,19 @@ export async function POST(request: Request) {
 
     const now = new Date();
 
+    // Overtime is determined server-side against the shift's own schedule, not
+    // trusted from the client, but the justification text itself is user input.
+    const isOvertime = now.getTime() > new Date(shift.scheduledEnd).getTime();
+    if (isOvertime && !overtimeReason) {
+      return NextResponse.json({ error: 'An overtime reason is required since this shift is running past its scheduled end time.' }, { status: 400 });
+    }
+
+    let overtimeEvidenceUrl: string | null = null;
+    if (isOvertime && overtimeEvidenceFile) {
+      const mockFileId = `file_${Math.random().toString(36).substring(2, 11)}`;
+      overtimeEvidenceUrl = `https://storage.akirapa.local/overtime-evidence/${shift.id}/${mockFileId}?token=${Math.random().toString(36).substring(2, 20)}&expires=1893456000`;
+    }
+
     // Process media upload simulation
     const generatedUrls: string[] = [];
     if (mediaFiles && Array.isArray(mediaFiles)) {
@@ -81,6 +81,28 @@ export async function POST(request: Request) {
         generatedUrls.push(mockSignedUrl);
       }
     }
+
+    const activeRedFlags = Object.entries(redFlags || {})
+      .filter(([_, value]) => value === true)
+      .map(([key, _]) => key);
+
+    const hasRedFlags = activeRedFlags.length > 0;
+
+    const logDetails = {
+      notes: notes || 'No notes provided',
+      redFlags: redFlags || {},
+      hasRedFlags,
+      activeRedFlags,
+      completedTaskCount: completedTaskIds?.length || 0,
+      caregiverName: shift.caregiver.name,
+      mediaUrls: generatedUrls,
+      mediaFiles: mediaFiles || [],
+      handover: handover || null,
+      isOvertime,
+      overtimeReason: isOvertime ? overtimeReason : null,
+    };
+
+    const encryptedLog = encrypt(JSON.stringify(logDetails));
 
     // 1. Manual Override Path
     if (isOverride) {
@@ -102,28 +124,6 @@ export async function POST(request: Request) {
         });
       }
 
-      // Process clinical red flags
-      const activeRedFlags = Object.entries(redFlags || {})
-        .filter(([_, value]) => value === true)
-        .map(([key, _]) => key);
-
-      const hasRedFlags = activeRedFlags.length > 0;
-
-      // Create encrypted activity log details
-      const logDetails = {
-        notes: notes || 'No notes provided',
-        redFlags: redFlags || {},
-        hasRedFlags,
-        activeRedFlags,
-        completedTaskCount: completedTaskIds?.length || 0,
-        caregiverName: shift.caregiver.name,
-        mediaUrls: generatedUrls,
-        mediaFiles: mediaFiles || [],
-        handover: handover || null,
-      };
-
-      const encryptedLog = encrypt(JSON.stringify(logDetails));
-
       // Save activity log
       const activityLog = await prisma.activityLog.create({
         data: {
@@ -142,6 +142,9 @@ export async function POST(request: Request) {
           actualEnd: now,
           isOverrideException: true,
           overrideReason,
+          isOvertime,
+          overtimeReason: isOvertime ? overtimeReason : null,
+          overtimeEvidenceUrl,
         },
       });
 
@@ -156,7 +159,7 @@ export async function POST(request: Request) {
       await logAudit({
         userId: shift.caregiverId,
         action: 'CLOCK_OUT_SUCCESS',
-        details: `Caregiver ${shift.caregiver.name} clocked out for client ${shift.client.name} (via override). Red Flags Detected: ${hasRedFlags ? activeRedFlags.join(', ') : 'None'}.`,
+        details: `Caregiver ${shift.caregiver.name} clocked out for client ${shift.client.name} (via override). Red Flags Detected: ${hasRedFlags ? activeRedFlags.join(', ') : 'None'}.${isOvertime ? ` Overtime reason: ${overtimeReason}` : ''}`,
         outcome: 'SUCCESS',
       });
 
@@ -226,26 +229,6 @@ export async function POST(request: Request) {
       });
     }
 
-    const activeRedFlags = Object.entries(redFlags || {})
-      .filter(([_, value]) => value === true)
-      .map(([key, _]) => key);
-
-    const hasRedFlags = activeRedFlags.length > 0;
-
-    const logDetails = {
-      notes: notes || 'No notes provided',
-      redFlags: redFlags || {},
-      hasRedFlags,
-      activeRedFlags,
-      completedTaskCount: completedTaskIds?.length || 0,
-      caregiverName: shift.caregiver.name,
-      mediaUrls: generatedUrls,
-      mediaFiles: mediaFiles || [],
-      handover: handover || null,
-    };
-
-    const encryptedLog = encrypt(JSON.stringify(logDetails));
-
     const activityLog = await prisma.activityLog.create({
       data: {
         clientId: shift.clientId,
@@ -262,13 +245,16 @@ export async function POST(request: Request) {
         actualEnd: now,
         clockOutLat: latitude,
         clockOutLng: longitude,
+        isOvertime,
+        overtimeReason: isOvertime ? overtimeReason : null,
+        overtimeEvidenceUrl,
       },
     });
 
     await logAudit({
       userId: shift.caregiverId,
       action: 'CLOCK_OUT_SUCCESS',
-      details: `Caregiver ${shift.caregiver.name} clocked out successfully for client ${shift.client.name} (${Math.round(distance)}m from site center). Red Flags Detected: ${hasRedFlags ? activeRedFlags.join(', ') : 'None'}.`,
+      details: `Caregiver ${shift.caregiver.name} clocked out successfully for client ${shift.client.name} (${Math.round(distance)}m from site center). Red Flags Detected: ${hasRedFlags ? activeRedFlags.join(', ') : 'None'}.${isOvertime ? ` Overtime reason: ${overtimeReason}` : ''}`,
       outcome: 'SUCCESS',
     });
 
