@@ -5,7 +5,7 @@ import { AuthProvider } from "@/context/AuthContext";
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#2563EB",
+  themeColor: "#59326D",
 };
 
 export const metadata: Metadata = {

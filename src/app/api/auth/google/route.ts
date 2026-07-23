@@ -2,11 +2,14 @@ import { NextResponse } from 'next/server';
 
 export async function GET(request: Request) {
   const clientId = process.env.GOOGLE_CLIENT_ID;
-  const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3000/api/auth/google/callback';
+  const requestUrl = new URL(request.url);
+  // Derive from the actual request origin so this works unchanged on localhost,
+  // Vercel preview URLs, and production - as long as each origin's callback URL
+  // is registered in the Google Cloud Console OAuth client.
+  const redirectUri = process.env.GOOGLE_REDIRECT_URI || `${requestUrl.origin}/api/auth/google/callback`;
 
   if (!clientId) {
     // Falls back to standard landing page with error parameter
-    const requestUrl = new URL(request.url);
     return NextResponse.redirect(new URL('/?error=google_not_configured', requestUrl.origin));
   }
 

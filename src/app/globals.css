@@ -2,22 +2,22 @@
 
 @theme {
   /* ============================================================
-     PROFESSIONAL BLUE & WHITE COLOR PALETTE
+     PURPLE & LIGHT GREEN COLOR PALETTE
      Marketplace-Style UI for Home Healthcare
      ============================================================ */
 
-  /* Primary - Trust & Professional (Blue) */
-  --color-primary: #2563EB;
-  --color-primary-dark: #1D4ED8;
-  --color-primary-light: #60A5FA;
-  --color-primary-ultra: #EFF6FF;
-  --color-primary-hover: #3B82F6;
-  
-  /* Secondary - Success & Wellness (Green) */
-  --color-success: #16A34A;
-  --color-success-dark: #15803D;
-  --color-success-light: #4ADE80;
-  --color-success-ultra: #F0FDF4;
+  /* Primary - Trust & Professional (Purple) */
+  --color-primary: #59326D;
+  --color-primary-dark: #3B1C4A;
+  --color-primary-light: #7C4D8E;
+  --color-primary-ultra: #F5F0F7;
+  --color-primary-hover: #6D3E82;
+
+  /* Secondary - Success & Wellness (Light Green) */
+  --color-success: #10B981;
+  --color-success-dark: #0D9488;
+  --color-success-light: #6EE7B7;
+  --color-success-ultra: #ECFDF5;
   
   /* Accents */
   --color-amber: #F59E0B;
@@ -42,10 +42,10 @@
   --color-gray-900: #111827;
   
   /* Status Colors */
-  --color-status-confirmed: #16A34A;
+  --color-status-confirmed: #10B981;
   --color-status-unconfirmed: #F59E0B;
-  --color-status-inprogress: #2563EB;
-  --color-status-completed: #16A34A;
+  --color-status-inprogress: #59326D;
+  --color-status-completed: #10B981;
   --color-status-dropped: #DC2626;
   --color-status-noshow: #6B7280;
   --color-status-warning: #F59E0B;
@@ -90,7 +90,7 @@
   --shadow-medium: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
   --shadow-large: 0 10px 25px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
   --shadow-xl: 0 20px 50px -8px rgba(0, 0, 0, 0.10);
-  --shadow-hover: 0 8px 30px rgba(37, 99, 235, 0.12);
+  --shadow-hover: 0 8px 30px rgba(89, 50, 109, 0.12);
 }
 
 /* ============================================================
@@ -288,7 +288,7 @@ h4 { font-size: 1.125rem; }
 .btn-primary:hover {
   background: var(--color-primary-dark);
   transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.30);
+  box-shadow: 0 4px 16px rgba(89, 50, 109, 0.30);
 }
 
 .btn-primary:active {
@@ -394,7 +394,7 @@ h4 { font-size: 1.125rem; }
 .input-soft:focus {
   border-color: var(--color-primary);
   background: var(--color-white);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.10);
+  box-shadow: 0 0 0 3px rgba(89, 50, 109, 0.10);
 }
 
 .input-soft::placeholder {
@@ -659,7 +659,7 @@ h4 { font-size: 1.125rem; }
 
 .strength-strong {
   width: 75%;
-  background: #3B82F6;
+  background: #A855F7;
 }
 
 .strength-excellent {
@@ -736,7 +736,7 @@ h4 { font-size: 1.125rem; }
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  border: 1px solid rgba(37, 99, 235, 0.15);
+  border: 1px solid rgba(89, 50, 109, 0.15);
 }
 
 /* ============================================================
@@ -756,9 +756,9 @@ h4 { font-size: 1.125rem; }
 }
 
 @keyframes pulse-ring {
-  0% { transform: scale(0.95); opacity: 0.8; box-shadow: 0 0 0 0 rgba(34, 211, 238, 0.4); }
-  70% { transform: scale(1.05); opacity: 1; box-shadow: 0 0 0 25px rgba(34, 211, 238, 0); }
-  100% { transform: scale(0.95); opacity: 0.8; box-shadow: 0 0 0 0 rgba(34, 211, 238, 0); }
+  0% { transform: scale(0.95); opacity: 0.8; box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.4); }
+  70% { transform: scale(1.05); opacity: 1; box-shadow: 0 0 0 25px rgba(52, 211, 153, 0); }
+  100% { transform: scale(0.95); opacity: 0.8; box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); }
 }
 
 @keyframes shimmer-bar {
@@ -779,7 +779,7 @@ h4 { font-size: 1.125rem; }
 }
 
 .shimmer-progress {
-  background: linear-gradient(90deg, #2563EB 0%, #06B6D4 50%, #10B981 100%);
+  background: linear-gradient(90deg, #59326D 0%, #10B981 50%, #6EE7B7 100%);
   background-size: 200% 100%;
   animation: shimmer-bar 2s linear infinite;
 }
@@ -793,9 +793,9 @@ h4 { font-size: 1.125rem; }
 }
 
 @keyframes light-pulse-ring {
-  0% { transform: scale(0.95); opacity: 0.8; box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.3); }
-  70% { transform: scale(1.06); opacity: 1; box-shadow: 0 0 0 20px rgba(37, 99, 235, 0); }
-  100% { transform: scale(0.95); opacity: 0.8; box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
+  0% { transform: scale(0.95); opacity: 0.8; box-shadow: 0 0 0 0 rgba(89, 50, 109, 0.3); }
+  70% { transform: scale(1.06); opacity: 1; box-shadow: 0 0 0 20px rgba(89, 50, 109, 0); }
+  100% { transform: scale(0.95); opacity: 0.8; box-shadow: 0 0 0 0 rgba(89, 50, 109, 0); }
 }
 
 .animate-light-pulse-ring {
@@ -807,5 +807,5 @@ h4 { font-size: 1.125rem; }
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   border: 1px solid rgba(255, 255, 255, 0.95);
-  box-shadow: 0 20px 50px -12px rgba(37, 99, 235, 0.15), 0 0 25px rgba(255, 255, 255, 0.9);
+  box-shadow: 0 20px 50px -12px rgba(89, 50, 109, 0.15), 0 0 25px rgba(255, 255, 255, 0.9);
 }
