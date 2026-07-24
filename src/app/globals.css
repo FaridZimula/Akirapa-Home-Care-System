@@ -2,23 +2,83 @@
 
 @theme {
   /* ============================================================
-     PURPLE & LIGHT GREEN COLOR PALETTE
-     Marketplace-Style UI for Home Healthcare
+     2 MAIN THEME COLORS:
+     1. Primary Purple: #59336d
+     2. Secondary / Accent Cyan: #59beb9
      ============================================================ */
 
-  /* Primary - Trust & Professional (Purple) */
-  --color-primary: #59326D;
-  --color-primary-dark: #3B1C4A;
-  --color-primary-light: #7C4D8E;
-  --color-primary-ultra: #F5F0F7;
-  --color-primary-hover: #6D3E82;
+  /* Primary Theme Color - Purple (#59336d) */
+  --color-primary: #59336d;
+  --color-primary-dark: #3f2150;
+  --color-primary-light: #764b8d;
+  --color-primary-ultra: #f5f0f8;
+  --color-primary-hover: #4d2a60;
 
-  /* Secondary - Success & Wellness (Light Green) */
-  --color-success: #10B981;
-  --color-success-dark: #0D9488;
-  --color-success-light: #6EE7B7;
-  --color-success-ultra: #ECFDF5;
-  
+  /* Secondary & Success Theme Color - Cyan (#59beb9) */
+  --color-secondary: #59beb9;
+  --color-secondary-dark: #3d9793;
+  --color-secondary-light: #7dd4d0;
+  --color-secondary-ultra: #effaf9;
+  --color-secondary-hover: #46a8a3;
+
+  --color-cyan: #59beb9;
+  --color-cyan-dark: #3d9793;
+  --color-cyan-light: #7dd4d0;
+  --color-cyan-ultra: #effaf9;
+
+  --color-success: #59beb9;
+  --color-success-dark: #3d9793;
+  --color-success-light: #7dd4d0;
+  --color-success-ultra: #effaf9;
+
+  /* Tailwind Purple Color Scale Override (#59336d) */
+  --color-purple-50: #f7f4f9;
+  --color-purple-100: #efe8f3;
+  --color-purple-200: #ddd1e7;
+  --color-purple-300: #c4afd7;
+  --color-purple-400: #936eb2;
+  --color-purple-500: #764b8d;
+  --color-purple-600: #59336d;
+  --color-purple-700: #472758;
+  --color-purple-800: #391e47;
+  --color-purple-900: #2d1738;
+  --color-purple-950: #1c0d24;
+
+  /* Tailwind Cyan Color Scale Override (#59beb9) */
+  --color-cyan-50: #effaf9;
+  --color-cyan-100: #d7f4f2;
+  --color-cyan-200: #b5e8e6;
+  --color-cyan-300: #88d7d4;
+  --color-cyan-400: #59beb9;
+  --color-cyan-500: #3ea39e;
+  --color-cyan-600: #2f8480;
+  --color-cyan-700: #296a67;
+  --color-cyan-800: #255553;
+  --color-cyan-900: #224847;
+
+  /* Tailwind Emerald & Teal Color Scale Overrides (Mapped to Cyan #59beb9 for visual harmony) */
+  --color-emerald-50: #effaf9;
+  --color-emerald-100: #d7f4f2;
+  --color-emerald-200: #b5e8e6;
+  --color-emerald-300: #88d7d4;
+  --color-emerald-400: #59beb9;
+  --color-emerald-500: #3ea39e;
+  --color-emerald-600: #2f8480;
+  --color-emerald-700: #296a67;
+  --color-emerald-800: #255553;
+  --color-emerald-900: #224847;
+
+  --color-teal-50: #effaf9;
+  --color-teal-100: #d7f4f2;
+  --color-teal-200: #b5e8e6;
+  --color-teal-300: #88d7d4;
+  --color-teal-400: #59beb9;
+  --color-teal-500: #3ea39e;
+  --color-teal-600: #2f8480;
+  --color-teal-700: #296a67;
+  --color-teal-800: #255553;
+  --color-teal-900: #224847;
+
   /* Accents */
   --color-amber: #F59E0B;
   --color-amber-light: #FCD34D;
@@ -42,10 +102,10 @@
   --color-gray-900: #111827;
   
   /* Status Colors */
-  --color-status-confirmed: #10B981;
+  --color-status-confirmed: #59beb9;
   --color-status-unconfirmed: #F59E0B;
-  --color-status-inprogress: #59326D;
-  --color-status-completed: #10B981;
+  --color-status-inprogress: #59336d;
+  --color-status-completed: #59beb9;
   --color-status-dropped: #DC2626;
   --color-status-noshow: #6B7280;
   --color-status-warning: #F59E0B;
@@ -55,7 +115,7 @@
      TYPOGRAPHY - Clean, Professional, Readable
      ============================================================ */
   
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-sans: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --font-serif: 'Georgia', 'Times New Roman', serif;
   
   --font-weight-regular: 400;
@@ -90,7 +150,7 @@
   --shadow-medium: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
   --shadow-large: 0 10px 25px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
   --shadow-xl: 0 20px 50px -8px rgba(0, 0, 0, 0.10);
-  --shadow-hover: 0 8px 30px rgba(89, 50, 109, 0.12);
+  --shadow-hover: 0 8px 30px rgba(89, 51, 109, 0.12);
 }
 
 /* ============================================================
@@ -98,12 +158,13 @@
    ============================================================ */
 
 :root {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   background-color: var(--color-gray-50);
   color: var(--color-gray-900);
 }
 
 body {
+  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   background-color: var(--color-gray-50);
   color: var(--color-gray-900);
   min-height: 100vh;
@@ -118,7 +179,7 @@ body {
    ============================================================ */
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   color: var(--color-gray-900);
   font-weight: 700;
   line-height: 1.2;
@@ -779,9 +840,7 @@ h4 { font-size: 1.125rem; }
 }
 
 .shimmer-progress {
-  background: linear-gradient(90deg, #59326D 0%, #10B981 50%, #6EE7B7 100%);
-  background-size: 200% 100%;
-  animation: shimmer-bar 2s linear infinite;
+  background: #59336d;
 }
 
 .glass-card-hero {
@@ -808,4 +867,12 @@ h4 { font-size: 1.125rem; }
   -webkit-backdrop-filter: blur(24px);
   border: 1px solid rgba(255, 255, 255, 0.95);
   box-shadow: 0 20px 50px -12px rgba(89, 50, 109, 0.15), 0 0 25px rgba(255, 255, 255, 0.9);
+}
+
+/* Hide Next.js Dev Compiling Indicator Badge */
+nextjs-portal,
+[data-nextjs-toast],
+div[class*="nextjs-portal"],
+div[class*="next-badge"] {
+  display: none !important;
 }

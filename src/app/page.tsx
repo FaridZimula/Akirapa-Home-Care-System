@@ -125,6 +125,7 @@ export default function Home() {
   const [userSpecialtiesInput, setUserSpecialtiesInput] = useState<string>('');
   const [userBioInput, setUserBioInput] = useState<string>('');
   const [isSavingUserProfile, setIsSavingUserProfile] = useState(false);
+  const [overtimeActionType, setOvertimeActionType] = useState<'OVERTIME_CLAIM' | 'CLOCK_OUT'>('OVERTIME_CLAIM');
 
   // Care Plan Authoring & Task Builder
   const [showCarePlanModal, setShowCarePlanModal] = useState(false);
@@ -263,34 +264,7 @@ export default function Home() {
   };
 
   const renderPasswordStrengthMeter = (pass: string) => {
-    const info = getPasswordStrength(pass);
-    if (!info) return null;
-
-    return (
-      <div className="mt-2.5 p-3 bg-gray-50 border border-gray-200 rounded-xl space-y-2 text-xs animate-fade-in">
-        <div className="flex justify-between items-center">
-          <span className="font-semibold text-gray-600">Password Strength:</span>
-          <span className={`font-bold px-2 py-0.5 rounded-md text-[11px] border ${info.color}`}>{info.label}</span>
-        </div>
-        <div className="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden">
-          <div className={`h-full ${info.barClass}`} />
-        </div>
-        <div className="grid grid-cols-2 gap-1 text-[11px] font-medium text-gray-500 pt-1">
-          <span className={info.checks.length ? 'text-green-600 font-semibold' : 'text-gray-400'}>
-            {info.checks.length ? '✓' : '○'} Min 8 chars
-          </span>
-          <span className={info.checks.hasUpper && info.checks.hasLower ? 'text-green-600 font-semibold' : 'text-gray-400'}>
-            {info.checks.hasUpper && info.checks.hasLower ? '✓' : '○'} Upper & lower
-          </span>
-          <span className={info.checks.hasNumber ? 'text-green-600 font-semibold' : 'text-gray-400'}>
-            {info.checks.hasNumber ? '✓' : '○'} At least 1 number
-          </span>
-          <span className={info.checks.hasSpecial ? 'text-green-600 font-semibold' : 'text-gray-400'}>
-            {info.checks.hasSpecial ? '✓' : '○'} Special char (!@#$)
-          </span>
-        </div>
-      </div>
-    );
+    return null;
   };
 
   // ============================================================
@@ -1028,6 +1002,7 @@ export default function Home() {
     setClockOutError(null);
     setClockOutTargetShiftId(shiftId);
     setIsForcedClockOut(forced);
+    setOvertimeActionType('OVERTIME_CLAIM');
     setShiftNotes('');
     setSelectedMediaFiles([]);
     setRedFlags({
@@ -1038,6 +1013,48 @@ export default function Home() {
     });
     setClockOutOvertimeReason('');
     setShowClockOutModal(true);
+  };
+
+  const handleConfirmOvertimeClaim = async (shiftId: string) => {
+    setClockOutError(null);
+    if (!clockOutOvertimeReason.trim()) {
+      setClockOutError('Please provide a reason for working overtime.');
+      return;
+    }
+    if (selectedMediaFiles.length === 0) {
+      setClockOutError('Please attach photo or document evidence for your overtime request.');
+      return;
+    }
+
+    const activeShift = shifts.find(s => s.id === shiftId);
+    if (!activeShift) return;
+
+    setIsSubmittingClockOut(true);
+    try {
+      const res = await fetch('/api/feed', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientId: activeShift.clientId,
+          notes: `[OVERTIME CONFIRMED]: ${clockOutOvertimeReason.trim()}`,
+          mediaFiles: selectedMediaFiles.map(f => ({ name: f.name, type: f.type })),
+        }),
+      });
+      if (res.ok) {
+        showNotification('Overtime request confirmed with reason & evidence!');
+        setShowClockOutModal(false);
+        setClockOutOvertimeReason('');
+        setSelectedMediaFiles([]);
+        loadData();
+      } else {
+        setClockOutError('Failed to record overtime confirmation.');
+      }
+    } catch (err) {
+      console.error(err);
+      setClockOutError('Error recording overtime confirmation.');
+    } finally {
+      setIsSubmittingClockOut(false);
+    }
   };
 
   const handleClockOut = async (shiftId: string, isOverride = false) => {
@@ -1613,13 +1630,13 @@ export default function Home() {
       recordingTimerRef.current = setInterval(() => {
         setRecordingSeconds(prev => prev + 1);
       }, 1000);
-      showNotification('🎙️ Voice Recording Started... Speak now!');
+      showNotification('Voice Recording Started... Speak now!');
     } catch (err) {
       console.warn('Microphone recording fallback activated:', err);
       const fallbackUrl = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
       const fileName = `voice_note_${new Date().toISOString().substring(11, 19).replace(/:/g, '')}.mp3`;
       setSelectedMediaFiles(prev => [...prev, { name: fileName, type: 'audio/mp3', preview: fallbackUrl }]);
-      showNotification('🎙️ Audio Voice Note Attached!');
+      showNotification('Audio Voice Note Attached!');
     }
   };
 
@@ -1628,7 +1645,7 @@ export default function Home() {
       mediaRecorderRef.current.stop();
       setIsRecordingAudio(false);
       if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
-      showNotification('✓ Voice Note Recorded & Attached!');
+      showNotification('Voice Note Recorded & Attached!');
     }
   };
 
@@ -1711,23 +1728,20 @@ export default function Home() {
       : 'Select an Account Portal below to initialize system...';
 
     return (
-      <div className="relative min-h-screen bg-gradient-to-br from-slate-50 via-purple-50/70 to-teal-50/60 text-slate-800 flex items-center justify-center p-6 overflow-hidden selection:bg-purple-500 selection:text-white">
+      <div className="relative min-h-screen bg-purple-50/40 text-slate-800 flex items-center justify-center p-6 overflow-hidden selection:bg-purple-500 selection:text-white">
         {/* Animated Ambient Light Blobs */}
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-300/30 rounded-full blur-3xl pointer-events-none animate-blob-1" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-teal-300/30 rounded-full blur-3xl pointer-events-none animate-blob-2" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-cyan-300/30 rounded-full blur-3xl pointer-events-none animate-blob-2" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-purple-400/15 rounded-full blur-3xl pointer-events-none" />
-
-        {/* Background Radial Dots */}
-        <div className="absolute inset-0 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:24px_24px] opacity-40 pointer-events-none" />
 
         {/* Bright Modern Glassmorphic Central Card */}
         <div className="relative max-w-lg w-full glass-card-light rounded-3xl p-8 md:p-10 text-center shadow-2xl z-10 animate-fade-in">
           
           {/* Heartbeat Pulse Logo Container */}
           <div className="relative w-24 h-24 mx-auto mb-6 flex items-center justify-center">
-            <div className="absolute inset-0 rounded-3xl bg-gradient-to-tr from-purple-600 via-emerald-500 to-teal-400 opacity-60 blur-md animate-light-pulse-ring" />
+            <div className="absolute inset-0 rounded-3xl bg-purple-600 opacity-60 blur-md animate-light-pulse-ring" />
             <div className="relative w-24 h-24 bg-white border border-purple-200/80 rounded-3xl flex flex-col items-center justify-center shadow-md">
-              <span className="text-3xl font-black tracking-wider bg-gradient-to-r from-purple-700 via-emerald-600 to-teal-600 bg-clip-text text-transparent">
+              <span className="text-3xl font-black tracking-wider text-purple-600">
                 AK
               </span>
               <span className="text-[9px] font-bold text-purple-600 tracking-widest uppercase">Care</span>
@@ -1738,38 +1752,9 @@ export default function Home() {
           <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-slate-900">
             Akirapa
           </h1>
-          <p className="text-xs font-bold text-purple-600 tracking-widest uppercase mt-1">
+          <p className="text-xs font-bold text-purple-600 tracking-widest uppercase mt-1 mb-6">
             In-Home Care Systems Platform
           </p>
-
-          {/* Animated Heartbeat / ECG Waveform Graphic */}
-          <div className="my-6 flex justify-center items-center gap-1.5 opacity-90">
-            <svg className="w-full h-8 text-purple-600 max-w-[240px]" viewBox="0 0 200 40" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M0 20H40L48 5L58 35L68 12L76 25L84 20H200" strokeDasharray="300" strokeDashoffset="0" className="animate-pulse" />
-            </svg>
-          </div>
-
-          {/* Real-time Status Badges */}
-          <div className="bg-white/90 border border-purple-100 rounded-2xl p-4 mb-6 text-left space-y-2.5 shadow-sm">
-            <div className="flex justify-between items-center text-xs">
-              <span className="font-semibold text-slate-700 flex items-center gap-2">
-                <span className={`w-2 h-2 rounded-full ${isInitializing ? 'bg-emerald-500 animate-ping' : 'bg-amber-400'}`} />
-                {activeStatusText}
-              </span>
-              <span className="font-mono text-purple-600 font-bold">{splashProgress}%</span>
-            </div>
-
-            {/* Shimmer Progress Bar */}
-            <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden border border-slate-200">
-              <div className="h-full shimmer-progress transition-all duration-150 rounded-full" style={{ width: `${splashProgress}%` }} />
-            </div>
-
-            <div className="grid grid-cols-3 gap-1 pt-1.5 text-[10px] font-bold text-center">
-              <div className={splashProgress >= 25 ? 'text-emerald-600' : 'text-slate-400'}>🔒 AES-256</div>
-              <div className={splashProgress >= 50 ? 'text-emerald-600' : 'text-slate-400'}>📍 Haversine</div>
-              <div className={splashProgress >= 75 ? 'text-emerald-600' : 'text-slate-400'}>🩺 Care Network</div>
-            </div>
-          </div>
 
           {/* Account Portal Selection Section */}
           <div className="space-y-3 mb-6">
@@ -1790,7 +1775,7 @@ export default function Home() {
                 className="p-3.5 bg-white/90 hover:bg-purple-50/90 border border-purple-200/80 hover:border-purple-500 rounded-2xl transition-all transform hover:-translate-y-0.5 active:scale-95 shadow-sm text-center group cursor-pointer disabled:opacity-50"
               >
                 <div className="w-9 h-9 mx-auto mb-1.5 bg-purple-100/90 text-purple-600 rounded-xl flex items-center justify-center text-base group-hover:scale-110 transition-transform">
-                  🩺
+                  <i className="fa-solid fa-stethoscope text-base"></i>
                 </div>
                 <div className="text-xs font-extrabold text-slate-900">Caregiver</div>
                 <div className="text-[10px] text-slate-500 font-semibold mt-0.5">Shifts & Tasks</div>
@@ -1804,7 +1789,7 @@ export default function Home() {
                 className="p-3.5 bg-white/90 hover:bg-emerald-50/90 border border-emerald-200/80 hover:border-emerald-500 rounded-2xl transition-all transform hover:-translate-y-0.5 active:scale-95 shadow-sm text-center group cursor-pointer disabled:opacity-50"
               >
                 <div className="w-9 h-9 mx-auto mb-1.5 bg-emerald-100/90 text-emerald-600 rounded-xl flex items-center justify-center text-base group-hover:scale-110 transition-transform">
-                  🏠
+                  <i className="fa-solid fa-house text-base"></i>
                 </div>
                 <div className="text-xs font-extrabold text-slate-900">Family</div>
                 <div className="text-[10px] text-slate-500 font-semibold mt-0.5">Care Feed & Plan</div>
@@ -1818,7 +1803,7 @@ export default function Home() {
                 className="p-3.5 bg-white/90 hover:bg-purple-50/90 border border-purple-200/80 hover:border-purple-500 rounded-2xl transition-all transform hover:-translate-y-0.5 active:scale-95 shadow-sm text-center group cursor-pointer disabled:opacity-50"
               >
                 <div className="w-9 h-9 mx-auto mb-1.5 bg-purple-100/90 text-purple-600 rounded-xl flex items-center justify-center text-base group-hover:scale-110 transition-transform">
-                  🛡️
+                  <i className="fa-solid fa-user-shield text-base"></i>
                 </div>
                 <div className="text-xs font-extrabold text-slate-900">Admin</div>
                 <div className="text-[10px] text-slate-500 font-semibold mt-0.5">Ops & Control</div>
@@ -1834,7 +1819,7 @@ export default function Home() {
             className="w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-2xl transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
           >
             <span>Standard Account Login</span>
-            <span>→</span>
+            <i className="fa-solid fa-arrow-right text-xs"></i>
           </button>
         </div>
       </div>
@@ -1850,7 +1835,7 @@ export default function Home() {
           <div className="mb-6 p-3 rounded-2xl bg-purple-50/90 border border-purple-200 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-lg">
-                {selectedPortalRole === 'CAREGIVER' ? '🩺' : selectedPortalRole === 'CLIENT' ? '🏠' : '🛡️'}
+                {selectedPortalRole === 'CAREGIVER' ? <i className="fa-solid fa-stethoscope text-purple-600 text-base"></i> : selectedPortalRole === 'CLIENT' ? <i className="fa-solid fa-house text-purple-600 text-base"></i> : <i className="fa-solid fa-user-shield text-purple-600 text-base"></i>}
               </span>
               <div>
                 <div className="text-xs font-bold text-purple-900">
@@ -1877,7 +1862,7 @@ export default function Home() {
         </div>
 
         <button onClick={() => { setLoginError(null); window.location.href = '/api/auth/google'; }} className="w-full py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition-all flex items-center justify-center gap-2 text-sm font-semibold text-gray-600">
-          <svg className="w-5 h-5" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>
+          <i className="fa-brands fa-google text-red-500 text-lg"></i>
           Continue with Google
         </button>
 
@@ -1906,18 +1891,13 @@ export default function Home() {
               <button
                 type="button"
                 onClick={() => setShowLoginPassword(!showLoginPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none p-1.5 transition-colors cursor-pointer"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none p-1.5 transition-colors cursor-pointer flex items-center justify-center"
                 title={showLoginPassword ? "Hide password" : "Show password"}
               >
                 {showLoginPassword ? (
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858-5.908a10.025 10.025 0 013.122-.463c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m-3.328-1.78a3 3 0 00-4.243-4.243m4.242 4.242L3 3l18 18" />
-                  </svg>
+                  <i className="fa-solid fa-eye-slash text-gray-400 hover:text-gray-600 text-base"></i>
                 ) : (
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                  </svg>
+                  <i className="fa-solid fa-eye text-gray-400 hover:text-gray-600 text-base"></i>
                 )}
               </button>
             </div>
@@ -1942,7 +1922,7 @@ export default function Home() {
   const renderSignupScreen = () => (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
       <div className="max-w-md w-full bg-white rounded-3xl shadow-xl p-8 max-h-[90vh] overflow-y-auto">
-        <button onClick={() => { setViewState('login'); setSignupError(null); }} className="text-sm text-gray-400 hover:text-gray-600">← Back</button>
+        <button onClick={() => { setViewState('login'); setSignupError(null); }} className="text-sm text-gray-400 hover:text-gray-600 flex items-center gap-1.5"><i className="fa-solid fa-arrow-left text-xs"></i> Back</button>
         <div className="text-center mb-6">
           <div className="w-14 h-14 bg-purple-100 rounded-2xl flex items-center justify-center mx-auto">
             <span className="text-2xl font-bold text-purple-600">AK</span>
@@ -1974,18 +1954,13 @@ export default function Home() {
               <button
                 type="button"
                 onClick={() => setShowSignupPassword(!showSignupPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none p-1.5 transition-colors cursor-pointer"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none p-1.5 transition-colors cursor-pointer flex items-center justify-center"
                 title={showSignupPassword ? "Hide password" : "Show password"}
               >
                 {showSignupPassword ? (
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858-5.908a10.025 10.025 0 013.122-.463c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m-3.328-1.78a3 3 0 00-4.243-4.243m4.242 4.242L3 3l18 18" />
-                  </svg>
+                  <i className="fa-solid fa-eye-slash text-gray-400 hover:text-gray-600 text-base"></i>
                 ) : (
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                  </svg>
+                  <i className="fa-solid fa-eye text-gray-400 hover:text-gray-600 text-base"></i>
                 )}
               </button>
             </div>
@@ -2014,7 +1989,7 @@ export default function Home() {
   const renderForgotPasswordScreen = () => (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
       <div className="max-w-md w-full bg-white rounded-3xl shadow-xl p-8">
-        <button onClick={() => { setViewState('login'); setForgotError(null); }} className="text-sm text-gray-400 hover:text-gray-600">← Back</button>
+        <button onClick={() => { setViewState('login'); setForgotError(null); }} className="text-sm text-gray-400 hover:text-gray-600 flex items-center gap-1.5"><i className="fa-solid fa-arrow-left text-xs"></i> Back</button>
         <div className="text-center mb-6">
           <div className="w-14 h-14 bg-purple-100 rounded-2xl flex items-center justify-center mx-auto"><i className="fa-solid fa-key text-purple-600 text-xl"></i></div>
           <h2 className="text-2xl font-bold text-gray-800 mt-4">Reset Password</h2>
@@ -2043,18 +2018,13 @@ export default function Home() {
                   <button
                     type="button"
                     onClick={() => setShowForgotPassword(!showForgotPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none p-1.5 transition-colors cursor-pointer"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none p-1.5 transition-colors cursor-pointer flex items-center justify-center"
                     title={showForgotPassword ? "Hide password" : "Show password"}
                   >
                     {showForgotPassword ? (
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858-5.908a10.025 10.025 0 013.122-.463c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m-3.328-1.78a3 3 0 00-4.243-4.243m4.242 4.242L3 3l18 18" />
-                      </svg>
+                      <i className="fa-solid fa-eye-slash text-gray-400 hover:text-gray-600 text-base"></i>
                     ) : (
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                      </svg>
+                      <i className="fa-solid fa-eye text-gray-400 hover:text-gray-600 text-base"></i>
                     )}
                   </button>
                 </div>
@@ -2133,7 +2103,7 @@ export default function Home() {
               <h3 className="font-bold text-gray-800 flex items-center gap-2">
                 <i className="fa-solid fa-arrow-down-right-across-line text-red-500"></i> Drop Shift Request
               </h3>
-              <button onClick={() => setShowDropModal(false)} className="text-gray-400 hover:text-gray-600 font-bold">✕</button>
+              <button onClick={() => setShowDropModal(false)} className="text-gray-400 hover:text-gray-600 font-bold"><i className="fa-solid fa-xmark text-lg"></i></button>
             </div>
 
             {dropResultInfo ? (
@@ -2168,7 +2138,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* Mandatory Clock-Out Questionnaire Modal (manual or auto-triggered at shift end) */}
+      {/* Shift Report & Overtime Confirmation Modal */}
       {showClockOutModal && (() => {
         const targetShift = shifts.find(s => s.id === clockOutTargetShiftId);
         const overtime = isShiftOvertime(targetShift);
@@ -2178,178 +2148,281 @@ export default function Home() {
             <div className="modal-content max-w-lg p-6 animate-fade-up">
               <div className="flex justify-between items-center border-b border-gray-100 pb-3 mb-4">
                 <h3 className="font-bold text-gray-800 text-base flex items-center gap-2">
-                  <span className="text-xl">{isForcedClockOut ? '⏰' : '📋'}</span>
-                  {isForcedClockOut ? 'Shift Time Complete — Report Required' : 'Clock-Out Report'}
+                  <i className={`fa-solid ${overtime ? 'fa-clock-rotate-left text-amber-500' : 'fa-clipboard-list text-purple-600'} text-lg`}></i>
+                  {overtime ? 'Shift Time Complete — Overtime / Clock-Out Options' : 'Clock-Out Report'}
                 </h3>
-                {!isForcedClockOut && (
-                  <button onClick={() => setShowClockOutModal(false)} className="text-gray-400 hover:text-gray-600 font-bold">✕</button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => { setShowClockOutModal(false); setShowClockOutOverrideInput(false); setClockOutError(null); }}
+                  className="text-gray-400 hover:text-gray-600 font-bold p-1 cursor-pointer"
+                  title="Dismiss / Dodge Modal"
+                >
+                  <i className="fa-solid fa-xmark text-lg"></i>
+                </button>
               </div>
 
-              {isForcedClockOut && (
-                <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800">
-                  Your scheduled shift time has ended. Please complete this report — you'll be signed out automatically once it's submitted.
+              {targetShift && (
+                <div className="p-3 bg-purple-50/80 border border-purple-200 rounded-xl text-xs flex justify-between items-center shadow-2xs mb-4">
+                  <div>
+                    <span className="font-bold text-purple-900 block text-xs">{targetShift.client.name}</span>
+                    <span className="text-[10px] text-purple-700 font-mono">Scheduled End: {new Date(targetShift.scheduledEnd).toLocaleString()}</span>
+                  </div>
+                  {overtime && (
+                    <span className="px-2.5 py-0.5 rounded-full bg-amber-500 text-white font-bold text-[10px] uppercase">Overtime</span>
+                  )}
                 </div>
               )}
 
-              <form onSubmit={(e) => { e.preventDefault(); if (clockOutTargetShiftId) handleClockOut(clockOutTargetShiftId, false); }} className="space-y-4">
-                {targetShift && (
-                  <div className="p-3 bg-purple-50/80 border border-purple-200 rounded-xl text-xs flex justify-between items-center shadow-2xs">
-                    <div>
-                      <span className="font-bold text-purple-900 block text-xs">{targetShift.client.name}</span>
-                      <span className="text-[10px] text-purple-700 font-mono">Scheduled End: {new Date(targetShift.scheduledEnd).toLocaleString()}</span>
-                    </div>
-                    {overtime && (
-                      <span className="px-2.5 py-0.5 rounded-full bg-amber-500 text-white font-bold text-[10px] uppercase">Overtime</span>
-                    )}
-                  </div>
-                )}
-
-                <div>
-                  <label className="text-xs font-semibold text-gray-500 uppercase">
-                    End-of-Shift Notes <span className="text-red-500">*</span>
-                  </label>
-                  <textarea
-                    rows={3}
-                    required
-                    placeholder="Summarize the visit: tasks completed, patient condition, handover notes..."
-                    value={shiftNotes}
-                    onChange={(e) => setShiftNotes(e.target.value)}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
-                  />
+              {/* Overtime Action Selector Tabs (if shift ran past scheduled time) */}
+              {overtime && (
+                <div className="p-1 bg-gray-100 border border-gray-200 rounded-xl flex gap-1 mb-4 text-xs font-bold">
+                  <button
+                    type="button"
+                    onClick={() => setOvertimeActionType('OVERTIME_CLAIM')}
+                    className={`flex-1 py-2 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                      overtimeActionType === 'OVERTIME_CLAIM'
+                        ? 'bg-amber-500 text-white shadow-xs'
+                        : 'text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    <i className="fa-solid fa-clock"></i> 1. Confirm Overtime Work
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setOvertimeActionType('CLOCK_OUT')}
+                    className={`flex-1 py-2 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                      overtimeActionType === 'CLOCK_OUT'
+                        ? 'bg-purple-600 text-white shadow-xs'
+                        : 'text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    <i className="fa-solid fa-right-from-bracket"></i> 2. Complete & Clock Out
+                  </button>
                 </div>
+              )}
 
-                <div className="bg-red-50/60 border border-red-100 rounded-xl p-3 text-xs space-y-1.5">
-                  <div className="font-semibold text-red-800 text-[11px] flex items-center gap-1.5 mb-1">
-                    <i className="fa-solid fa-shield-cat"></i> Flag Clinical Concerns (Optional Alert)
-                  </div>
-                  <div className="grid grid-cols-2 gap-1.5 text-[11px] text-gray-700">
-                    <label className="flex items-center gap-1.5 cursor-pointer">
-                      <input type="checkbox" checked={redFlags.cognitiveConfusion} onChange={(e) => setRedFlags({ ...redFlags, cognitiveConfusion: e.target.checked })} />
-                      <span>Cognitive Confusion</span>
-                    </label>
-                    <label className="flex items-center gap-1.5 cursor-pointer">
-                      <input type="checkbox" checked={redFlags.fallDetected} onChange={(e) => setRedFlags({ ...redFlags, fallDetected: e.target.checked })} />
-                      <span>Fall / Stumble</span>
-                    </label>
-                    <label className="flex items-center gap-1.5 cursor-pointer">
-                      <input type="checkbox" checked={redFlags.behavioralChanges} onChange={(e) => setRedFlags({ ...redFlags, behavioralChanges: e.target.checked })} />
-                      <span>Behavioral Change</span>
-                    </label>
-                    <label className="flex items-center gap-1.5 cursor-pointer">
-                      <input type="checkbox" checked={redFlags.mobilityDecline} onChange={(e) => setRedFlags({ ...redFlags, mobilityDecline: e.target.checked })} />
-                      <span>Mobility Decline</span>
-                    </label>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-gray-500 uppercase block mb-1">
-                    Attach Evidence / Photos {overtime && <span className="text-red-500">*</span>}
-                  </label>
-                  <div className="relative border-2 border-dashed border-purple-200 hover:border-purple-500 bg-purple-50/40 rounded-2xl p-4 text-center transition-all cursor-pointer group">
-                    <input
-                      type="file"
-                      multiple
-                      accept="image/*,video/*,audio/*"
-                      onChange={handleMediaChange}
-                      className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
-                    />
-                    <div className="w-10 h-10 bg-purple-100 text-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform">
-                      <i className="fa-solid fa-cloud-arrow-up text-lg"></i>
+              {/* MODE A: Confirming Overtime Work with Reason & Evidence */}
+              {overtime && overtimeActionType === 'OVERTIME_CLAIM' ? (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (clockOutTargetShiftId) handleConfirmOvertimeClaim(clockOutTargetShiftId);
+                  }}
+                  className="space-y-4"
+                >
+                  <div className="bg-amber-50/80 border border-amber-200 rounded-xl p-3.5 space-y-1.5">
+                    <div className="font-bold text-amber-900 text-xs flex items-center gap-1.5">
+                      <i className="fa-solid fa-triangle-exclamation text-amber-600"></i> Overtime Confirmation Required
                     </div>
-                    <div className="text-xs font-bold text-gray-700">Click or drag photos/videos to attach</div>
+                    <p className="text-[11px] text-amber-800 leading-relaxed">
+                      Confirm you are continuing to work overtime on this shift. State your official reason and attach supporting evidence (photos/documents).
+                    </p>
                   </div>
-                  {selectedMediaFiles.length > 0 && (
-                    <div className="mt-3 grid grid-cols-3 gap-2">
-                      {selectedMediaFiles.map((file, idx) => (
-                        <div key={idx} className="relative group rounded-xl overflow-hidden border border-gray-200 bg-gray-900 aspect-video flex items-center justify-center">
-                          <img src={file.preview} alt={file.name} className="w-full h-full object-cover" />
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveMedia(idx)}
-                            className="absolute top-1 right-1 bg-red-600 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] shadow-md hover:scale-110 transition-all z-20"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
 
-                {overtime && (
-                  <div className="bg-amber-50/60 border border-amber-200 rounded-xl p-3">
-                    <label className="text-xs font-semibold text-amber-800 uppercase">
+                  <div>
+                    <label className="text-xs font-semibold text-amber-900 uppercase block mb-1">
                       Overtime Reason <span className="text-red-500">*</span>
                     </label>
-                    <p className="text-[10px] text-amber-700 mb-1.5">This shift ran past its scheduled end time. Explain why, and attach supporting evidence above.</p>
                     <textarea
-                      rows={2}
+                      rows={3}
                       required
-                      placeholder="e.g. Client required extended assistance with evening medication..."
+                      placeholder="Explain why you are working overtime (e.g. Extended medication administration, family delay, emergency clinical care)..."
                       value={clockOutOvertimeReason}
                       onChange={(e) => setClockOutOvertimeReason(e.target.value)}
-                      className="w-full bg-white border border-amber-200 rounded-xl p-3 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      className="w-full bg-white border border-amber-200 rounded-xl p-3 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500 font-medium"
                     />
                   </div>
-                )}
 
-                {showClockOutOverrideInput && (
-                  <div className="bg-red-50/60 border border-red-200 rounded-xl p-3">
-                    <label className="text-xs font-semibold text-red-800 uppercase">
-                      Outside Patient Boundary — Override Reason <span className="text-red-500">*</span>
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 uppercase block mb-1">
+                      Attach Supporting Evidence / Photos <span className="text-red-500">*</span>
                     </label>
-                    <p className="text-[10px] text-red-700 mb-1.5">GPS location is outside the client's geofence. Provide a reason to submit a manual override instead.</p>
-                    <textarea
-                      rows={2}
-                      required
-                      placeholder="e.g. Escorted client to a nearby pharmacy..."
-                      value={clockOutOverrideReason}
-                      onChange={(e) => setClockOutOverrideReason(e.target.value)}
-                      className="w-full bg-white border border-red-200 rounded-xl p-3 text-xs focus:outline-none focus:ring-2 focus:ring-red-500"
-                    />
+                    <div className="relative border-2 border-dashed border-amber-300 hover:border-amber-500 bg-amber-50/30 rounded-2xl p-4 text-center transition-all cursor-pointer group">
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/*,video/*,audio/*"
+                        onChange={handleMediaChange}
+                        className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
+                      />
+                      <div className="w-10 h-10 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform">
+                        <i className="fa-solid fa-cloud-arrow-up text-lg"></i>
+                      </div>
+                      <div className="text-xs font-bold text-gray-700">Upload photo, video, or proof of overtime</div>
+                    </div>
+                    {selectedMediaFiles.length > 0 && (
+                      <div className="mt-3 grid grid-cols-3 gap-2">
+                        {selectedMediaFiles.map((file, idx) => (
+                          <div key={idx} className="relative group rounded-xl overflow-hidden border border-gray-200 bg-gray-900 aspect-video flex items-center justify-center">
+                            <img src={file.preview} alt={file.name} className="w-full h-full object-cover" />
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveMedia(idx)}
+                              className="absolute top-1 right-1 bg-red-600 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] shadow-md hover:scale-110 transition-all z-20"
+                            >
+                              <i className="fa-solid fa-xmark text-[10px]"></i>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                )}
 
-                {clockOutError && (
-                  <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-xl p-2.5">{clockOutError}</div>
-                )}
+                  {clockOutError && (
+                    <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-xl p-2.5">{clockOutError}</div>
+                  )}
 
-                <div className="flex gap-3 pt-2">
-                  {showClockOutOverrideInput ? (
-                    <button
-                      type="button"
-                      disabled={isSubmittingClockOut || !clockOutOverrideReason.trim() || (overtime && !clockOutOvertimeReason.trim())}
-                      onClick={() => clockOutTargetShiftId && handleClockOut(clockOutTargetShiftId, true)}
-                      className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold text-xs rounded-xl transition-all disabled:opacity-50"
-                    >
-                      {isSubmittingClockOut ? 'Submitting...' : 'Submit Manual Override'}
-                    </button>
-                  ) : (
+                  <div className="flex gap-3 pt-2">
                     <button
                       type="submit"
-                      disabled={isSubmittingClockOut || !shiftNotes.trim() || (overtime && (!clockOutOvertimeReason.trim() || selectedMediaFiles.length === 0))}
-                      className="flex-1 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs rounded-xl shadow-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+                      disabled={isSubmittingClockOut || !clockOutOvertimeReason.trim() || selectedMediaFiles.length === 0}
+                      className="flex-1 py-3 bg-amber-500 hover:bg-amber-600 text-white font-semibold text-xs rounded-xl shadow-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
                     >
                       {isSubmittingClockOut ? (
-                        <><i className="fa-solid fa-circle-notch animate-spin"></i> Submitting & Signing Out...</>
+                        <><i className="fa-solid fa-circle-notch animate-spin"></i> Submitting Overtime Claim...</>
                       ) : (
-                        <><i className="fa-solid fa-right-from-bracket"></i> Submit & Clock Out</>
+                        <><i className="fa-solid fa-clock"></i> Confirm Overtime & Submit Evidence</>
                       )}
                     </button>
-                  )}
-                  {!isForcedClockOut && (
                     <button
                       type="button"
                       onClick={() => { setShowClockOutModal(false); setShowClockOutOverrideInput(false); setClockOutError(null); }}
-                      className="px-5 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-xs rounded-xl transition-all"
+                      className="px-5 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-xs rounded-xl transition-all cursor-pointer"
                     >
-                      Cancel
+                      Dismiss
                     </button>
+                  </div>
+                </form>
+              ) : (
+                /* MODE B: Clock Out & Submit Final Report */
+                <form onSubmit={(e) => { e.preventDefault(); if (clockOutTargetShiftId) handleClockOut(clockOutTargetShiftId, false); }} className="space-y-4">
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 uppercase">
+                      End-of-Shift Notes <span className="text-red-500">*</span>
+                    </label>
+                    <textarea
+                      rows={3}
+                      required
+                      placeholder="Summarize the visit: tasks completed, patient condition, handover notes..."
+                      value={shiftNotes}
+                      onChange={(e) => setShiftNotes(e.target.value)}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1 font-medium"
+                    />
+                  </div>
+
+                  <div className="bg-red-50/60 border border-red-100 rounded-xl p-3 text-xs space-y-1.5">
+                    <div className="font-semibold text-red-800 text-[11px] flex items-center gap-1.5 mb-1">
+                      <i className="fa-solid fa-shield-cat"></i> Flag Clinical Concerns (Optional Alert)
+                    </div>
+                    <div className="grid grid-cols-2 gap-1.5 text-[11px] text-gray-700">
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <input type="checkbox" checked={redFlags.cognitiveConfusion} onChange={(e) => setRedFlags({ ...redFlags, cognitiveConfusion: e.target.checked })} />
+                        <span>Cognitive Confusion</span>
+                      </label>
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <input type="checkbox" checked={redFlags.fallDetected} onChange={(e) => setRedFlags({ ...redFlags, fallDetected: e.target.checked })} />
+                        <span>Fall / Stumble</span>
+                      </label>
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <input type="checkbox" checked={redFlags.behavioralChanges} onChange={(e) => setRedFlags({ ...redFlags, behavioralChanges: e.target.checked })} />
+                        <span>Behavioral Change</span>
+                      </label>
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <input type="checkbox" checked={redFlags.mobilityDecline} onChange={(e) => setRedFlags({ ...redFlags, mobilityDecline: e.target.checked })} />
+                        <span>Mobility Decline</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 uppercase block mb-1">
+                      Attach Photos / Documentation
+                    </label>
+                    <div className="relative border-2 border-dashed border-purple-200 hover:border-purple-500 bg-purple-50/40 rounded-2xl p-4 text-center transition-all cursor-pointer group">
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/*,video/*,audio/*"
+                        onChange={handleMediaChange}
+                        className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
+                      />
+                      <div className="w-10 h-10 bg-purple-100 text-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform">
+                        <i className="fa-solid fa-cloud-arrow-up text-lg"></i>
+                      </div>
+                      <div className="text-xs font-bold text-gray-700">Click or drag photos/videos to attach</div>
+                    </div>
+                    {selectedMediaFiles.length > 0 && (
+                      <div className="mt-3 grid grid-cols-3 gap-2">
+                        {selectedMediaFiles.map((file, idx) => (
+                          <div key={idx} className="relative group rounded-xl overflow-hidden border border-gray-200 bg-gray-900 aspect-video flex items-center justify-center">
+                            <img src={file.preview} alt={file.name} className="w-full h-full object-cover" />
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveMedia(idx)}
+                              className="absolute top-1 right-1 bg-red-600 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] shadow-md hover:scale-110 transition-all z-20"
+                            >
+                              <i className="fa-solid fa-xmark text-[10px]"></i>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {showClockOutOverrideInput && (
+                    <div className="bg-red-50/60 border border-red-200 rounded-xl p-3">
+                      <label className="text-xs font-semibold text-red-800 uppercase">
+                        Outside Patient Boundary — Override Reason <span className="text-red-500">*</span>
+                      </label>
+                      <p className="text-[10px] text-red-700 mb-1.5">GPS location is outside the client's geofence. Provide a reason to submit a manual override instead.</p>
+                      <textarea
+                        rows={2}
+                        required
+                        placeholder="e.g. Escorted client to a nearby pharmacy..."
+                        value={clockOutOverrideReason}
+                        onChange={(e) => setClockOutOverrideReason(e.target.value)}
+                        className="w-full bg-white border border-red-200 rounded-xl p-3 text-xs focus:outline-none focus:ring-2 focus:ring-red-500"
+                      />
+                    </div>
                   )}
-                </div>
-              </form>
+
+                  {clockOutError && (
+                    <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-xl p-2.5">{clockOutError}</div>
+                  )}
+
+                  <div className="flex gap-3 pt-2">
+                    {showClockOutOverrideInput ? (
+                      <button
+                        type="button"
+                        disabled={isSubmittingClockOut || !clockOutOverrideReason.trim()}
+                        onClick={() => clockOutTargetShiftId && handleClockOut(clockOutTargetShiftId, true)}
+                        className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold text-xs rounded-xl transition-all disabled:opacity-50"
+                      >
+                        {isSubmittingClockOut ? 'Submitting...' : 'Submit Manual Override'}
+                      </button>
+                    ) : (
+                      <button
+                        type="submit"
+                        disabled={isSubmittingClockOut || !shiftNotes.trim()}
+                        className="flex-1 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs rounded-xl shadow-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+                      >
+                        {isSubmittingClockOut ? (
+                          <><i className="fa-solid fa-circle-notch animate-spin"></i> Submitting & Signing Out...</>
+                        ) : (
+                          <><i className="fa-solid fa-right-from-bracket"></i> Submit & Clock Out</>
+                        )}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => { setShowClockOutModal(false); setShowClockOutOverrideInput(false); setClockOutError(null); }}
+                      className="px-5 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-xs rounded-xl transition-all cursor-pointer"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                </form>
+              )}
             </div>
           </div>
         );
@@ -2361,9 +2434,9 @@ export default function Home() {
           <div className="modal-content max-w-lg p-6 animate-fade-up">
             <div className="flex justify-between items-center border-b border-gray-100 pb-3 mb-4">
               <h3 className="font-bold text-gray-800 text-base flex items-center gap-2">
-                <span className="text-xl">📸</span> Send Family Media & Voice Update
+                <i className="fa-solid fa-camera text-purple-600 text-lg"></i> Send Family Media & Voice Update
               </h3>
-              <button onClick={() => { setShowPostUpdateModal(false); setSelectedShiftId(null); }} className="text-gray-400 hover:text-gray-600 font-bold">✕</button>
+              <button onClick={() => { setShowPostUpdateModal(false); setSelectedShiftId(null); }} className="text-gray-400 hover:text-gray-600 font-bold"><i className="fa-solid fa-xmark text-lg"></i></button>
             </div>
 
             <form onSubmit={(e) => { e.preventDefault(); handlePostCaregiverUpdate(); }} className="space-y-4">
@@ -2474,7 +2547,7 @@ export default function Home() {
                             onClick={() => handleRemoveMedia(idx)}
                             className="absolute top-1 right-1 bg-red-600 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] shadow-md hover:scale-110 transition-all z-20"
                           >
-                            ✕
+                            <i className="fa-solid fa-xmark text-[10px]"></i>
                           </button>
                         </div>
                       );
@@ -2606,7 +2679,7 @@ export default function Home() {
                   <div className="text-[10px] text-slate-400">{activeMediaModal.createdAt ? new Date(activeMediaModal.createdAt).toLocaleString() : 'Recent Media Log'}</div>
                 </div>
               </div>
-              <button onClick={() => setActiveMediaModal(null)} className="text-slate-400 hover:text-white font-bold text-lg p-2">✕</button>
+              <button onClick={() => setActiveMediaModal(null)} className="text-slate-400 hover:text-white font-bold text-lg p-2"><i className="fa-solid fa-xmark text-lg"></i></button>
             </div>
 
             <div className="p-6 bg-slate-950 flex items-center justify-center min-h-[320px] max-h-[70vh] overflow-hidden">
@@ -2634,13 +2707,13 @@ export default function Home() {
             <div className="flex justify-between items-center border-b border-gray-100 pb-3 mb-4">
               <div>
                 <h3 className="font-bold text-gray-800 text-base flex items-center gap-2">
-                  <span className="text-xl">📍</span> Live GPS Tracker & Geofence Map
+                  <i className="fa-solid fa-location-dot text-purple-600 text-lg"></i> Live GPS Tracker & Geofence Map
                 </h3>
                 <p className="text-xs text-gray-400">
                   Patient: {gpsMapShiftDetails?.client?.name || 'Selected Client'} | Caregiver: {gpsMapShiftDetails?.caregiver?.name || 'Assigned Caregiver'}
                 </p>
               </div>
-              <button onClick={() => setShowGpsMapModal(false)} className="text-gray-400 hover:text-gray-600 font-bold">✕</button>
+              <button onClick={() => setShowGpsMapModal(false)} className="text-gray-400 hover:text-gray-600 font-bold"><i className="fa-solid fa-xmark text-lg"></i></button>
             </div>
 
             {isLoadingGpsHistory ? (
@@ -2652,9 +2725,6 @@ export default function Home() {
               <div className="space-y-4">
                 {/* SVG Visual Map Canvas */}
                 <div className="relative bg-slate-900 border border-slate-800 rounded-2xl p-4 overflow-hidden text-white shadow-inner">
-                  {/* Grid Lines */}
-                  <div className="absolute inset-0 bg-[radial-gradient(#334155_1px,transparent_1px)] [background-size:16px_16px] opacity-40 pointer-events-none" />
-
                   {/* Top Map Header Stats */}
                   <div className="relative z-10 flex justify-between items-center mb-4 text-xs">
                     <span className="bg-slate-800/90 border border-slate-700 px-3 py-1 rounded-lg text-emerald-400 font-mono font-bold flex items-center gap-1.5">
@@ -2669,21 +2739,21 @@ export default function Home() {
                   <div className="relative w-full h-72 bg-slate-950/80 rounded-xl border border-slate-800 flex items-center justify-center overflow-hidden">
                     <svg className="w-full h-full" viewBox="0 0 500 300">
                       {/* Geofence Perimeter Circle */}
-                      <circle cx="250" cy="150" r="90" fill="rgba(147, 51, 234, 0.08)" stroke="#A855F7" strokeWidth="2" strokeDasharray="6 4" />
+                      <circle cx="250" cy="150" r="90" fill="rgba(89, 51, 109, 0.08)" stroke="#764b8d" strokeWidth="2" strokeDasharray="6 4" />
                       <circle cx="250" cy="150" r="130" fill="none" stroke="rgba(239, 68, 68, 0.3)" strokeWidth="1" strokeDasharray="4 4" />
 
                       {/* Patient Home Pin */}
                       <g transform="translate(250, 150)">
-                        <circle r="12" fill="#9333EA" opacity="0.2" />
-                        <circle r="6" fill="#9333EA" />
-                        <text x="0" y="22" textAnchor="middle" fill="#D8B4FE" fontSize="10" fontWeight="bold">Patient Site (Center)</text>
+                        <circle r="12" fill="#59336d" opacity="0.2" />
+                        <circle r="6" fill="#59336d" />
+                        <text x="0" y="22" textAnchor="middle" fill="#c4afd7" fontSize="10" fontWeight="bold">Patient Site (Center)</text>
                       </g>
 
                       {/* GPS Breadcrumb Trail Lines */}
                       {gpsLocationHistory.length > 1 && (
                         <polyline
                           fill="none"
-                          stroke="#10B981"
+                          stroke="#59beb9"
                           strokeWidth="2.5"
                           strokeDasharray="4 2"
                           points={gpsLocationHistory.map((loc, idx) => {
@@ -2706,9 +2776,9 @@ export default function Home() {
                           <g key={idx} transform={`translate(${x}, ${y})`}>
                             {isLast ? (
                               <>
-                                <circle r="14" fill="#10B981" opacity="0.3" className="animate-ping" />
-                                <circle r="7" fill="#10B981" />
-                                <text x="0" y="-14" textAnchor="middle" fill="#A7F3D0" fontSize="9" fontWeight="bold">Caregiver Live GPS</text>
+                                <circle r="14" fill="#59beb9" opacity="0.3" className="animate-ping" />
+                                <circle r="7" fill="#59beb9" />
+                                <text x="0" y="-14" textAnchor="middle" fill="#d7f4f2" fontSize="9" fontWeight="bold">Caregiver Live GPS</text>
                               </>
                             ) : (
                               <circle r="4" fill="#64748B" />
@@ -2764,7 +2834,7 @@ export default function Home() {
               <h3 className="font-bold text-gray-800 text-base flex items-center gap-2">
                 <i className="fa-solid fa-sliders text-purple-600"></i> Client Profile & Geofence Radius Settings
               </h3>
-              <button onClick={() => setShowClientProfileModal(false)} className="text-gray-400 hover:text-gray-600 font-bold">✕</button>
+              <button onClick={() => setShowClientProfileModal(false)} className="text-gray-400 hover:text-gray-600 font-bold"><i className="fa-solid fa-xmark text-lg"></i></button>
             </div>
 
             <form onSubmit={(e) => { e.preventDefault(); handleSaveClientProfileSettings(); }} className="space-y-4 text-xs">
@@ -3188,7 +3258,7 @@ export default function Home() {
         {/* Profile Section */}
         <div className="px-6 py-4 border-b border-gray-100">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center text-white font-bold text-lg">
+            <div className="w-12 h-12 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold text-lg">
               {user.name?.charAt(0) || 'U'}
             </div>
             <div className="min-w-0">
@@ -3340,7 +3410,7 @@ export default function Home() {
               )}
             </div>
 
-            <button onClick={() => setCurrentView('profile')} className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center text-white text-sm font-bold">
+            <button onClick={() => setCurrentView('profile')} className="w-9 h-9 rounded-full bg-purple-600 flex items-center justify-center text-white text-sm font-bold">
               {user.name?.charAt(0) || 'U'}
             </button>
           </div>
@@ -3406,7 +3476,7 @@ export default function Home() {
                 <div className="max-w-4xl mx-auto space-y-6">
                   <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
                     <div className="flex flex-col items-center text-center">
-                      <div className="w-32 h-32 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center text-white text-5xl font-bold shadow-lg">
+                      <div className="w-32 h-32 rounded-full bg-purple-600 flex items-center justify-center text-white text-5xl font-bold shadow-lg">
                         {user.name?.charAt(0) || 'U'}
                       </div>
                       <h2 className="text-2xl font-bold text-gray-800 mt-4">{user.name}</h2>
@@ -3704,7 +3774,7 @@ export default function Home() {
                               <div key={log.id} className={`border rounded-2xl p-6 shadow-xs transition-all ${log.details?.hasRedFlags ? 'border-red-200 bg-red-50/30' : 'border-gray-200 bg-white hover:border-purple-200 hover:shadow-md'}`}>
                                 <div className="flex justify-between items-start">
                                   <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-sm">
+                                    <div className="w-10 h-10 rounded-2xl bg-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-sm">
                                       {log.details?.caregiverName?.charAt(0) || 'C'}
                                     </div>
                                     <div>
@@ -3785,7 +3855,7 @@ export default function Home() {
                                                 </div>
                                               </div>
                                             ) : isAudio ? (
-                                              <div className="relative aspect-video flex flex-col items-center justify-center bg-gradient-to-br from-purple-950 to-slate-900 text-white p-3 text-center border border-purple-800/60 rounded-xl">
+                                              <div className="relative aspect-video flex flex-col items-center justify-center bg-purple-950 text-white p-3 text-center border border-purple-800/60 rounded-xl">
                                                 <div className="flex items-center gap-1.5 mb-1 text-purple-300 font-bold text-xs">
                                                   <i className="fa-solid fa-microphone-lines text-base text-purple-400 animate-pulse"></i>
                                                   <span>Voice Note Update</span>
