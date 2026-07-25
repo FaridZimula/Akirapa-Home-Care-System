@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { logAudit } from '@/lib/audit';
 import { hashPassword } from '@/lib/password';
 import { createSessionCookie, sessionCookieOptions } from '@/lib/session';
+import { isAdminEmailAllowed } from '@/lib/adminAllowlist';
 import crypto from 'crypto';
 
 export async function GET(request: Request) {
@@ -98,6 +99,18 @@ export async function GET(request: Request) {
           }).catch(() => {});
         }
       }
+    }
+
+    // Admin access via Google is restricted to explicitly authorized emails,
+    // even for accounts that already carry the ADMIN role in the database.
+    if (user.role === 'ADMIN' && !isAdminEmailAllowed(email)) {
+      await logAudit({
+        userId: user.id,
+        action: 'ADMIN_LOGIN_DENIED',
+        details: `Blocked Google OAuth admin login for unauthorized email: ${email}`,
+        outcome: 'FAILURE',
+      });
+      return NextResponse.redirect(new URL('/?error=admin_not_authorized', requestUrl.origin));
     }
 
     // Log OAuth login success auditing

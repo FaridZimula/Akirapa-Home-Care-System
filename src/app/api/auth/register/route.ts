@@ -41,6 +41,8 @@ export async function POST(request: Request) {
       medicalHistory,
       patientDob,
       patientGender,
+      patientPhone,
+      patientEmail,
       patientLanguage,
       patientCity,
       patientState,
@@ -209,6 +211,8 @@ export async function POST(request: Request) {
         const clientMetadata = JSON.stringify({
           dob: patientDob,
           gender: patientGender,
+          phone: patientPhone,
+          email: patientEmail,
           preferredLanguage: patientLanguage,
           city: patientCity,
           state: patientState,

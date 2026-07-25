@@ -166,6 +166,47 @@ export default function Home() {
   const [signupError, setSignupError] = useState<string | null>(null);
   const [isSigningUp, setIsSigningUp] = useState(false);
 
+  // Signup — email verification
+  const [signupCode, setSignupCode] = useState('');
+  const [isSignupCodeSent, setIsSignupCodeSent] = useState(false);
+  const [isSendingSignupCode, setIsSendingSignupCode] = useState(false);
+
+  // Signup — Client Details (only used when signupRole === 'CLIENT')
+  const [patientFullName, setPatientFullName] = useState('');
+  const [patientDobInput, setPatientDobInput] = useState('');
+  const [patientGenderInput, setPatientGenderInput] = useState('');
+  const [patientPhoneInput, setPatientPhoneInput] = useState('');
+  const [patientEmailInput, setPatientEmailInput] = useState('');
+  const [patientAddressInput, setPatientAddressInput] = useState('');
+  const [patientCityInput, setPatientCityInput] = useState('');
+  const [patientStateInput, setPatientStateInput] = useState('');
+  const [patientZipInput, setPatientZipInput] = useState('');
+
+  // Signup — Emergency Contacts
+  const [primaryContactName, setPrimaryContactName] = useState('');
+  const [primaryContactRelationship, setPrimaryContactRelationship] = useState('');
+  const [primaryContactPhone, setPrimaryContactPhone] = useState('');
+  const [secondaryContactName, setSecondaryContactName] = useState('');
+  const [secondaryContactRelationship, setSecondaryContactRelationship] = useState('');
+  const [secondaryContactPhone, setSecondaryContactPhone] = useState('');
+
+  // Signup — Caregiver Application Details (only used when signupRole === 'CAREGIVER')
+  const [cgDob, setCgDob] = useState('');
+  const [cgGender, setCgGender] = useState('');
+  const [cgNationality, setCgNationality] = useState('');
+  const [cgIdPassport, setCgIdPassport] = useState('');
+  const [cgAddress, setCgAddress] = useState('');
+  const [cgCity, setCgCity] = useState('');
+  const [cgState, setCgState] = useState('');
+  const [cgZip, setCgZip] = useState('');
+  const [cgPositionApplying, setCgPositionApplying] = useState('');
+  const [cgEmploymentType, setCgEmploymentType] = useState('');
+  const [cgDaysAvailable, setCgDaysAvailable] = useState<string[]>([]);
+  const [cgPreferredShifts, setCgPreferredShifts] = useState<string[]>([]);
+  const [cgHoursPerWeek, setCgHoursPerWeek] = useState('');
+  const [cgCanTravel, setCgCanTravel] = useState<'Yes' | 'No' | ''>('');
+  const [cgTravelDistance, setCgTravelDistance] = useState('');
+
   // Forgot Password
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotCode, setForgotCode] = useState('');
@@ -729,8 +770,40 @@ export default function Home() {
     }
   };
 
+  const handleSendSignupCode = async () => {
+    if (!signupEmail) {
+      setSignupError('Please enter your email address first.');
+      return;
+    }
+    setIsSendingSignupCode(true);
+    setSignupError(null);
+    try {
+      const res = await fetch('/api/auth/verify/send-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: signupEmail, purpose: 'SIGNUP' }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setIsSignupCodeSent(true);
+        showNotification('Verification code sent to your email.');
+      } else {
+        setSignupError(data.error || 'Failed to send verification code.');
+      }
+    } catch (err) {
+      console.error(err);
+      setSignupError('A network error occurred.');
+    } finally {
+      setIsSendingSignupCode(false);
+    }
+  };
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isSignupCodeSent) {
+      setSignupError('Please verify your email address first.');
+      return;
+    }
     setIsSigningUp(true);
     setSignupError(null);
     try {
@@ -743,6 +816,45 @@ export default function Home() {
           name: signupName,
           phoneNumber: signupPhone,
           role: signupRole,
+          code: signupCode,
+          ...(signupRole === 'CLIENT' ? {
+            patientName: patientFullName,
+            patientDob: patientDobInput,
+            patientGender: patientGenderInput,
+            patientPhone: patientPhoneInput,
+            patientEmail: patientEmailInput,
+            patientAddress: patientAddressInput,
+            patientCity: patientCityInput,
+            patientState: patientStateInput,
+            patientZip: patientZipInput,
+            primaryEmergency: (primaryContactName || primaryContactPhone) ? {
+              name: primaryContactName,
+              relationship: primaryContactRelationship,
+              phone: primaryContactPhone,
+            } : null,
+            secondaryEmergency: (secondaryContactName || secondaryContactPhone) ? {
+              name: secondaryContactName,
+              relationship: secondaryContactRelationship,
+              phone: secondaryContactPhone,
+            } : null,
+          } : {}),
+          ...(signupRole === 'CAREGIVER' ? {
+            dob: cgDob,
+            gender: cgGender,
+            nationality: cgNationality,
+            idPassport: cgIdPassport,
+            address: cgAddress,
+            city: cgCity,
+            state: cgState,
+            zip: cgZip,
+            positionApplying: cgPositionApplying,
+            employmentType: cgEmploymentType,
+            daysAvailable: cgDaysAvailable,
+            preferredShifts: cgPreferredShifts,
+            hoursPerWeek: cgHoursPerWeek,
+            canTravel: cgCanTravel,
+            travelDistance: cgTravelDistance,
+          } : {}),
         }),
       });
       const data = await res.json();
@@ -754,6 +866,38 @@ export default function Home() {
         setSignupPassword('');
         setSignupName('');
         setSignupPhone('');
+        setSignupCode('');
+        setIsSignupCodeSent(false);
+        setPatientFullName('');
+        setPatientDobInput('');
+        setPatientGenderInput('');
+        setPatientPhoneInput('');
+        setPatientEmailInput('');
+        setPatientAddressInput('');
+        setPatientCityInput('');
+        setPatientStateInput('');
+        setPatientZipInput('');
+        setPrimaryContactName('');
+        setPrimaryContactRelationship('');
+        setPrimaryContactPhone('');
+        setSecondaryContactName('');
+        setSecondaryContactRelationship('');
+        setSecondaryContactPhone('');
+        setCgDob('');
+        setCgGender('');
+        setCgNationality('');
+        setCgIdPassport('');
+        setCgAddress('');
+        setCgCity('');
+        setCgState('');
+        setCgZip('');
+        setCgPositionApplying('');
+        setCgEmploymentType('');
+        setCgDaysAvailable([]);
+        setCgPreferredShifts([]);
+        setCgHoursPerWeek('');
+        setCgCanTravel('');
+        setCgTravelDistance('');
       } else {
         setSignupError(data.error || 'Failed to create account.');
       }
@@ -1921,7 +2065,7 @@ export default function Home() {
 
   const renderSignupScreen = () => (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-      <div className="max-w-md w-full bg-white rounded-3xl shadow-xl p-8 max-h-[90vh] overflow-y-auto">
+      <div className="w-full max-w-2xl bg-white rounded-3xl shadow-xl p-8 max-h-[90vh] overflow-y-auto transition-all">
         <button onClick={() => { setViewState('login'); setSignupError(null); }} className="text-sm text-gray-400 hover:text-gray-600 flex items-center gap-1.5"><i className="fa-solid fa-arrow-left text-xs"></i> Back</button>
         <div className="text-center mb-6">
           <div className="w-14 h-14 bg-purple-100 rounded-2xl flex items-center justify-center mx-auto">
@@ -1938,8 +2082,24 @@ export default function Home() {
           </div>
           <div>
             <label className="text-xs font-semibold text-gray-500 uppercase">Email</label>
-            <input type="email" required placeholder="jane@example.com" value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+            <div className="flex gap-2">
+              <input type="email" required disabled={isSignupCodeSent} placeholder="jane@example.com" value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} className="flex-1 min-w-0 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50" />
+              <button
+                type="button"
+                onClick={handleSendSignupCode}
+                disabled={isSendingSignupCode || isSignupCodeSent || !signupEmail}
+                className="px-4 py-2 bg-purple-100 hover:bg-purple-200 text-purple-700 font-semibold text-xs rounded-xl whitespace-nowrap transition-all disabled:opacity-50"
+              >
+                {isSignupCodeSent ? <><i className="fa-solid fa-check"></i> Sent</> : (isSendingSignupCode ? 'Sending...' : 'Send Code')}
+              </button>
+            </div>
           </div>
+          {isSignupCodeSent && (
+            <div>
+              <label className="text-xs font-semibold text-gray-500 uppercase">6-Digit Verification Code</label>
+              <input type="text" required maxLength={6} placeholder="192804" value={signupCode} onChange={(e) => setSignupCode(e.target.value.replace(/\D/g, ''))} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-center text-base font-bold tracking-widest focus:outline-none focus:ring-2 focus:ring-purple-500" />
+            </div>
+          )}
           <div>
             <label className="text-xs font-semibold text-gray-500 uppercase">Password</label>
             <div className="relative">
@@ -1977,8 +2137,231 @@ export default function Home() {
               <button type="button" onClick={() => setSignupRole('CLIENT')} className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${signupRole === 'CLIENT' ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>Client/Family</button>
             </div>
           </div>
+
+          {signupRole === 'CAREGIVER' && (
+            <>
+              <div className="pt-3 border-t border-gray-100">
+                <div className="flex flex-col items-center mb-4">
+                  <div className="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center mb-2"><i className="fa-solid fa-id-card text-teal-600 text-sm"></i></div>
+                  <h3 className="text-xs font-bold text-teal-700 uppercase tracking-wider">Caregiver Details</h3>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="col-span-1">
+                    <label className="text-xs font-semibold text-gray-500 uppercase">Date of Birth</label>
+                    <input type="date" value={cgDob} onChange={(e) => setCgDob(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                  </div>
+                  <div className="col-span-1">
+                    <label className="text-xs font-semibold text-gray-500 uppercase">Gender</label>
+                    <select value={cgGender} onChange={(e) => setCgGender(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                      <option value="">Select</option>
+                      <option value="Female">Female</option>
+                      <option value="Male">Male</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                  <div className="col-span-1">
+                    <label className="text-xs font-semibold text-gray-500 uppercase">Nationality</label>
+                    <input type="text" value={cgNationality} onChange={(e) => setCgNationality(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                  </div>
+                  <div className="col-span-1">
+                    <label className="text-xs font-semibold text-gray-500 uppercase">ID / Passport No.</label>
+                    <input type="text" value={cgIdPassport} onChange={(e) => setCgIdPassport(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="text-xs font-semibold text-gray-500 uppercase">Home Address</label>
+                    <input type="text" placeholder="123 Main St" value={cgAddress} onChange={(e) => setCgAddress(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                  </div>
+                  <div className="col-span-1">
+                    <label className="text-xs font-semibold text-gray-500 uppercase">City</label>
+                    <input type="text" value={cgCity} onChange={(e) => setCgCity(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                  </div>
+                  <div className="col-span-1">
+                    <label className="text-xs font-semibold text-gray-500 uppercase">State</label>
+                    <input type="text" value={cgState} onChange={(e) => setCgState(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                  </div>
+                  <div className="col-span-1">
+                    <label className="text-xs font-semibold text-gray-500 uppercase">Zip Code</label>
+                    <input type="text" value={cgZip} onChange={(e) => setCgZip(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-gray-100">
+                <div className="flex flex-col items-center mb-4">
+                  <div className="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center mb-2"><i className="fa-solid fa-briefcase text-teal-600 text-sm"></i></div>
+                  <h3 className="text-xs font-bold text-teal-700 uppercase tracking-wider">Position Details</h3>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 uppercase">Position Applying For</label>
+                    <input type="text" placeholder="e.g. Certified Nursing Assistant" value={cgPositionApplying} onChange={(e) => setCgPositionApplying(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 uppercase">Employment Type</label>
+                    <select value={cgEmploymentType} onChange={(e) => setCgEmploymentType(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                      <option value="">Select</option>
+                      <option value="Full-Time">Full-Time</option>
+                      <option value="Part-Time">Part-Time</option>
+                      <option value="Contract">Contract</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-gray-100">
+                <h3 className="text-xs font-bold text-teal-700 uppercase tracking-wider mb-3 text-center">3. Availability</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 uppercase block mb-1.5">Days Available</label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => (
+                        <button
+                          key={day}
+                          type="button"
+                          onClick={() => setCgDaysAvailable((prev) => prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day])}
+                          className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all ${cgDaysAvailable.includes(day) ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                        >
+                          {day}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 uppercase block mb-1.5">Preferred Shifts</label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {['Morning', 'Afternoon', 'Evening', 'Overnight'].map((shift) => (
+                        <button
+                          key={shift}
+                          type="button"
+                          onClick={() => setCgPreferredShifts((prev) => prev.includes(shift) ? prev.filter((s) => s !== shift) : [...prev, shift])}
+                          className={`flex-1 min-w-[100px] px-3 py-2 rounded-lg text-xs font-semibold border transition-all ${cgPreferredShifts.includes(shift) ? 'bg-teal-600 border-teal-600 text-white' : 'bg-white border-teal-200 text-teal-700 hover:bg-teal-50'}`}
+                        >
+                          {shift}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3 items-end">
+                    <div>
+                      <label className="text-xs font-semibold text-gray-500 uppercase">Hours Per Week</label>
+                      <input type="number" min="0" placeholder="20" value={cgHoursPerWeek} onChange={(e) => setCgHoursPerWeek(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-gray-500 uppercase block mb-1.5">Can Travel?</label>
+                      <div className="flex gap-2">
+                        <button type="button" onClick={() => setCgCanTravel('Yes')} className={`flex-1 py-2.5 rounded-xl text-xs font-semibold transition-all ${cgCanTravel === 'Yes' ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>Yes</button>
+                        <button type="button" onClick={() => setCgCanTravel('No')} className={`flex-1 py-2.5 rounded-xl text-xs font-semibold transition-all ${cgCanTravel === 'No' ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>No</button>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-gray-500 uppercase">Travel Area / Distance</label>
+                      <input type="text" placeholder="e.g. 15km" value={cgTravelDistance} onChange={(e) => setCgTravelDistance(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {signupRole === 'CLIENT' && (
+            <>
+              <div className="pt-3 border-t border-gray-100">
+                <div className="flex flex-col items-center mb-4">
+                  <div className="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center mb-2"><i className="fa-solid fa-user text-teal-600 text-sm"></i></div>
+                  <h3 className="text-xs font-bold text-teal-700 uppercase tracking-wider">Client Details</h3>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="col-span-1">
+                    <label className="text-xs font-semibold text-gray-500 uppercase">Full Name</label>
+                    <input type="text" placeholder="Client's full name" value={patientFullName} onChange={(e) => setPatientFullName(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                  </div>
+                  <div className="col-span-1">
+                    <label className="text-xs font-semibold text-gray-500 uppercase">Date of Birth</label>
+                    <input type="date" value={patientDobInput} onChange={(e) => setPatientDobInput(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                  </div>
+                  <div className="col-span-1">
+                    <label className="text-xs font-semibold text-gray-500 uppercase">Gender</label>
+                    <select value={patientGenderInput} onChange={(e) => setPatientGenderInput(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                      <option value="">Select</option>
+                      <option value="Female">Female</option>
+                      <option value="Male">Male</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                  <div className="col-span-1">
+                    <label className="text-xs font-semibold text-gray-500 uppercase">Phone Number</label>
+                    <input type="text" placeholder="+16045550199" value={patientPhoneInput} onChange={(e) => setPatientPhoneInput(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="text-xs font-semibold text-gray-500 uppercase">Email Address</label>
+                    <input type="email" placeholder="client@example.com" value={patientEmailInput} onChange={(e) => setPatientEmailInput(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                  </div>
+                  <div className="col-span-3">
+                    <label className="text-xs font-semibold text-gray-500 uppercase">Home Address</label>
+                    <input type="text" placeholder="123 Main St" value={patientAddressInput} onChange={(e) => setPatientAddressInput(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                  </div>
+                  <div className="col-span-1">
+                    <label className="text-xs font-semibold text-gray-500 uppercase">City</label>
+                    <input type="text" value={patientCityInput} onChange={(e) => setPatientCityInput(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                  </div>
+                  <div className="col-span-1">
+                    <label className="text-xs font-semibold text-gray-500 uppercase">State</label>
+                    <input type="text" value={patientStateInput} onChange={(e) => setPatientStateInput(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                  </div>
+                  <div className="col-span-1">
+                    <label className="text-xs font-semibold text-gray-500 uppercase">Zip Code</label>
+                    <input type="text" value={patientZipInput} onChange={(e) => setPatientZipInput(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-gray-100">
+                <div className="flex flex-col items-center mb-4">
+                  <div className="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center mb-2"><i className="fa-solid fa-phone text-teal-600 text-sm"></i></div>
+                  <h3 className="text-xs font-bold text-teal-700 uppercase tracking-wider">Emergency Contact</h3>
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <div className="text-[11px] font-bold text-gray-400 uppercase mb-2">Primary Contact</div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="col-span-2">
+                        <label className="text-xs font-semibold text-gray-500 uppercase">Contact Name</label>
+                        <input type="text" value={primaryContactName} onChange={(e) => setPrimaryContactName(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                      </div>
+                      <div className="col-span-1">
+                        <label className="text-xs font-semibold text-gray-500 uppercase">Relationship</label>
+                        <input type="text" placeholder="Daughter" value={primaryContactRelationship} onChange={(e) => setPrimaryContactRelationship(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                      </div>
+                      <div className="col-span-1">
+                        <label className="text-xs font-semibold text-gray-500 uppercase">Phone Number</label>
+                        <input type="text" value={primaryContactPhone} onChange={(e) => setPrimaryContactPhone(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] font-bold text-gray-400 uppercase mb-2">Secondary Contact</div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="col-span-2">
+                        <label className="text-xs font-semibold text-gray-500 uppercase">Contact Name</label>
+                        <input type="text" value={secondaryContactName} onChange={(e) => setSecondaryContactName(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                      </div>
+                      <div className="col-span-1">
+                        <label className="text-xs font-semibold text-gray-500 uppercase">Relationship</label>
+                        <input type="text" placeholder="Son" value={secondaryContactRelationship} onChange={(e) => setSecondaryContactRelationship(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                      </div>
+                      <div className="col-span-1">
+                        <label className="text-xs font-semibold text-gray-500 uppercase">Phone Number</label>
+                        <input type="text" value={secondaryContactPhone} onChange={(e) => setSecondaryContactPhone(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
           {signupError && <div className="bg-red-50 text-red-600 p-3 rounded-xl text-xs font-semibold"><i className="fa-solid fa-triangle-exclamation"></i> {signupError}</div>}
-          <button type="submit" disabled={isSigningUp} className="w-full py-3.5 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-sm rounded-xl transition-all disabled:opacity-50">
+          <button type="submit" disabled={isSigningUp || !isSignupCodeSent || signupCode.length !== 6} className="w-full py-3.5 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-sm rounded-xl transition-all disabled:opacity-50">
             {isSigningUp ? 'Creating...' : 'Create Account'}
           </button>
         </form>

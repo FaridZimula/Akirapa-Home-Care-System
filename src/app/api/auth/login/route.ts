@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { logAudit } from '@/lib/audit';
 import { hashPassword, verifyPassword } from '@/lib/password';
 import { createSessionCookie, sessionCookieOptions } from '@/lib/session';
+import { isAdminEmailAllowed } from '@/lib/adminAllowlist';
 import { UserRole, PodRole, ShiftStatus } from '@prisma/client';
 
 export async function POST(request: Request) {
@@ -27,6 +28,12 @@ export async function POST(request: Request) {
       else if (role === 'CARE_COORDINATOR') finalRole = UserRole.CARE_COORDINATOR;
       else if (role === 'CAREGIVER') finalRole = UserRole.CAREGIVER;
       else if (role === 'CLIENT' || role === 'FAMILY_MEMBER') finalRole = UserRole.FAMILY_MEMBER;
+
+      // Admin accounts can only ever be provisioned for explicitly authorized emails.
+      if (finalRole === UserRole.ADMIN && !isAdminEmailAllowed(email)) {
+        console.warn(`[ADMIN_LOGIN_DENIED] Blocked admin account creation for unauthorized email: ${email}`);
+        return NextResponse.json({ error: 'This email is not authorized for admin access.' }, { status: 403 });
+      }
 
       // Extract username from email
       const emailName = email.split('@')[0];
@@ -143,6 +150,18 @@ export async function POST(request: Request) {
         });
         return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
       }
+    }
+
+    // Admin access is restricted to explicitly authorized emails, even for
+    // accounts that already carry the ADMIN role in the database.
+    if (user.role === UserRole.ADMIN && !isAdminEmailAllowed(user.email)) {
+      await logAudit({
+        userId: user.id,
+        action: 'ADMIN_LOGIN_DENIED',
+        details: `Blocked admin login for unauthorized email: ${email}`,
+        outcome: 'FAILURE',
+      });
+      return NextResponse.json({ error: 'This email is not authorized for admin access.' }, { status: 403 });
     }
 
     // Log audit for successful login
