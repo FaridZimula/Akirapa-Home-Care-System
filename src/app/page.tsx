@@ -86,7 +86,7 @@ export default function Home() {
   const [isReportingIncident, setIsReportingIncident] = useState(false);
 
   // Media Upload, Audio Voice Recording & Lightbox
-  const [selectedMediaFiles, setSelectedMediaFiles] = useState<Array<{ name: string; type: string; preview: string }>>([]);
+  const [selectedMediaFiles, setSelectedMediaFiles] = useState<Array<{ name: string; type: string; preview: string; file?: File | Blob }>>([]);
   const [isPostingUpdate, setIsPostingUpdate] = useState(false);
   const [showPostUpdateModal, setShowPostUpdateModal] = useState(false);
   const [targetPostClientId, setTargetPostClientId] = useState<string>('');
@@ -551,18 +551,19 @@ export default function Home() {
 
     setIsSendingMessage(true);
     try {
+      const formData = new FormData();
+      formData.append('clientId', selectedMessageClientId);
+      if (messageText.trim()) formData.append('text', messageText.trim());
+      if (attachment?.file) formData.append('file', attachment.file, attachment.name);
+
       const res = await fetch('/api/messages', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          clientId: selectedMessageClientId,
-          text: messageText.trim() || undefined,
-          mediaFile: attachment ? { name: attachment.name, type: attachment.type } : undefined,
-        }),
+        body: formData,
       });
       const data = await res.json();
       if (res.ok) {
         setMessageText('');
+        if (attachment) URL.revokeObjectURL(attachment.preview);
         setSelectedMediaFiles([]);
         loadMessageThread(selectedMessageClientId, true);
       } else {
@@ -1727,6 +1728,7 @@ export default function Home() {
       name: file.name,
       type: file.type,
       preview: URL.createObjectURL(file),
+      file,
     }));
     setSelectedMediaFiles(prev => [...prev, ...newFiles]);
   };
@@ -1760,10 +1762,10 @@ export default function Home() {
       };
 
       mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/mp3' });
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         const audioUrl = URL.createObjectURL(audioBlob);
-        const fileName = `voice_note_${new Date().toISOString().substring(11, 19).replace(/:/g, '')}.mp3`;
-        setSelectedMediaFiles(prev => [...prev, { name: fileName, type: 'audio/mp3', preview: audioUrl }]);
+        const fileName = `voice_note_${new Date().toISOString().substring(11, 19).replace(/:/g, '')}.webm`;
+        setSelectedMediaFiles(prev => [...prev, { name: fileName, type: 'audio/webm', preview: audioUrl, file: audioBlob }]);
         stream.getTracks().forEach(track => track.stop());
       };
 
@@ -1776,11 +1778,8 @@ export default function Home() {
       }, 1000);
       showNotification('Voice Recording Started... Speak now!');
     } catch (err) {
-      console.warn('Microphone recording fallback activated:', err);
-      const fallbackUrl = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
-      const fileName = `voice_note_${new Date().toISOString().substring(11, 19).replace(/:/g, '')}.mp3`;
-      setSelectedMediaFiles(prev => [...prev, { name: fileName, type: 'audio/mp3', preview: fallbackUrl }]);
-      showNotification('Audio Voice Note Attached!');
+      console.warn('Microphone recording unavailable:', err);
+      showNotification('Could not access your microphone. Check browser/device permissions and try again.');
     }
   };
 
@@ -4775,10 +4774,19 @@ export default function Home() {
                                   {m.senderName} · {m.senderRole.replace('_', ' ')}
                                 </div>
                                 {m.text && <p className="text-sm whitespace-pre-wrap">{m.text}</p>}
-                                {m.mediaUrl && (
-                                  <div className={`mt-1.5 text-xs flex items-center gap-1.5 ${isMine ? 'text-purple-100' : 'text-gray-600'}`}>
-                                    <i className={`fa-solid ${m.mediaType === 'video' ? 'fa-video' : m.mediaType === 'audio' ? 'fa-microphone' : 'fa-image'}`}></i>
-                                    {m.mediaName || (m.mediaType === 'video' ? 'Video attached' : m.mediaType === 'audio' ? 'Voice note attached' : 'Photo attached')}
+                                {m.mediaUrl && m.mediaType === 'image' && (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img src={m.mediaUrl} alt={m.mediaName || 'Photo attachment'} className="mt-1.5 rounded-lg max-w-full max-h-64 object-cover cursor-pointer" onClick={() => window.open(m.mediaUrl, '_blank')} />
+                                )}
+                                {m.mediaUrl && m.mediaType === 'video' && (
+                                  <video src={m.mediaUrl} controls className="mt-1.5 rounded-lg max-w-full max-h-64" />
+                                )}
+                                {m.mediaUrl && m.mediaType === 'audio' && (
+                                  <audio src={m.mediaUrl} controls className="mt-1.5 w-full" />
+                                )}
+                                {!m.mediaUrl && m.mediaType && (
+                                  <div className={`mt-1.5 text-xs flex items-center gap-1.5 italic ${isMine ? 'text-purple-100' : 'text-gray-500'}`}>
+                                    <i className="fa-solid fa-triangle-exclamation"></i> Attachment unavailable
                                   </div>
                                 )}
                                 <div className={`text-[9px] mt-1 ${isMine ? 'text-purple-200' : 'text-gray-400'}`}>{new Date(m.createdAt).toLocaleString()}</div>

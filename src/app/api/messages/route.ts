@@ -4,6 +4,9 @@ import { encrypt, decrypt } from '@/lib/crypto';
 import { getSessionUser, SessionUser } from '@/lib/session';
 import { logAudit } from '@/lib/audit';
 import { createNotification } from '@/lib/notifications';
+import { supabaseAdmin, MESSAGE_MEDIA_BUCKET, MAX_ATTACHMENT_BYTES, classifyMediaType } from '@/lib/supabaseStorage';
+
+const SIGNED_URL_TTL_SECONDS = 60 * 60; // 1 hour - long enough for a chat session to load
 
 async function isDirectParticipant(sessionUser: SessionUser, clientId: string): Promise<boolean> {
   if (sessionUser.role === 'CAREGIVER') {
@@ -59,13 +62,30 @@ export async function GET(request: Request) {
       include: { sender: { select: { id: true, name: true, role: true } } },
     });
 
+    // mediaUrl in the DB is a storage path, not a public URL - resolve every
+    // attachment in this thread to a single batch of short-lived signed URLs.
+    const mediaPaths = messages.filter(m => m.mediaUrl).map(m => m.mediaUrl as string);
+    const signedUrlByPath = new Map<string, string>();
+    if (mediaPaths.length > 0) {
+      const { data: signedUrls, error } = await supabaseAdmin.storage
+        .from(MESSAGE_MEDIA_BUCKET)
+        .createSignedUrls(mediaPaths, SIGNED_URL_TTL_SECONDS);
+      if (error) {
+        console.error('Failed to create signed URLs for message media:', error);
+      } else {
+        for (const entry of signedUrls) {
+          if (entry.signedUrl && entry.path) signedUrlByPath.set(entry.path, entry.signedUrl);
+        }
+      }
+    }
+
     const decrypted = messages.map(m => ({
       id: m.id,
       senderId: m.senderId,
       senderName: m.sender.name,
       senderRole: m.sender.role,
       text: m.encryptedText ? decrypt(m.encryptedText) : null,
-      mediaUrl: m.mediaUrl,
+      mediaUrl: m.mediaUrl ? (signedUrlByPath.get(m.mediaUrl) || null) : null,
       mediaType: m.mediaType,
       mediaName: m.mediaName,
       createdAt: m.createdAt,
@@ -85,11 +105,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    const { clientId, text, mediaFile } = await request.json();
-    if (!clientId) {
+    const formData = await request.formData();
+    const clientId = formData.get('clientId');
+    const text = formData.get('text');
+    const file = formData.get('file');
+
+    if (typeof clientId !== 'string' || !clientId) {
       return NextResponse.json({ error: 'Client ID is required' }, { status: 400 });
     }
-    if (!text?.trim() && !mediaFile) {
+    const textValue = typeof text === 'string' ? text.trim() : '';
+    const hasFile = file instanceof File && file.size > 0;
+    if (!textValue && !hasFile) {
       return NextResponse.json({ error: 'Message must include text or an attachment' }, { status: 400 });
     }
 
@@ -99,25 +125,45 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'You do not have access to this conversation' }, { status: 403 });
     }
 
-    let mediaUrl: string | null = null;
+    let mediaPath: string | null = null;
     let mediaType: string | null = null;
     let mediaName: string | null = null;
-    if (mediaFile) {
-      const mockFileId = `file_${Math.random().toString(36).substring(2, 11)}`;
-      const isVideo = mediaFile.type?.startsWith('video/');
-      const isAudio = mediaFile.type?.startsWith('audio/');
-      mediaType = isVideo ? 'video' : isAudio ? 'audio' : 'image';
-      const ext = isVideo ? 'mp4' : isAudio ? 'mp3' : 'png';
-      mediaUrl = `https://storage.akirapa.local/messages/${clientId}/${mockFileId}.${ext}?token=${Math.random().toString(36).substring(2, 20)}&expires=1893456000`;
-      mediaName = mediaFile.name || null;
+    let signedMediaUrl: string | null = null;
+
+    if (hasFile && file instanceof File) {
+      if (file.size > MAX_ATTACHMENT_BYTES) {
+        return NextResponse.json({ error: `Attachment is too large (max ${Math.floor(MAX_ATTACHMENT_BYTES / (1024 * 1024))}MB).` }, { status: 400 });
+      }
+
+      mediaType = classifyMediaType(file.type || 'image/png');
+      mediaName = file.name || null;
+      const ext = (file.name?.split('.').pop() || 'bin').toLowerCase();
+      const path = `${clientId}/${crypto.randomUUID()}.${ext}`;
+
+      const arrayBuffer = await file.arrayBuffer();
+      const { error: uploadError } = await supabaseAdmin.storage
+        .from(MESSAGE_MEDIA_BUCKET)
+        .upload(path, arrayBuffer, { contentType: file.type || 'application/octet-stream' });
+
+      if (uploadError) {
+        console.error('Failed to upload message attachment:', uploadError);
+        return NextResponse.json({ error: 'Failed to upload attachment' }, { status: 500 });
+      }
+
+      mediaPath = path;
+
+      const { data: signed } = await supabaseAdmin.storage
+        .from(MESSAGE_MEDIA_BUCKET)
+        .createSignedUrl(path, SIGNED_URL_TTL_SECONDS);
+      signedMediaUrl = signed?.signedUrl || null;
     }
 
     const message = await prisma.message.create({
       data: {
         clientId,
         senderId: sessionUser.id,
-        encryptedText: text?.trim() ? encrypt(text.trim()) : null,
-        mediaUrl,
+        encryptedText: textValue ? encrypt(textValue) : null,
+        mediaUrl: mediaPath,
         mediaType,
         mediaName,
       },
@@ -127,7 +173,7 @@ export async function POST(request: Request) {
     await logAudit({
       userId: sessionUser.id,
       action: 'MESSAGE_SENT',
-      details: `${sessionUser.role} ${sessionUser.email} sent a message${mediaUrl ? ' with attachment' : ''} in the conversation for client ${clientId}.`,
+      details: `${sessionUser.role} ${sessionUser.email} sent a message${mediaPath ? ' with attachment' : ''} in the conversation for client ${clientId}.`,
       outcome: 'SUCCESS',
     });
 
@@ -146,7 +192,7 @@ export async function POST(request: Request) {
       await createNotification({
         userId,
         title: `New message from ${sessionUser.name}`,
-        message: text?.trim() ? text.trim().slice(0, 120) : `Sent ${mediaType === 'audio' ? 'a voice note' : mediaType === 'video' ? 'a video' : 'a photo'}`,
+        message: textValue ? textValue.slice(0, 120) : `Sent ${mediaType === 'audio' ? 'a voice note' : mediaType === 'video' ? 'a video' : 'a photo'}`,
         type: 'NEW_MESSAGE',
       });
     }
@@ -158,8 +204,8 @@ export async function POST(request: Request) {
         senderId: message.senderId,
         senderName: message.sender.name,
         senderRole: message.sender.role,
-        text: text?.trim() || null,
-        mediaUrl,
+        text: textValue || null,
+        mediaUrl: signedMediaUrl,
         mediaType,
         mediaName,
         createdAt: message.createdAt,
