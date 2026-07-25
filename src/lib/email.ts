@@ -1,6 +1,4 @@
 import nodemailer from 'nodemailer';
-import fs from 'fs';
-import path from 'path';
 
 interface SendEmailParams {
   to: string;
@@ -13,62 +11,31 @@ export async function sendEmail({ to, subject, html }: SendEmailParams): Promise
   const port = process.env.SMTP_PORT;
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
-  const from = process.env.SMTP_FROM || 'noreply@akirapa.com';
+  const from = process.env.SMTP_FROM || user || 'noreply@akirapa.com';
 
-  const hasSMTP = !!(host && port && user && pass);
-
-  if (hasSMTP) {
-    try {
-      const transporter = nodemailer.createTransport({
-        host,
-        port: parseInt(port || '587'),
-        secure: port === '465',
-        auth: { user, pass },
-      });
-
-      await transporter.sendMail({
-        from,
-        to,
-        subject,
-        html,
-      });
-
-      console.log(`[SMTP Email] Sent successfully to ${to}: "${subject}"`);
-      return true;
-    } catch (err) {
-      console.error('[SMTP Email Error] SMTP transmission failed, falling back to Sandbox Logging:', err);
-    }
+  if (!host || !port || !user || !pass) {
+    console.error('[SMTP Email Error] SMTP_HOST/PORT/USER/PASS are not configured; email was not sent.');
+    return false;
   }
 
-  // Developer Sandbox Fallback Mode
   try {
-    const sandboxDir = 'C:/Users/FARID/.gemini/antigravity-ide/brain/53604049-7fdf-417f-bc29-41882da35bd6/scratch';
-    if (!fs.existsSync(sandboxDir)) {
-      fs.mkdirSync(sandboxDir, { recursive: true });
-    }
+    const transporter = nodemailer.createTransport({
+      host,
+      port: parseInt(port, 10),
+      secure: port === '465',
+      auth: { user, pass },
+      // Some local dev machines run antivirus (e.g. Avast Mail Shield) that MITMs
+      // outbound TLS with a self-signed cert Node doesn't trust. Only relax
+      // validation outside production, where no such interception exists.
+      tls: process.env.NODE_ENV === 'production' ? undefined : { rejectUnauthorized: false },
+    });
 
-    const logPath = path.join(sandboxDir, 'simulated_emails.log');
-    const logEntry = `[${new Date().toISOString()}]
-TO: ${to}
-SUBJECT: ${subject}
-BODY:
-${html.replace(/<[^>]*>/g, '')} // Stripped html tags
---------------------------------------------------------------------------------\n`;
+    await transporter.sendMail({ from, to, subject, html });
 
-    fs.appendFileSync(logPath, logEntry, 'utf8');
-    
-    // Print clear visual alert to Next.js terminal logs
-    console.log('\n==================================================');
-    console.log(`[DEVELOPER SANDBOX EMAIL SIMULATOR]`);
-    console.log(`To: ${to}`);
-    console.log(`Subject: ${subject}`);
-    console.log(`Verification Code Details logged at:`);
-    console.log(`file:///${logPath}`);
-    console.log('==================================================\n');
-
+    console.log(`[SMTP Email] Sent successfully to ${to}: "${subject}"`);
     return true;
   } catch (err) {
-    console.error('[Sandbox Email Simulator Error] Failed to write fallback email log:', err);
+    console.error('[SMTP Email Error] SMTP transmission failed:', err);
     return false;
   }
 }
