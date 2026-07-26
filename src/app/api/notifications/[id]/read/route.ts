@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { getSessionUser } from '@/lib/session';
 import { markAsRead } from '@/lib/notifications';
 
 export async function PATCH(
@@ -7,16 +7,14 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const cookieStore = await cookies();
-    const sessionCookie = cookieStore.get('session_user');
+    const sessionUser = await getSessionUser();
 
-    if (!sessionCookie?.value) {
+    if (!sessionUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { id } = await params;
-    const user = JSON.parse(sessionCookie.value);
-    const notification = await markAsRead(id, user.id);
+    const notification = await markAsRead(id, sessionUser.id);
 
     if (!notification) {
       return NextResponse.json(

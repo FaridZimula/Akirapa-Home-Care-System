@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/admin/escalation-check",
+      "schedule": "0 13 * * *"
+    }
+  ]
+}

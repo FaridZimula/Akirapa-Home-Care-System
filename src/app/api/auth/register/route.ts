@@ -47,8 +47,12 @@ export async function POST(request: Request) {
       patientCity,
       patientState,
       patientZip,
+      medicalConditions,
+      allergiesNotes,
       primaryEmergency,
-      secondaryEmergency
+      secondaryEmergency,
+      carePreferences,
+      otherPreferences
     } = await request.json();
 
     if (!email || !password || !name || !code) {
@@ -217,8 +221,12 @@ export async function POST(request: Request) {
           city: patientCity,
           state: patientState,
           zip: patientZip,
+          medicalConditions: medicalConditions || '',
+          allergiesNotes: allergiesNotes || '',
           primaryEmergency,
           secondaryEmergency,
+          preferences: Array.isArray(carePreferences) ? carePreferences : [],
+          otherPreferences: otherPreferences || '',
         });
 
         // Create custom patient profile from signup fields

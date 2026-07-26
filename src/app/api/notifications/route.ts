@@ -1,18 +1,16 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { getSessionUser } from '@/lib/session';
 import { getUserNotifications, markAllAsRead } from '@/lib/notifications';
 
 export async function GET() {
   try {
-    const cookieStore = await cookies();
-    const sessionCookie = cookieStore.get('session_user');
+    const sessionUser = await getSessionUser();
 
-    if (!sessionCookie?.value) {
+    if (!sessionUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = JSON.parse(sessionCookie.value);
-    const notifications = await getUserNotifications(user.id);
+    const notifications = await getUserNotifications(sessionUser.id);
     return NextResponse.json({ notifications });
   } catch (error) {
     console.error('Failed to get notifications API:', error);
@@ -22,15 +20,13 @@ export async function GET() {
 
 export async function POST() {
   try {
-    const cookieStore = await cookies();
-    const sessionCookie = cookieStore.get('session_user');
+    const sessionUser = await getSessionUser();
 
-    if (!sessionCookie?.value) {
+    if (!sessionUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = JSON.parse(sessionCookie.value);
-    const result = await markAllAsRead(user.id);
+    const result = await markAllAsRead(sessionUser.id);
     return NextResponse.json({ success: true, count: result.count });
   } catch (error) {
     console.error('Failed to mark all notifications read API:', error);

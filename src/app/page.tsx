@@ -182,6 +182,10 @@ export default function Home() {
   const [patientStateInput, setPatientStateInput] = useState('');
   const [patientZipInput, setPatientZipInput] = useState('');
 
+  // Signup — Medical Information
+  const [patientMedicalConditions, setPatientMedicalConditions] = useState('');
+  const [patientAllergiesNotes, setPatientAllergiesNotes] = useState('');
+
   // Signup — Emergency Contacts
   const [primaryContactName, setPrimaryContactName] = useState('');
   const [primaryContactRelationship, setPrimaryContactRelationship] = useState('');
@@ -189,6 +193,20 @@ export default function Home() {
   const [secondaryContactName, setSecondaryContactName] = useState('');
   const [secondaryContactRelationship, setSecondaryContactRelationship] = useState('');
   const [secondaryContactPhone, setSecondaryContactPhone] = useState('');
+
+  // Signup — Care Preferences (kind of care/comfort services the client would like)
+  const CARE_PREFERENCE_OPTIONS = [
+    'Companionship & Conversation',
+    'Daily Walks / Mobility Support',
+    'Light Massage / Comfort Therapy',
+    'Reading Aloud',
+    'Music & Entertainment',
+    'Gardening',
+    'Games & Mental Stimulation',
+    'Pet Care Assistance',
+  ];
+  const [carePreferences, setCarePreferences] = useState<string[]>([]);
+  const [otherPreferences, setOtherPreferences] = useState('');
 
   // Signup — Caregiver Application Details (only used when signupRole === 'CAREGIVER')
   const [cgDob, setCgDob] = useState('');
@@ -828,6 +846,8 @@ export default function Home() {
             patientCity: patientCityInput,
             patientState: patientStateInput,
             patientZip: patientZipInput,
+            medicalConditions: patientMedicalConditions,
+            allergiesNotes: patientAllergiesNotes,
             primaryEmergency: (primaryContactName || primaryContactPhone) ? {
               name: primaryContactName,
               relationship: primaryContactRelationship,
@@ -838,6 +858,8 @@ export default function Home() {
               relationship: secondaryContactRelationship,
               phone: secondaryContactPhone,
             } : null,
+            carePreferences,
+            otherPreferences,
           } : {}),
           ...(signupRole === 'CAREGIVER' ? {
             dob: cgDob,
@@ -1033,18 +1055,8 @@ export default function Home() {
       const data = await res.json();
       if (res.ok && data.processedCount > 0) {
         showNotification(`Processed: ${data.processedCount} shifts. Escalated: ${data.escalatedCount}.`);
-        const newSMS: typeof smsAlerts = [];
-        data.escalations.forEach((esc: any) => {
-          if (esc.smsAlertMock) {
-            newSMS.push({
-              timestamp: new Date(),
-              to: esc.smsAlertMock.to,
-              message: esc.smsAlertMock.message,
-            });
-          }
-        });
-        if (newSMS.length > 0) setSmsAlerts([...newSMS, ...smsAlerts]);
         loadData();
+        loadNotifications();
       } else {
         showNotification('No unconfirmed shifts passed the deadline.');
       }
@@ -2316,6 +2328,24 @@ export default function Home() {
 
               <div className="pt-3 border-t border-gray-100">
                 <div className="flex flex-col items-center mb-4">
+                  <div className="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center mb-2"><i className="fa-solid fa-notes-medical text-teal-600 text-sm"></i></div>
+                  <h3 className="text-xs font-bold text-teal-700 uppercase tracking-wider">Medical Information</h3>
+                  <p className="text-[11px] text-gray-400 mt-1 text-center">Helps caregivers prepare properly and stay alert to what matters.</p>
+                </div>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 uppercase">Medical Conditions</label>
+                    <textarea placeholder="e.g. Hypertension, Type 2 Diabetes, Early Stage Dementia" value={patientMedicalConditions} onChange={(e) => setPatientMedicalConditions(e.target.value)} rows={2} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 uppercase">Allergies & Other Notes</label>
+                    <textarea placeholder="e.g. Penicillin allergy, no known drug allergies, mobility precautions" value={patientAllergiesNotes} onChange={(e) => setPatientAllergiesNotes(e.target.value)} rows={2} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-gray-100">
+                <div className="flex flex-col items-center mb-4">
                   <div className="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center mb-2"><i className="fa-solid fa-phone text-teal-600 text-sm"></i></div>
                   <h3 className="text-xs font-bold text-teal-700 uppercase tracking-wider">Emergency Contact</h3>
                 </div>
@@ -2354,6 +2384,31 @@ export default function Home() {
                       </div>
                     </div>
                   </div>
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-gray-100">
+                <div className="flex flex-col items-center mb-4">
+                  <div className="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center mb-2"><i className="fa-solid fa-heart text-teal-600 text-sm"></i></div>
+                  <h3 className="text-xs font-bold text-teal-700 uppercase tracking-wider">Care Preferences</h3>
+                  <p className="text-[11px] text-gray-400 mt-1 text-center">What kind of care & comfort services would you like? This helps us match the right caregiver.</p>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {CARE_PREFERENCE_OPTIONS.map((option) => (
+                    <label key={option} className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-medium border cursor-pointer transition-all ${carePreferences.includes(option) ? 'bg-teal-50 border-teal-300 text-teal-800' : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'}`}>
+                      <input
+                        type="checkbox"
+                        checked={carePreferences.includes(option)}
+                        onChange={() => setCarePreferences(prev => prev.includes(option) ? prev.filter(p => p !== option) : [...prev, option])}
+                        className="rounded accent-teal-600 w-4 h-4 cursor-pointer"
+                      />
+                      {option}
+                    </label>
+                  ))}
+                </div>
+                <div className="mt-3">
+                  <label className="text-xs font-semibold text-gray-500 uppercase">Anything else? (optional)</label>
+                  <input type="text" placeholder="e.g. Prefers quiet mornings, enjoys chess" value={otherPreferences} onChange={(e) => setOtherPreferences(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
                 </div>
               </div>
             </>
@@ -3808,31 +3863,125 @@ export default function Home() {
               {currentView === 'dashboard' && (
                 <div className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
-                      <div className="flex items-center justify-between">
-                        <div><div className="text-sm text-gray-500">Total Clients</div><div className="text-2xl font-bold text-gray-800">{clients.length}</div></div>
-                        <div className="w-12 h-12 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-600"><i className="fa-solid fa-users text-xl"></i></div>
-                      </div>
-                    </div>
-                    <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
-                      <div className="flex items-center justify-between">
-                        <div><div className="text-sm text-gray-500">Caregivers</div><div className="text-2xl font-bold text-gray-800">{caregivers.length}</div></div>
-                        <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center text-green-600"><i className="fa-solid fa-user-md text-xl"></i></div>
-                      </div>
-                    </div>
-                    <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
-                      <div className="flex items-center justify-between">
-                        <div><div className="text-sm text-gray-500">Active Shifts</div><div className="text-2xl font-bold text-gray-800">{shifts.filter(s => s.status === 'IN_PROGRESS').length}</div></div>
-                        <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-600"><i className="fa-solid fa-clock text-xl"></i></div>
-                      </div>
-                    </div>
-                    <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
-                      <div className="flex items-center justify-between">
-                        <div><div className="text-sm text-gray-500">Completed</div><div className="text-2xl font-bold text-gray-800">{shifts.filter(s => s.status === 'COMPLETED').length}</div></div>
-                        <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600"><i className="fa-solid fa-check-circle text-xl"></i></div>
-                      </div>
-                    </div>
+                    {user.role === 'CAREGIVER' ? (
+                      <>
+                        <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
+                          <div className="flex items-center justify-between">
+                            <div><div className="text-sm text-gray-500">Today's Shifts</div><div className="text-2xl font-bold text-gray-800">{shifts.filter(s => s.caregiverId === user.id && new Date(s.scheduledStart).toDateString() === new Date().toDateString()).length}</div></div>
+                            <div className="w-12 h-12 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-600"><i className="fa-solid fa-calendar-day text-xl"></i></div>
+                          </div>
+                        </div>
+                        <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
+                          <div className="flex items-center justify-between">
+                            <div><div className="text-sm text-gray-500">Unconfirmed Shifts</div><div className="text-2xl font-bold text-gray-800">{shifts.filter(s => s.caregiverId === user.id && s.status === 'UNCONFIRMED').length}</div></div>
+                            <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-600"><i className="fa-solid fa-triangle-exclamation text-xl"></i></div>
+                          </div>
+                        </div>
+                        <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
+                          <div className="flex items-center justify-between">
+                            <div><div className="text-sm text-gray-500">Hours This Week</div><div className="text-2xl font-bold text-gray-800">{(() => {
+                              const weekAgo = new Date();
+                              weekAgo.setDate(weekAgo.getDate() - 7);
+                              const totalMs = shifts
+                                .filter(s => s.caregiverId === user.id && s.status === 'COMPLETED' && s.actualStart && s.actualEnd && new Date(s.actualEnd) >= weekAgo)
+                                .reduce((sum, s) => sum + (new Date(s.actualEnd).getTime() - new Date(s.actualStart).getTime()), 0);
+                              return (totalMs / 3600000).toFixed(1);
+                            })()}</div></div>
+                            <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600"><i className="fa-solid fa-hourglass-half text-xl"></i></div>
+                          </div>
+                        </div>
+                        <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
+                          <div className="flex items-center justify-between">
+                            <div><div className="text-sm text-gray-500">My Clients</div><div className="text-2xl font-bold text-gray-800">{new Set(shifts.filter(s => s.caregiverId === user.id).map(s => s.clientId)).size}</div></div>
+                            <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center text-green-600"><i className="fa-solid fa-user-group text-xl"></i></div>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
+                          <div className="flex items-center justify-between">
+                            <div><div className="text-sm text-gray-500">Total Clients</div><div className="text-2xl font-bold text-gray-800">{clients.length}</div></div>
+                            <div className="w-12 h-12 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-600"><i className="fa-solid fa-users text-xl"></i></div>
+                          </div>
+                        </div>
+                        <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
+                          <div className="flex items-center justify-between">
+                            <div><div className="text-sm text-gray-500">Caregivers</div><div className="text-2xl font-bold text-gray-800">{caregivers.length}</div></div>
+                            <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center text-green-600"><i className="fa-solid fa-user-md text-xl"></i></div>
+                          </div>
+                        </div>
+                        <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
+                          <div className="flex items-center justify-between">
+                            <div><div className="text-sm text-gray-500">Active Shifts</div><div className="text-2xl font-bold text-gray-800">{shifts.filter(s => s.status === 'IN_PROGRESS').length}</div></div>
+                            <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-600"><i className="fa-solid fa-clock text-xl"></i></div>
+                          </div>
+                        </div>
+                        <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
+                          <div className="flex items-center justify-between">
+                            <div><div className="text-sm text-gray-500">Completed</div><div className="text-2xl font-bold text-gray-800">{shifts.filter(s => s.status === 'COMPLETED').length}</div></div>
+                            <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600"><i className="fa-solid fa-check-circle text-xl"></i></div>
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </div>
+
+                  {user.role === 'CAREGIVER' && (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {/* Unconfirmed Shifts */}
+                      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                        <h3 className="font-semibold text-gray-800 mb-4">Unconfirmed Shifts</h3>
+                        {shifts.filter(s => s.caregiverId === user.id && s.status === 'UNCONFIRMED').length === 0 ? (
+                          <p className="text-gray-400 text-sm text-center py-8">Nothing needs your confirmation right now</p>
+                        ) : (
+                          <div className="space-y-3">
+                            {shifts.filter(s => s.caregiverId === user.id && s.status === 'UNCONFIRMED').map(shift => (
+                              <div key={shift.id} className="flex items-center justify-between pb-3 border-b border-gray-100 last:border-0">
+                                <div>
+                                  <div className="font-bold text-sm text-gray-800">{shift.client.name}</div>
+                                  <div className="text-xs text-gray-400 mt-0.5"><i className="fa-regular fa-clock mr-1"></i>{new Date(shift.scheduledStart).toLocaleString()}</div>
+                                </div>
+                                <button onClick={() => handleConfirmShift(shift.id, false)} className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs rounded-lg cursor-pointer shadow-2xs">Confirm Shift</button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* My Schedule */}
+                      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                        <div className="flex justify-between items-center mb-4">
+                          <h3 className="font-semibold text-gray-800">My Schedule</h3>
+                          <button onClick={() => setCurrentView('listings')} className="text-xs font-semibold text-purple-600 hover:text-purple-700 cursor-pointer">View All</button>
+                        </div>
+                        {shifts.filter(s => s.caregiverId === user.id && s.status !== 'COMPLETED' && s.status !== 'DROPPED').length === 0 ? (
+                          <p className="text-gray-400 text-sm text-center py-8">No upcoming shifts scheduled</p>
+                        ) : (
+                          <div className="space-y-3">
+                            {shifts
+                              .filter(s => s.caregiverId === user.id && s.status !== 'COMPLETED' && s.status !== 'DROPPED')
+                              .sort((a, b) => new Date(a.scheduledStart).getTime() - new Date(b.scheduledStart).getTime())
+                              .slice(0, 5)
+                              .map(shift => (
+                                <div key={shift.id} className="flex items-center justify-between pb-3 border-b border-gray-100 last:border-0">
+                                  <div>
+                                    <div className="font-bold text-sm text-gray-800">{shift.client.name}</div>
+                                    <div className="text-xs text-gray-400 mt-0.5"><i className="fa-regular fa-clock mr-1"></i>{new Date(shift.scheduledStart).toLocaleString()}</div>
+                                  </div>
+                                  <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+                                    shift.status === 'IN_PROGRESS' ? 'bg-purple-100 text-purple-700 border border-purple-200' :
+                                    shift.status === 'UNCONFIRMED' ? 'bg-amber-100 text-amber-700 border border-amber-200' :
+                                    shift.status === 'CONFIRMED' ? 'bg-teal-100 text-teal-700 border border-teal-200' :
+                                    'bg-gray-100 text-gray-600'
+                                  }`}>{shift.status}</span>
+                                </div>
+                              ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Recent Activity */}
                   <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
@@ -4395,6 +4544,72 @@ export default function Home() {
                                 </div>
                               </div>
 
+                              {/* Client Details - unlocked once the caregiver has confirmed the shift */}
+                              {user.role === 'CAREGIVER' && (
+                                shift.status === 'UNCONFIRMED' ? (
+                                  <div className="px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg text-xs text-gray-400 flex items-center gap-1.5">
+                                    <i className="fa-solid fa-lock"></i> Confirm this shift to view client details
+                                  </div>
+                                ) : (() => {
+                                  const clientFull = clients.find((c: any) => c.id === shift.clientId) || shift.client;
+                                  let meta: any = {};
+                                  try { meta = clientFull.profileMetadata ? JSON.parse(clientFull.profileMetadata) : {}; } catch {}
+                                  const familyContacts = clientFull.familyMembers || [];
+                                  return (
+                                    <div className="p-3 bg-blue-50/40 border border-blue-100 rounded-xl space-y-2 text-xs" onClick={(e) => e.stopPropagation()}>
+                                      <div className="font-bold text-blue-900 text-[11px] uppercase tracking-wider flex items-center gap-1.5">
+                                        <i className="fa-solid fa-address-card text-blue-600"></i> Client Details
+                                      </div>
+
+                                      <div className="flex items-start gap-2">
+                                        <i className="fa-solid fa-location-dot text-gray-400 w-3.5 mt-0.5"></i>
+                                        <div>
+                                          <span className="text-gray-700">{clientFull.address}</span>
+                                          <a
+                                            href={`https://www.google.com/maps/search/?api=1&query=${clientFull.latitude},${clientFull.longitude}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="ml-2 text-blue-600 hover:underline font-semibold"
+                                          >Get Directions</a>
+                                        </div>
+                                      </div>
+
+                                      {(meta.medicalConditions || meta.allergiesNotes) && (
+                                        <div className="flex items-start gap-2">
+                                          <i className="fa-solid fa-notes-medical text-gray-400 w-3.5 mt-0.5"></i>
+                                          <div className="text-gray-700">
+                                            {meta.medicalConditions && <div><span className="font-semibold">Care Needs:</span> {meta.medicalConditions}</div>}
+                                            {meta.allergiesNotes && <div><span className="font-semibold">Notes:</span> {meta.allergiesNotes}</div>}
+                                          </div>
+                                        </div>
+                                      )}
+
+                                      {((meta.preferences && meta.preferences.length > 0) || meta.otherPreferences) && (
+                                        <div className="flex items-start gap-2">
+                                          <i className="fa-solid fa-heart text-gray-400 w-3.5 mt-0.5"></i>
+                                          <div className="text-gray-700">
+                                            <span className="font-semibold">Preferences:</span> {[...(meta.preferences || []), meta.otherPreferences].filter(Boolean).join(', ')}
+                                          </div>
+                                        </div>
+                                      )}
+
+                                      <div className="flex items-start gap-2">
+                                        <i className="fa-solid fa-phone text-gray-400 w-3.5 mt-0.5"></i>
+                                        <div className="text-gray-700">
+                                          {familyContacts.length > 0 ? familyContacts.map((f: any) => (
+                                            <div key={f.user.id}>{f.user.name} &middot; {f.user.phoneNumber || f.user.email}</div>
+                                          )) : meta.emergencyContact ? (
+                                            <div>{meta.emergencyContact}</div>
+                                          ) : (
+                                            <div className="text-gray-400">No contact on file</div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })()
+                              )}
+
                               {/* Live Interactive Shift Task Checklist for IN_PROGRESS shifts */}
                               {shift.status === 'IN_PROGRESS' && (
                                 <div className="mt-3 p-3 bg-purple-50/40 border border-purple-100 rounded-xl space-y-2 text-xs">
@@ -4577,15 +4792,36 @@ export default function Home() {
               {/* ===== ALERTS / INTERESTED BUYERS VIEW ===== */}
               {currentView === 'interested' && (
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-                  <h3 className="font-semibold text-gray-800 mb-4">Alerts & Notifications</h3>
-                  {smsAlerts.length === 0 ? (
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="font-semibold text-gray-800">Alerts & Notifications</h3>
+                    {dbNotifications.some(n => !n.isRead) && (
+                      <button onClick={handleMarkAllNotificationsRead} className="text-xs font-semibold text-purple-600 hover:underline cursor-pointer">
+                        Mark all read
+                      </button>
+                    )}
+                  </div>
+                  {dbNotifications.length === 0 ? (
                     <div className="text-center py-12"><p className="text-gray-400">No alerts yet</p></div>
                   ) : (
                     <div className="space-y-3">
-                      {smsAlerts.map((alert, i) => (
-                        <div key={i} className="flex items-start gap-3 border-b border-gray-100 pb-3">
-                          <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-600"><i className="fa-solid fa-bell"></i></div>
-                          <div><div className="text-sm font-medium">{alert.to}</div><div className="text-sm text-gray-600">{alert.message}</div><div className="text-xs text-gray-400 mt-1">{alert.timestamp.toLocaleString()}</div></div>
+                      {dbNotifications.map((n) => (
+                        <div
+                          key={n.id}
+                          onClick={() => !n.isRead && handleMarkNotificationRead(n.id)}
+                          className={`flex items-start gap-3 border-b border-gray-100 pb-3 rounded-lg p-2 -m-2 transition-all ${!n.isRead ? 'bg-purple-50/40 cursor-pointer hover:bg-purple-50' : ''}`}
+                        >
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                            n.type === 'SHIFT_CONFIRMATION_MISSED' ? 'bg-red-100 text-red-600' :
+                            n.type === 'CLINICAL_ALERT' ? 'bg-red-100 text-red-600' :
+                            n.type === 'SYSTEM_ALERT' ? 'bg-amber-100 text-amber-600' :
+                            'bg-purple-100 text-purple-600'
+                          }`}><i className="fa-solid fa-bell"></i></div>
+                          <div className="flex-1">
+                            <div className="text-sm font-semibold text-gray-800">{n.title}</div>
+                            <div className="text-sm text-gray-600">{n.message}</div>
+                            <div className="text-xs text-gray-400 mt-1">{new Date(n.createdAt).toLocaleString()}</div>
+                          </div>
+                          {!n.isRead && <div className="w-2 h-2 rounded-full bg-purple-600 mt-2 flex-shrink-0" />}
                         </div>
                       ))}
                     </div>

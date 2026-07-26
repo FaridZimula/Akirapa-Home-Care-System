@@ -1,15 +1,28 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { logAudit } from '@/lib/audit';
+import { getSessionUser } from '@/lib/session';
 import { ShiftStatus } from '@prisma/client';
 
 export async function GET() {
   try {
+    const sessionUser = await getSessionUser();
+    if (!sessionUser) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
     const clients = await prisma.client.findMany({
       include: {
         caregiverPods: {
           include: {
             caregiver: {
+              select: { id: true, name: true, email: true, phoneNumber: true },
+            },
+          },
+        },
+        familyMembers: {
+          include: {
+            user: {
               select: { id: true, name: true, email: true, phoneNumber: true },
             },
           },
