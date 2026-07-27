@@ -68,6 +68,9 @@ model Client {
   createdAt           DateTime      @default(now())
   profileMetadata     String?       // JSON-serialized string of additional patient details
 
+  // Billing rate charged to the client per hour of care (distinct from caregiver payRate)
+  billingRatePerHour  Float?
+
   // Relations
   caregiverPods  CaregiverPod[]
   shifts         Shift[]
@@ -75,6 +78,8 @@ model Client {
   familyMembers  LinkedFamilyMember[]
   activityLogs   ActivityLog[]
   messages       Message[]
+  invoices       Invoice[]
+  payments       Payment[]
 }
 
 model CaregiverPod {
@@ -260,5 +265,40 @@ model Notification {
   createdAt DateTime @default(now())
 
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Invoice {
+  id                 String   @id @default(uuid())
+  invoiceNumber      String   @unique
+  clientId           String
+  servicePeriodStart DateTime
+  servicePeriodEnd   DateTime
+  issuedDate         DateTime @default(now())
+  dueDate            DateTime
+  lineItemsJson      String   // JSON-serialized array of { description, date, hours, rate, amount }
+  subtotal           Float
+  taxRate            Float    @default(0)
+  taxAmount          Float    @default(0)
+  discountAmount     Float    @default(0)
+  totalDue           Float
+  amountPaid         Float    @default(0)
+  notes              String?
+  createdAt          DateTime @default(now())
+
+  client             Client    @relation(fields: [clientId], references: [id])
+  payments           Payment[]
+}
+
+model Payment {
+  id        String   @id @default(uuid())
+  invoiceId String
+  clientId  String
+  amount    Float
+  method    String?  // e.g. "ACH Transfer", "Credit Card", "Cash", "Check"
+  paidAt    DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  invoice   Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  client    Client   @relation(fields: [clientId], references: [id])
 }
 

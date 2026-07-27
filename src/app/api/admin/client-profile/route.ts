@@ -4,7 +4,7 @@ import { logAudit } from '@/lib/audit';
 
 export async function POST(request: Request) {
   try {
-    const { clientId, geofenceRadiusMeter, profileMetadata } = await request.json();
+    const { clientId, geofenceRadiusMeter, billingRatePerHour, profileMetadata } = await request.json();
 
     if (!clientId) {
       return NextResponse.json({ error: 'Client ID is required' }, { status: 400 });
@@ -13,6 +13,9 @@ export async function POST(request: Request) {
     const updateData: any = {};
     if (geofenceRadiusMeter !== undefined) {
       updateData.geofenceRadiusMeter = parseInt(geofenceRadiusMeter);
+    }
+    if (billingRatePerHour !== undefined) {
+      updateData.billingRatePerHour = billingRatePerHour === null ? null : parseFloat(billingRatePerHour);
     }
     if (profileMetadata !== undefined) {
       updateData.profileMetadata = typeof profileMetadata === 'string' ? profileMetadata : JSON.stringify(profileMetadata);

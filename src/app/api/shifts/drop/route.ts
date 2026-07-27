@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { logAudit } from '@/lib/audit';
 import { ShiftStatus, PodRole } from '@prisma/client';
+import { formatDate, formatTime } from '@/lib/dateFormat';
 
 export async function POST(request: Request) {
   try {
@@ -104,7 +105,7 @@ export async function POST(request: Request) {
       // Create SMS alert mock payload
       smsAlertMock = {
         to: result.backupPhoneNumber || '+16045550000',
-        message: `ALERT: Shift dropped by primary caregiver. You have been assigned to cover client ${shift.client.name} on ${shift.scheduledStart.toLocaleDateString()} at ${shift.scheduledStart.toLocaleTimeString()}. Please confirm availability before ${result.escalatedShift.confirmationDeadline.toLocaleTimeString()}.`,
+        message: `ALERT: Shift dropped by primary caregiver. You have been assigned to cover client ${shift.client.name} on ${formatDate(shift.scheduledStart)} at ${formatTime(shift.scheduledStart)}. Please confirm availability before ${formatTime(result.escalatedShift.confirmationDeadline)}.`,
       };
 
       // Write another audit log for the escalation

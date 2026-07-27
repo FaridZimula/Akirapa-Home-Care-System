@@ -2,12 +2,13 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { formatDate, formatTime, formatDateTime } from '@/lib/dateFormat';
 
 export default function Home() {
   const { user, loading: authLoading, login, logout } = useAuth();
   
   // Navigation state
-  const [currentView, setCurrentView] = useState<'dashboard' | 'profile' | 'listings' | 'create' | 'purchases' | 'business' | 'interested' | 'settings' | 'audit' | 'financials' | 'messages'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'profile' | 'listings' | 'create' | 'purchases' | 'business' | 'interested' | 'settings' | 'audit' | 'financials' | 'billing' | 'messages'>('dashboard');
   
   // Auth flow states
   const [viewState, setViewState] = useState<'splash' | 'login' | 'signup' | 'forgot_password' | 'dashboard'>('splash');
@@ -117,6 +118,8 @@ export default function Home() {
   const [clientMedicalConditions, setClientMedicalConditions] = useState<string>('');
   const [clientEmergencyContact, setClientEmergencyContact] = useState<string>('');
   const [clientAllergiesNotes, setClientAllergiesNotes] = useState<string>('');
+  const [clientBillingRateInput, setClientBillingRateInput] = useState<string>('');
+  const [clientFullMetaSnapshot, setClientFullMetaSnapshot] = useState<any>({});
   const [isSavingClientProfile, setIsSavingClientProfile] = useState(false);
 
   // Caregiver User Profile Metadata Editor
@@ -261,6 +264,27 @@ export default function Home() {
   const [editingPayRateFor, setEditingPayRateFor] = useState<string | null>(null);
   const [payRateInput, setPayRateInput] = useState('');
   const [isSavingPayRate, setIsSavingPayRate] = useState(false);
+
+  // Admin Billing / Payment Tracker
+  const [invoicesData, setInvoicesData] = useState<any>(null);
+  const [isLoadingInvoices, setIsLoadingInvoices] = useState(false);
+  const [showGenerateInvoiceModal, setShowGenerateInvoiceModal] = useState(false);
+  const [invoiceClientId, setInvoiceClientId] = useState('');
+  const [invoicePeriodStart, setInvoicePeriodStart] = useState('');
+  const [invoicePeriodEnd, setInvoicePeriodEnd] = useState('');
+  const [invoiceDueDate, setInvoiceDueDate] = useState('');
+  const [invoiceTaxRate, setInvoiceTaxRate] = useState('4');
+  const [invoiceDiscount, setInvoiceDiscount] = useState('0');
+  const [isGeneratingInvoice, setIsGeneratingInvoice] = useState(false);
+  const [viewingInvoice, setViewingInvoice] = useState<any>(null);
+  const [recordingPaymentFor, setRecordingPaymentFor] = useState<string | null>(null);
+  const [paymentAmountInput, setPaymentAmountInput] = useState('');
+  const [paymentMethodInput, setPaymentMethodInput] = useState('ACH Transfer');
+
+  // Admin Client Billing Record (per-client statement)
+  const [selectedBillingClientId, setSelectedBillingClientId] = useState('');
+  const [isLoadingBillingRecord, setIsLoadingBillingRecord] = useState(false);
+  const [viewingBillingRecord, setViewingBillingRecord] = useState<any>(null);
 
   // Messaging (caregiver <-> family, monitored by admin/coordinator)
   const [messageConversations, setMessageConversations] = useState<Array<{ id: string; name: string }>>([]);
@@ -502,6 +526,109 @@ export default function Home() {
     }
   };
 
+  const loadInvoices = async () => {
+    setIsLoadingInvoices(true);
+    try {
+      const res = await fetch('/api/admin/invoices');
+      const data = await res.json();
+      if (res.ok) {
+        setInvoicesData(data);
+      } else {
+        showNotification(data.error || 'Failed to load invoices.');
+      }
+    } catch (err) {
+      console.error('Failed to load invoices:', err);
+    } finally {
+      setIsLoadingInvoices(false);
+    }
+  };
+
+  const handleGenerateInvoice = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!invoiceClientId || !invoicePeriodStart || !invoicePeriodEnd || !invoiceDueDate) {
+      showNotification('Fill in client, service period, and due date.');
+      return;
+    }
+    setIsGeneratingInvoice(true);
+    try {
+      const res = await fetch('/api/admin/invoices', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientId: invoiceClientId,
+          servicePeriodStart: invoicePeriodStart,
+          servicePeriodEnd: invoicePeriodEnd,
+          dueDate: invoiceDueDate,
+          taxRatePercent: parseFloat(invoiceTaxRate) || 0,
+          discountAmount: parseFloat(invoiceDiscount) || 0,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showNotification(`Invoice ${data.invoice.invoiceNumber} generated!`);
+        setShowGenerateInvoiceModal(false);
+        setInvoiceClientId('');
+        setInvoicePeriodStart('');
+        setInvoicePeriodEnd('');
+        setInvoiceDueDate('');
+        setInvoiceTaxRate('4');
+        setInvoiceDiscount('0');
+        loadInvoices();
+        setViewingInvoice(data.invoice);
+      } else {
+        showNotification(data.error || 'Failed to generate invoice.');
+      }
+    } catch (err) {
+      console.error('Failed to generate invoice:', err);
+    } finally {
+      setIsGeneratingInvoice(false);
+    }
+  };
+
+  const handleRecordPayment = async (invoiceId: string) => {
+    const amount = parseFloat(paymentAmountInput);
+    if (isNaN(amount) || amount <= 0) {
+      showNotification('Enter a valid payment amount.');
+      return;
+    }
+    try {
+      const res = await fetch(`/api/admin/invoices/${invoiceId}/payment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount, method: paymentMethodInput }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showNotification('Payment recorded!');
+        setRecordingPaymentFor(null);
+        setPaymentAmountInput('');
+        loadInvoices();
+      } else {
+        showNotification(data.error || 'Failed to record payment.');
+      }
+    } catch (err) {
+      console.error('Failed to record payment:', err);
+    }
+  };
+
+  const loadClientBillingRecord = async (clientId: string) => {
+    if (!clientId) return;
+    setIsLoadingBillingRecord(true);
+    try {
+      const res = await fetch(`/api/admin/clients/${clientId}/billing-record`);
+      const data = await res.json();
+      if (res.ok) {
+        setViewingBillingRecord(data);
+      } else {
+        showNotification(data.error || 'Failed to load billing record.');
+      }
+    } catch (err) {
+      console.error('Failed to load client billing record:', err);
+    } finally {
+      setIsLoadingBillingRecord(false);
+    }
+  };
+
   const handleStartEditPayRate = (caregiverId: string, currentRate: number | null) => {
     setEditingPayRateFor(caregiverId);
     setPayRateInput(currentRate != null ? String(currentRate) : '');
@@ -647,6 +774,12 @@ export default function Home() {
   useEffect(() => {
     if (currentView === 'financials' && user?.role === 'ADMIN') {
       loadFinancials();
+    }
+  }, [currentView, user]);
+
+  useEffect(() => {
+    if (currentView === 'billing' && user?.role === 'ADMIN') {
+      loadInvoices();
     }
   }, [currentView, user]);
 
@@ -1426,12 +1559,14 @@ export default function Home() {
   const handleOpenClientProfileEditor = (client: any) => {
     setTargetClientEditor(client);
     setClientGeofenceRadiusInput(client.geofenceRadiusMeter || 150);
-    
+    setClientBillingRateInput(client.billingRatePerHour != null ? String(client.billingRatePerHour) : '');
+
     let meta: any = {};
     try {
       if (client.profileMetadata) meta = JSON.parse(client.profileMetadata);
     } catch (e) {}
 
+    setClientFullMetaSnapshot(meta);
     setClientMedicalConditions(meta.medicalConditions || 'Hypertension, Mild Arthritis');
     setClientEmergencyContact(meta.emergencyContact || 'Family Representative (+1-604-555-0199)');
     setClientAllergiesNotes(meta.allergiesNotes || 'No known drug allergies (NKDA)');
@@ -1442,7 +1577,10 @@ export default function Home() {
     if (!targetClientEditor) return;
     setIsSavingClientProfile(true);
     try {
+      // Preserve any existing metadata (care preferences, emergency contacts, etc.)
+      // instead of overwriting the whole record with just these 3 fields.
       const profileMetadata = {
+        ...clientFullMetaSnapshot,
         medicalConditions: clientMedicalConditions,
         emergencyContact: clientEmergencyContact,
         allergiesNotes: clientAllergiesNotes,
@@ -1455,6 +1593,7 @@ export default function Home() {
         body: JSON.stringify({
           clientId: targetClientEditor.id,
           geofenceRadiusMeter: clientGeofenceRadiusInput,
+          billingRatePerHour: clientBillingRateInput === '' ? null : parseFloat(clientBillingRateInput),
           profileMetadata,
         }),
       });
@@ -2602,7 +2741,7 @@ export default function Home() {
                 <div className="p-3 bg-purple-50/80 border border-purple-200 rounded-xl text-xs flex justify-between items-center shadow-2xs mb-4">
                   <div>
                     <span className="font-bold text-purple-900 block text-xs">{targetShift.client.name}</span>
-                    <span className="text-[10px] text-purple-700 font-mono">Scheduled End: {new Date(targetShift.scheduledEnd).toLocaleString()}</span>
+                    <span className="text-[10px] text-purple-700 font-mono">Scheduled End: {formatDateTime(targetShift.scheduledEnd)}</span>
                   </div>
                   {overtime && (
                     <span className="px-2.5 py-0.5 rounded-full bg-amber-500 text-white font-bold text-[10px] uppercase">Overtime</span>
@@ -2885,7 +3024,7 @@ export default function Home() {
                   <div className="p-3 bg-purple-50/80 border border-purple-200 rounded-xl text-xs flex justify-between items-center shadow-2xs">
                     <div>
                       <span className="font-bold text-purple-900 block text-xs">Linked Shift: {activeShift.client.name}</span>
-                      <span className="text-[10px] text-purple-700 font-mono">Scheduled: {new Date(activeShift.scheduledStart).toLocaleString()}</span>
+                      <span className="text-[10px] text-purple-700 font-mono">Scheduled: {formatDateTime(activeShift.scheduledStart)}</span>
                     </div>
                     <span className="px-2.5 py-0.5 rounded-full bg-purple-600 text-white font-bold text-[10px] uppercase">
                       {activeShift.status}
@@ -3113,7 +3252,7 @@ export default function Home() {
                 </span>
                 <div>
                   <div className="text-xs font-bold text-white">{activeMediaModal.caregiverName || 'Caregiver Update'}</div>
-                  <div className="text-[10px] text-slate-400">{activeMediaModal.createdAt ? new Date(activeMediaModal.createdAt).toLocaleString() : 'Recent Media Log'}</div>
+                  <div className="text-[10px] text-slate-400">{activeMediaModal.createdAt ? formatDateTime(activeMediaModal.createdAt) : 'Recent Media Log'}</div>
                 </div>
               </div>
               <button onClick={() => setActiveMediaModal(null)} className="text-slate-400 hover:text-white font-bold text-lg p-2"><i className="fa-solid fa-xmark text-lg"></i></button>
@@ -3246,7 +3385,7 @@ export default function Home() {
                     <div className="bg-slate-800/80 p-2 rounded-lg border border-slate-700">
                       <span className="text-slate-400 block text-[9px] uppercase font-sans">Last Sync</span>
                       <span className="font-bold text-emerald-400 text-xs">
-                        {gpsLocationHistory.length > 0 ? new Date(gpsLocationHistory[gpsLocationHistory.length - 1].timestamp).toLocaleTimeString() : 'N/A'}
+                        {gpsLocationHistory.length > 0 ? formatTime(gpsLocationHistory[gpsLocationHistory.length - 1].timestamp) : 'N/A'}
                       </span>
                     </div>
                   </div>
@@ -3306,6 +3445,26 @@ export default function Home() {
                   <span>300m (Rural)</span>
                   <span>500m (Wide)</span>
                 </div>
+              </div>
+
+              {/* Billing Rate */}
+              <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+                <label className="font-bold text-gray-700 uppercase tracking-wider text-[11px] flex items-center gap-1.5 mb-2">
+                  <i className="fa-solid fa-dollar-sign text-emerald-600"></i> Client Billing Rate (per hour)
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">$</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="e.g. 38.00"
+                    value={clientBillingRateInput}
+                    onChange={(e) => setClientBillingRateInput(e.target.value)}
+                    className="w-full bg-white border border-gray-200 rounded-xl pl-7 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+                <p className="text-[10px] text-gray-400 mt-1.5">Used to auto-calculate invoices from this client's logged shift hours.</p>
               </div>
 
               {/* Medical Conditions */}
@@ -3655,7 +3814,7 @@ export default function Home() {
                               }`}>
                                 {log.outcome}
                               </span>
-                              <span className="text-gray-400">{new Date(log.timestamp).toLocaleString()}</span>
+                              <span className="text-gray-400">{formatDateTime(log.timestamp)}</span>
                             </div>
                           </div>
 
@@ -3683,7 +3842,7 @@ export default function Home() {
       )}
 
       {/* ==================== SIDEBAR ==================== */}
-      <aside className="w-64 bg-white border-r border-gray-200 min-h-screen flex flex-col sticky top-0">
+      <aside className="w-64 bg-white border-r border-gray-200 min-h-screen flex flex-col sticky top-0 print:hidden">
         {/* Brand */}
         <div className="px-6 py-6 border-b border-gray-100">
           <div className="flex items-center gap-2">
@@ -3726,6 +3885,11 @@ export default function Home() {
               {user.role === 'ADMIN' && (
                 <button onClick={() => setCurrentView('financials')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'financials' ? 'bg-purple-50 text-purple-600 border-r-2 border-purple-600' : 'text-gray-600 hover:bg-gray-50'}`}>
                   <i className="fa-solid fa-sack-dollar w-5 text-center"></i> Payroll
+                </button>
+              )}
+              {user.role === 'ADMIN' && (
+                <button onClick={() => setCurrentView('billing')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'billing' ? 'bg-purple-50 text-purple-600 border-r-2 border-purple-600' : 'text-gray-600 hover:bg-gray-50'}`}>
+                  <i className="fa-solid fa-file-invoice-dollar w-5 text-center"></i> Billing
                 </button>
               )}
               <button onClick={() => setCurrentView('messages')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'messages' ? 'bg-purple-50 text-purple-600 border-r-2 border-purple-600' : 'text-gray-600 hover:bg-gray-50'}`}>
@@ -3779,9 +3943,9 @@ export default function Home() {
       </aside>
 
       {/* ==================== MAIN CONTENT ==================== */}
-      <main className="flex-1 flex flex-col min-h-screen">
+      <main className="flex-1 flex flex-col min-h-screen print:hidden">
         {/* Top Bar */}
-        <header className="bg-white border-b border-gray-200 px-8 py-4 flex items-center justify-between sticky top-0 z-30">
+        <header className="bg-white border-b border-gray-200 px-8 py-4 flex items-center justify-between sticky top-0 z-30 print:hidden">
           <div className="flex items-center gap-4 flex-1">
             <h2 className="text-lg font-semibold text-gray-800">
               {currentView === 'dashboard' && 'Dashboard'}
@@ -3793,6 +3957,7 @@ export default function Home() {
               {currentView === 'interested' && 'Alerts & Notifications'}
               {currentView === 'audit' && 'Audit Logs'}
               {currentView === 'financials' && 'Payroll'}
+              {currentView === 'billing' && 'Billing & Invoices'}
               {currentView === 'messages' && (user.role === 'ADMIN' || user.role === 'CARE_COORDINATOR' ? 'Message Monitoring' : 'Messages')}
             </h2>
             <div className="relative flex-1 max-w-md ml-4">
@@ -3836,7 +4001,7 @@ export default function Home() {
                         <div key={n.id} onClick={() => handleMarkNotificationRead(n.id)} className={`p-4 hover:bg-gray-50 transition-all cursor-pointer ${!n.isRead ? 'bg-purple-50/40' : ''}`}>
                           <div className="flex justify-between items-start mb-1">
                             <span className="font-semibold text-xs text-gray-800">{n.title}</span>
-                            <span className="text-[10px] text-gray-400">{new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                            <span className="text-[10px] text-gray-400">{formatTime(n.createdAt)}</span>
                           </div>
                           <p className="text-xs text-gray-600">{n.message}</p>
                         </div>
@@ -3940,7 +4105,7 @@ export default function Home() {
                               <div key={shift.id} className="flex items-center justify-between pb-3 border-b border-gray-100 last:border-0">
                                 <div>
                                   <div className="font-bold text-sm text-gray-800">{shift.client.name}</div>
-                                  <div className="text-xs text-gray-400 mt-0.5"><i className="fa-regular fa-clock mr-1"></i>{new Date(shift.scheduledStart).toLocaleString()}</div>
+                                  <div className="text-xs text-gray-400 mt-0.5"><i className="fa-regular fa-clock mr-1"></i>{formatDateTime(shift.scheduledStart)}</div>
                                 </div>
                                 <button onClick={() => handleConfirmShift(shift.id, false)} className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs rounded-lg cursor-pointer shadow-2xs">Confirm Shift</button>
                               </div>
@@ -3967,7 +4132,7 @@ export default function Home() {
                                 <div key={shift.id} className="flex items-center justify-between pb-3 border-b border-gray-100 last:border-0">
                                   <div>
                                     <div className="font-bold text-sm text-gray-800">{shift.client.name}</div>
-                                    <div className="text-xs text-gray-400 mt-0.5"><i className="fa-regular fa-clock mr-1"></i>{new Date(shift.scheduledStart).toLocaleString()}</div>
+                                    <div className="text-xs text-gray-400 mt-0.5"><i className="fa-regular fa-clock mr-1"></i>{formatDateTime(shift.scheduledStart)}</div>
                                   </div>
                                   <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
                                     shift.status === 'IN_PROGRESS' ? 'bg-purple-100 text-purple-700 border border-purple-200' :
@@ -3993,7 +4158,7 @@ export default function Home() {
                         {activityLogs.slice(0, 5).map((log) => (
                           <div key={log.id} className="flex items-start gap-3 pb-3 border-b border-gray-100 last:border-0">
                             <div className={`w-2 h-2 rounded-full mt-2 ${log.details?.hasRedFlags ? 'bg-red-500' : 'bg-purple-600'}`}></div>
-                            <div><div className="text-sm text-gray-700">{log.details?.notes || 'Care update'}</div><div className="text-xs text-gray-400">{new Date(log.createdAt).toLocaleString()}</div></div>
+                            <div><div className="text-sm text-gray-700">{log.details?.notes || 'Care update'}</div><div className="text-xs text-gray-400">{formatDateTime(log.createdAt)}</div></div>
                           </div>
                         ))}
                       </div>
@@ -4317,7 +4482,7 @@ export default function Home() {
                                       </div>
                                       <div className="text-xs text-gray-400 font-medium mt-0.5">
                                         <i className="fa-regular fa-clock mr-1"></i>
-                                        {new Date(log.createdAt).toLocaleString()}
+                                        {formatDateTime(log.createdAt)}
                                       </div>
                                     </div>
                                   </div>
@@ -4477,7 +4642,7 @@ export default function Home() {
                                     )}
                                   </div>
                                   <div className="text-xs text-gray-500 font-medium">Caregiver: {shift.caregiver.name}</div>
-                                  <div className="text-xs text-gray-400 mt-0.5"><i className="fa-regular fa-clock mr-1"></i>{new Date(shift.scheduledStart).toLocaleString()}</div>
+                                  <div className="text-xs text-gray-400 mt-0.5"><i className="fa-regular fa-clock mr-1"></i>{formatDateTime(shift.scheduledStart)}</div>
                                 </div>
                                 <div className="flex items-center gap-2 flex-wrap justify-end">
                                   {shift.status === 'IN_PROGRESS' && (
@@ -4640,7 +4805,7 @@ export default function Home() {
                                         </div>
                                         {st.isCompleted && (
                                           <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-700 text-[10px] font-mono font-bold flex items-center gap-1">
-                                            ✓ Done {st.completedAt ? new Date(st.completedAt).toLocaleTimeString() : ''}
+                                            ✓ Done {st.completedAt ? formatTime(st.completedAt) : ''}
                                           </span>
                                         )}
                                       </label>
@@ -4819,7 +4984,7 @@ export default function Home() {
                           <div className="flex-1">
                             <div className="text-sm font-semibold text-gray-800">{n.title}</div>
                             <div className="text-sm text-gray-600">{n.message}</div>
-                            <div className="text-xs text-gray-400 mt-1">{new Date(n.createdAt).toLocaleString()}</div>
+                            <div className="text-xs text-gray-400 mt-1">{formatDateTime(n.createdAt)}</div>
                           </div>
                           {!n.isRead && <div className="w-2 h-2 rounded-full bg-purple-600 mt-2 flex-shrink-0" />}
                         </div>
@@ -4865,7 +5030,7 @@ export default function Home() {
                         <div className="flex justify-between items-center mb-4">
                           <h3 className="font-semibold text-gray-800">Caregiver Payroll Breakdown</h3>
                           <span className="text-xs text-gray-400">
-                            Week of {new Date(financialsData.weekStart).toLocaleDateString()} — completed shifts only
+                            Week of {formatDate(financialsData.weekStart)} — completed shifts only
                           </span>
                         </div>
 
@@ -4962,6 +5127,152 @@ export default function Home() {
                 </div>
               )}
 
+              {/* ===== BILLING & INVOICES VIEW (Payment Tracker) ===== */}
+              {currentView === 'billing' && user.role === 'ADMIN' && (
+                <div className="space-y-6">
+                  {isLoadingInvoices ? (
+                    <div className="py-16 text-center">
+                      <div className="w-10 h-10 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                      <p className="text-xs font-semibold text-gray-500">Loading billing data...</p>
+                    </div>
+                  ) : invoicesData ? (
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
+                          <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Total Invoiced</div>
+                          <div className="text-2xl font-bold text-gray-800">${invoicesData.totalInvoiced.toFixed(2)}</div>
+                        </div>
+                        <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
+                          <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Total Received</div>
+                          <div className="text-2xl font-bold text-emerald-600">${invoicesData.totalReceived.toFixed(2)}</div>
+                        </div>
+                        <div className="bg-teal-600 rounded-2xl shadow-sm p-6">
+                          <div className="text-xs font-bold text-teal-100 uppercase tracking-wider mb-1">Outstanding</div>
+                          <div className="text-2xl font-bold text-white">${invoicesData.outstanding.toFixed(2)}</div>
+                        </div>
+                        <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
+                          <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Overdue</div>
+                          <div className="text-2xl font-bold text-red-600">${invoicesData.overdue.toFixed(2)}</div>
+                        </div>
+                      </div>
+
+                      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                        <div className="flex justify-between items-center mb-4">
+                          <h3 className="font-semibold text-gray-800 text-lg">Payment Tracker</h3>
+                          <button
+                            onClick={() => setShowGenerateInvoiceModal(true)}
+                            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs rounded-xl flex items-center gap-2 shadow-sm transition-all cursor-pointer"
+                          >
+                            <i className="fa-solid fa-file-invoice"></i> Generate Invoice
+                          </button>
+                        </div>
+
+                        {invoicesData.invoices.length === 0 ? (
+                          <div className="text-center py-12"><p className="text-gray-400">No invoices generated yet</p></div>
+                        ) : (
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                              <thead>
+                                <tr className="text-left text-xs text-gray-500 uppercase border-b border-gray-100">
+                                  <th className="pb-2 font-semibold">Invoice #</th>
+                                  <th className="pb-2 font-semibold">Client</th>
+                                  <th className="pb-2 font-semibold">Service Period</th>
+                                  <th className="pb-2 font-semibold">Amount Due</th>
+                                  <th className="pb-2 font-semibold">Paid</th>
+                                  <th className="pb-2 font-semibold">Balance</th>
+                                  <th className="pb-2 font-semibold">Due Date</th>
+                                  <th className="pb-2 font-semibold">Status</th>
+                                  <th className="pb-2 font-semibold"></th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {invoicesData.invoices.map((inv: any) => (
+                                  <tr key={inv.id} className="border-b border-gray-50">
+                                    <td className="py-3 font-mono text-xs text-gray-600">{inv.invoiceNumber}</td>
+                                    <td className="py-3 font-semibold text-gray-800">{inv.client.name}</td>
+                                    <td className="py-3 text-xs text-gray-500">{formatDate(inv.servicePeriodStart)} - {formatDate(inv.servicePeriodEnd)}</td>
+                                    <td className="py-3">${inv.totalDue.toFixed(2)}</td>
+                                    <td className="py-3">${inv.amountPaid.toFixed(2)}</td>
+                                    <td className="py-3 font-semibold">${inv.balance.toFixed(2)}</td>
+                                    <td className="py-3 text-xs text-gray-500">{formatDate(inv.dueDate)}</td>
+                                    <td className="py-3">
+                                      <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+                                        inv.status === 'PAID' ? 'bg-green-100 text-green-700 border border-green-200' :
+                                        inv.status === 'PARTIAL' ? 'bg-amber-100 text-amber-700 border border-amber-200' :
+                                        inv.status === 'OVERDUE' ? 'bg-red-100 text-red-700 border border-red-200' :
+                                        'bg-teal-100 text-teal-700 border border-teal-200'
+                                      }`}>{inv.status}</span>
+                                    </td>
+                                    <td className="py-3 text-right">
+                                      <div className="flex gap-1.5 justify-end items-center">
+                                        {recordingPaymentFor === inv.id ? (
+                                          <>
+                                            <span className="text-gray-400 text-xs">$</span>
+                                            <input
+                                              type="number"
+                                              step="0.01"
+                                              min="0"
+                                              autoFocus
+                                              value={paymentAmountInput}
+                                              onChange={(e) => setPaymentAmountInput(e.target.value)}
+                                              className="w-20 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                            />
+                                            <select value={paymentMethodInput} onChange={(e) => setPaymentMethodInput(e.target.value)} className="bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500">
+                                              <option>ACH Transfer</option>
+                                              <option>Credit Card</option>
+                                              <option>Cash</option>
+                                              <option>Check</option>
+                                            </select>
+                                            <button onClick={() => handleRecordPayment(inv.id)} className="px-2 py-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs rounded-lg">Save</button>
+                                            <button onClick={() => { setRecordingPaymentFor(null); setPaymentAmountInput(''); }} className="px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-xs rounded-lg">Cancel</button>
+                                          </>
+                                        ) : (
+                                          <>
+                                            {inv.status !== 'PAID' && (
+                                              <button onClick={() => { setRecordingPaymentFor(inv.id); setPaymentAmountInput(''); }} className="px-3 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold text-xs rounded-lg border border-emerald-200">Record Payment</button>
+                                            )}
+                                            <button onClick={() => setViewingInvoice(inv)} className="px-3 py-1 bg-white hover:bg-purple-50 text-purple-600 font-semibold text-xs rounded-lg border border-gray-200 hover:border-purple-300">View / Print</button>
+                                          </>
+                                        )}
+                                      </div>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                        <h3 className="font-semibold text-gray-800 text-lg mb-4">Client Billing Record</h3>
+                        <div className="flex gap-3">
+                          <select
+                            value={selectedBillingClientId}
+                            onChange={(e) => setSelectedBillingClientId(e.target.value)}
+                            className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          >
+                            <option value="">Select a client</option>
+                            {clients.map((c: any) => (
+                              <option key={c.id} value={c.id}>{c.name}</option>
+                            ))}
+                          </select>
+                          <button
+                            onClick={() => loadClientBillingRecord(selectedBillingClientId)}
+                            disabled={!selectedBillingClientId || isLoadingBillingRecord}
+                            className="px-5 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-sm rounded-xl transition-all disabled:opacity-50"
+                          >
+                            {isLoadingBillingRecord ? 'Loading...' : 'View Statement'}
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-center py-12"><p className="text-gray-400">Unable to load billing data.</p></div>
+                  )}
+                </div>
+              )}
+
               {/* ===== MESSAGES VIEW (caregiver/family compose, admin/coordinator monitor read-only) ===== */}
               {currentView === 'messages' && (
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4" style={{ height: 'calc(100vh - 180px)' }}>
@@ -5025,7 +5336,7 @@ export default function Home() {
                                     <i className="fa-solid fa-triangle-exclamation"></i> Attachment unavailable
                                   </div>
                                 )}
-                                <div className={`text-[9px] mt-1 ${isMine ? 'text-purple-200' : 'text-gray-400'}`}>{new Date(m.createdAt).toLocaleString()}</div>
+                                <div className={`text-[9px] mt-1 ${isMine ? 'text-purple-200' : 'text-gray-400'}`}>{formatDateTime(m.createdAt)}</div>
                               </div>
                             </div>
                           );
@@ -5091,7 +5402,7 @@ export default function Home() {
                         <tbody>
                           {auditLogs.map(log => (
                             <tr key={log.id} className="border-b border-gray-100/50 hover:bg-gray-50/30">
-                              <td className="py-3 text-gray-500 font-mono text-[10px]">{new Date(log.timestamp).toLocaleString()}</td>
+                              <td className="py-3 text-gray-500 font-mono text-[10px]">{formatDateTime(log.timestamp)}</td>
                               <td className="py-3 font-semibold text-purple-600">{log.action}</td>
                               <td className="py-3 text-gray-500 font-mono text-[10px]">{log.userId?.substring(0, 8)}</td>
                               <td className="py-3"><span className={`px-2 py-0.5 rounded text-[10px] font-bold ${log.outcome === 'SUCCESS' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{log.outcome}</span></td>
@@ -5116,7 +5427,7 @@ export default function Home() {
                   <div className="space-y-3">
                     {shifts.filter(s => s.status === 'COMPLETED' || s.status === 'IN_PROGRESS').slice(0, 5).map((shift) => (
                       <div key={shift.id} className="flex items-center justify-between border-b border-gray-100 pb-3">
-                        <div><div className="text-sm font-medium">{shift.client.name}</div><div className="text-xs text-gray-400">{new Date(shift.scheduledStart).toLocaleDateString()}</div></div>
+                        <div><div className="text-sm font-medium">{shift.client.name}</div><div className="text-xs text-gray-400">{formatDate(shift.scheduledStart)}</div></div>
                         <span className={`text-sm font-semibold ${shift.status === 'COMPLETED' ? 'text-green-600' : 'text-purple-600'}`}>{shift.status}</span>
                       </div>
                     ))}
@@ -5132,6 +5443,257 @@ export default function Home() {
           &copy; {new Date().getFullYear()} Akirapa. All rights reserved.
         </footer>
       </main>
+
+      {/* Generate Invoice Modal */}
+      {showGenerateInvoiceModal && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-bold text-gray-800 text-base flex items-center gap-2">
+                <i className="fa-solid fa-file-invoice text-purple-600"></i> Generate Invoice
+              </h3>
+              <button onClick={() => setShowGenerateInvoiceModal(false)} className="text-gray-400 hover:text-gray-600 font-bold"><i className="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form onSubmit={handleGenerateInvoice} className="space-y-4 text-xs">
+              <div>
+                <label className="font-semibold text-gray-600 uppercase block mb-1">Client</label>
+                <select required value={invoiceClientId} onChange={(e) => setInvoiceClientId(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                  <option value="">Select a client</option>
+                  {clients.map((c: any) => (
+                    <option key={c.id} value={c.id}>{c.name}{c.billingRatePerHour == null ? ' (no billing rate set)' : ''}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-semibold text-gray-600 uppercase block mb-1">Service Period Start</label>
+                  <input required type="date" value={invoicePeriodStart} onChange={(e) => setInvoicePeriodStart(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                </div>
+                <div>
+                  <label className="font-semibold text-gray-600 uppercase block mb-1">Service Period End</label>
+                  <input required type="date" value={invoicePeriodEnd} onChange={(e) => setInvoicePeriodEnd(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                </div>
+              </div>
+              <div>
+                <label className="font-semibold text-gray-600 uppercase block mb-1">Due Date</label>
+                <input required type="date" value={invoiceDueDate} onChange={(e) => setInvoiceDueDate(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-semibold text-gray-600 uppercase block mb-1">Tax Rate (%)</label>
+                  <input type="number" step="0.01" min="0" value={invoiceTaxRate} onChange={(e) => setInvoiceTaxRate(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                </div>
+                <div>
+                  <label className="font-semibold text-gray-600 uppercase block mb-1">Discount ($)</label>
+                  <input type="number" step="0.01" min="0" value={invoiceDiscount} onChange={(e) => setInvoiceDiscount(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                </div>
+              </div>
+              <p className="text-[10px] text-gray-400">Line items are auto-calculated from this client's completed shifts within the service period, using the client's billing rate.</p>
+              <button type="submit" disabled={isGeneratingInvoice} className="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-sm rounded-xl transition-all disabled:opacity-50">
+                {isGeneratingInvoice ? 'Generating...' : 'Generate Invoice'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Invoice View / Print Template */}
+      {viewingInvoice && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 print:bg-white print:p-0 print:block print:static">
+          <div className="bg-white rounded-2xl shadow-xl max-w-3xl w-full max-h-[92vh] overflow-y-auto print:rounded-none print:shadow-none print:max-h-none print:max-w-none print:overflow-visible">
+            <div className="flex justify-end gap-2 p-4 border-b border-gray-100 print:hidden">
+              <button onClick={() => window.print()} className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs rounded-xl flex items-center gap-2">
+                <i className="fa-solid fa-print"></i> Print / Save as PDF
+              </button>
+              <button onClick={() => setViewingInvoice(null)} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-xs rounded-xl">Close</button>
+            </div>
+
+            <div className="p-10">
+              <div className="flex justify-between items-start border-b-2 border-teal-600 pb-4 mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-teal-600 flex items-center justify-center text-white font-bold">AK</div>
+                  <div>
+                    <div className="font-bold text-teal-700 text-sm uppercase tracking-wide">Akirapa Home Care</div>
+                    <div className="text-[10px] text-gray-400">Compassionate Care, Trusted Support</div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-3xl font-bold text-gray-800">INVOICE</div>
+                  <div className="text-xs text-gray-500 mt-1">INVOICE # <span className="font-semibold text-gray-700">{viewingInvoice.invoiceNumber}</span></div>
+                  <div className="text-xs text-gray-500">DATE <span className="font-semibold text-gray-700">{formatDate(viewingInvoice.issuedDate)}</span></div>
+                </div>
+              </div>
+
+              <div className="flex justify-between items-start mb-8">
+                <div>
+                  <div className="text-[10px] font-bold text-gray-400 uppercase mb-1">Bill To</div>
+                  <div className="font-semibold text-gray-800">{viewingInvoice.client.name}</div>
+                  <div className="text-xs text-gray-500">{viewingInvoice.client.address}</div>
+                </div>
+                <div className="bg-teal-50 rounded-xl px-5 py-3 text-right">
+                  <div className="text-[10px] font-bold text-teal-700 uppercase">Balance Due</div>
+                  <div className="text-2xl font-bold text-teal-700">${viewingInvoice.balance.toFixed(2)}</div>
+                </div>
+              </div>
+
+              <table className="w-full text-sm mb-6">
+                <thead>
+                  <tr className="bg-teal-600 text-white text-left text-xs uppercase">
+                    <th className="py-2 px-3 rounded-l-lg">Service</th>
+                    <th className="py-2 px-3">Date</th>
+                    <th className="py-2 px-3 text-right">Hours</th>
+                    <th className="py-2 px-3 text-right">Rate</th>
+                    <th className="py-2 px-3 text-right rounded-r-lg">Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {viewingInvoice.lineItems.map((li: any, i: number) => (
+                    <tr key={i} className="border-b border-gray-100">
+                      <td className="py-2.5 px-3">{li.description}</td>
+                      <td className="py-2.5 px-3 text-gray-500">{formatDate(li.date)}</td>
+                      <td className="py-2.5 px-3 text-right">{li.hours.toFixed(2)}</td>
+                      <td className="py-2.5 px-3 text-right">${li.rate.toFixed(2)}</td>
+                      <td className="py-2.5 px-3 text-right font-semibold">${li.amount.toFixed(2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              <div className="flex justify-end mb-8">
+                <div className="w-64 space-y-1.5 text-sm">
+                  <div className="flex justify-between text-gray-600"><span>Subtotal</span><span>${viewingInvoice.subtotal.toFixed(2)}</span></div>
+                  <div className="flex justify-between text-gray-600"><span>Tax ({viewingInvoice.taxRate}%)</span><span>${viewingInvoice.taxAmount.toFixed(2)}</span></div>
+                  {viewingInvoice.discountAmount > 0 && (
+                    <div className="flex justify-between text-gray-600"><span>Discount</span><span>-${viewingInvoice.discountAmount.toFixed(2)}</span></div>
+                  )}
+                  <div className="flex justify-between font-bold text-gray-800 text-base bg-teal-600 text-white px-3 py-2 rounded-lg mt-2">
+                    <span>Total Due</span><span>${viewingInvoice.totalDue.toFixed(2)}</span>
+                  </div>
+                  {viewingInvoice.amountPaid > 0 && (
+                    <div className="flex justify-between text-emerald-600 font-semibold"><span>Paid</span><span>${viewingInvoice.amountPaid.toFixed(2)}</span></div>
+                  )}
+                </div>
+              </div>
+
+              <div className="text-xs text-gray-400 border-t border-gray-100 pt-4">
+                Service period: {formatDate(viewingInvoice.servicePeriodStart)} - {formatDate(viewingInvoice.servicePeriodEnd)} &middot; Due {formatDate(viewingInvoice.dueDate)}
+              </div>
+              <div className="text-center text-xs text-gray-400 mt-6 pt-4 border-t border-gray-100">
+                Thank you for trusting our care services.
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Client Billing Record (per-client statement) */}
+      {viewingBillingRecord && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 print:bg-white print:p-0 print:block print:static">
+          <div className="bg-white rounded-2xl shadow-xl max-w-3xl w-full max-h-[92vh] overflow-y-auto print:rounded-none print:shadow-none print:max-h-none print:max-w-none print:overflow-visible">
+            <div className="flex justify-end gap-2 p-4 border-b border-gray-100 print:hidden">
+              <button onClick={() => window.print()} className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs rounded-xl flex items-center gap-2">
+                <i className="fa-solid fa-print"></i> Print / Save as PDF
+              </button>
+              <button onClick={() => setViewingBillingRecord(null)} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-xs rounded-xl">Close</button>
+            </div>
+
+            <div className="p-10">
+              <div className="flex justify-between items-start border-b-2 border-teal-600 pb-4 mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-teal-600 flex items-center justify-center text-white font-bold">AK</div>
+                  <div>
+                    <div className="font-bold text-teal-700 text-sm uppercase tracking-wide">Akirapa Home Care</div>
+                    <div className="text-[10px] text-gray-400">Compassionate Care, Trusted Support</div>
+                  </div>
+                </div>
+                <div className="text-right text-xs text-gray-500">
+                  <div>Statement Date: <span className="font-semibold text-gray-700">{formatDate(new Date())}</span></div>
+                </div>
+              </div>
+
+              <div className="flex justify-between items-start mb-2">
+                <div className="text-3xl font-bold text-gray-800">CLIENT BILLING RECORD</div>
+                <div className="text-right">
+                  <div className="text-[10px] font-bold text-gray-400 uppercase">Account Number</div>
+                  <div className="font-bold text-gray-800">{viewingBillingRecord.accountNumber}</div>
+                </div>
+              </div>
+              <p className="text-xs text-gray-400 mb-8">Track client charges, payments, and account balances.</p>
+
+              <div className="grid grid-cols-2 gap-8 mb-8">
+                <div>
+                  <div className="text-[10px] font-bold text-gray-400 uppercase mb-2">Client Account Information</div>
+                  <div className="text-sm space-y-1">
+                    <div><span className="text-gray-400">Client Name:</span> <span className="font-semibold text-gray-800">{viewingBillingRecord.client.name}</span></div>
+                    {viewingBillingRecord.client.phone && <div><span className="text-gray-400">Phone:</span> <span className="text-gray-700">{viewingBillingRecord.client.phone}</span></div>}
+                    {viewingBillingRecord.client.email && <div><span className="text-gray-400">Email:</span> <span className="text-gray-700">{viewingBillingRecord.client.email}</span></div>}
+                    <div><span className="text-gray-400">Address:</span> <span className="text-gray-700">{viewingBillingRecord.client.address}</span></div>
+                    <div><span className="text-gray-400">Client Since:</span> <span className="text-gray-700">{formatDate(viewingBillingRecord.client.clientSince)}</span></div>
+                  </div>
+                </div>
+                <div className="bg-teal-50 rounded-xl p-4 grid grid-cols-2 gap-3">
+                  <div>
+                    <div className="text-[10px] font-bold text-teal-700 uppercase">Total Charges</div>
+                    <div className="text-lg font-bold text-gray-800">${viewingBillingRecord.totalCharges.toFixed(2)}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-bold text-teal-700 uppercase">Total Payments</div>
+                    <div className="text-lg font-bold text-gray-800">${viewingBillingRecord.totalPayments.toFixed(2)}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-bold text-teal-700 uppercase">Current Balance</div>
+                    <div className="text-lg font-bold text-teal-700">${viewingBillingRecord.currentBalance.toFixed(2)}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-bold text-teal-700 uppercase">Last Payment</div>
+                    <div className="text-sm font-semibold text-gray-800">{viewingBillingRecord.lastPaymentDate ? formatDate(viewingBillingRecord.lastPaymentDate) : '—'}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="text-[10px] font-bold text-gray-400 uppercase mb-2">Billing History</div>
+              <table className="w-full text-sm mb-6">
+                <thead>
+                  <tr className="bg-teal-600 text-white text-left text-xs uppercase">
+                    <th className="py-2 px-3 rounded-l-lg">Date</th>
+                    <th className="py-2 px-3">Invoice #</th>
+                    <th className="py-2 px-3">Service Description</th>
+                    <th className="py-2 px-3 text-right">Charges</th>
+                    <th className="py-2 px-3 text-right">Payments</th>
+                    <th className="py-2 px-3 text-right rounded-r-lg">Balance</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {viewingBillingRecord.history.length === 0 ? (
+                    <tr><td colSpan={6} className="py-6 text-center text-gray-400">No billing activity yet</td></tr>
+                  ) : viewingBillingRecord.history.map((row: any, i: number) => (
+                    <tr key={i} className="border-b border-gray-100">
+                      <td className="py-2.5 px-3 text-gray-500">{formatDate(row.date)}</td>
+                      <td className="py-2.5 px-3 font-mono text-xs text-gray-600">{row.invoiceNumber}</td>
+                      <td className="py-2.5 px-3">{row.description}</td>
+                      <td className="py-2.5 px-3 text-right text-red-600">{row.charge > 0 ? `$${row.charge.toFixed(2)}` : ''}</td>
+                      <td className="py-2.5 px-3 text-right text-emerald-600">{row.payment > 0 ? `$${row.payment.toFixed(2)}` : ''}</td>
+                      <td className="py-2.5 px-3 text-right font-semibold">${row.balance.toFixed(2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="font-bold text-gray-800 border-t-2 border-teal-600">
+                    <td className="py-2.5 px-3" colSpan={3}>Account Totals</td>
+                    <td className="py-2.5 px-3 text-right">${viewingBillingRecord.totalCharges.toFixed(2)}</td>
+                    <td className="py-2.5 px-3 text-right">${viewingBillingRecord.totalPayments.toFixed(2)}</td>
+                    <td className="py-2.5 px-3 text-right">${viewingBillingRecord.currentBalance.toFixed(2)}</td>
+                  </tr>
+                </tfoot>
+              </table>
+
+              <div className="text-center text-xs text-gray-400 pt-4 border-t border-gray-100">
+                Maintain accurate billing records for every client account.
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

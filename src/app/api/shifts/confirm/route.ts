@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { logAudit } from '@/lib/audit';
 import { ShiftStatus } from '@prisma/client';
 import { encrypt } from '@/lib/crypto';
+import { formatDate, formatTime } from '@/lib/dateFormat';
 
 export async function POST(request: Request) {
   try {
@@ -69,8 +70,8 @@ export async function POST(request: Request) {
     const logDetails = {
       type: 'SHIFT_CONFIRMED',
       notes: confirmedByAdmin
-        ? `[ADMIN APPROVED] Admin has confirmed caregiver ${shift.caregiver.name} for the scheduled visit on ${shift.scheduledStart.toLocaleDateString()}.`
-        : `Caregiver ${shift.caregiver.name} has confirmed they will work the scheduled visit on ${shift.scheduledStart.toLocaleDateString()} starting at ${shift.scheduledStart.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}.`,
+        ? `[ADMIN APPROVED] Admin has confirmed caregiver ${shift.caregiver.name} for the scheduled visit on ${formatDate(shift.scheduledStart)}.`
+        : `Caregiver ${shift.caregiver.name} has confirmed they will work the scheduled visit on ${formatDate(shift.scheduledStart)} starting at ${formatTime(shift.scheduledStart)}.`,
       caregiverName: shift.caregiver.name,
       hasRedFlags: false,
     };

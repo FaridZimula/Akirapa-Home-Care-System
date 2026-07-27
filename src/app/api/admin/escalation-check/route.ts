@@ -4,6 +4,7 @@ import { logAudit } from '@/lib/audit';
 import { createNotification } from '@/lib/notifications';
 import { getSessionUser } from '@/lib/session';
 import { ShiftStatus, PodRole } from '@prisma/client';
+import { formatDate, formatTime, formatDateTime } from '@/lib/dateFormat';
 
 export async function POST(request: Request) {
   try {
@@ -106,7 +107,7 @@ export async function POST(request: Request) {
         await createNotification({
           userId: shift.caregiverId,
           title: '⚠️ Missed Shift Confirmation',
-          message: `You did not confirm your shift for ${shift.client.name} (${shift.scheduledStart.toLocaleDateString()}) before the 24-hour deadline. It has been reassigned to another caregiver. Repeated missed confirmations may affect your standing and future shift assignments.`,
+          message: `You did not confirm your shift for ${shift.client.name} (${formatDate(shift.scheduledStart)}) before the 24-hour deadline. It has been reassigned to another caregiver. Repeated missed confirmations may affect your standing and future shift assignments.`,
           type: 'SHIFT_CONFIRMATION_MISSED',
         });
 
@@ -114,7 +115,7 @@ export async function POST(request: Request) {
         await createNotification({
           userId: backupAssignment.caregiverId,
           title: 'New Shift Assigned',
-          message: `You've been assigned to cover client ${shift.client.name} on ${shift.scheduledStart.toLocaleDateString()} at ${shift.scheduledStart.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} after the primary caregiver missed their confirmation deadline. Please confirm before ${nextDeadline.toLocaleString()}.`,
+          message: `You've been assigned to cover client ${shift.client.name} on ${formatDate(shift.scheduledStart)} at ${formatTime(shift.scheduledStart)} after the primary caregiver missed their confirmation deadline. Please confirm before ${formatDateTime(nextDeadline)}.`,
           type: 'SHIFT_ASSIGNED',
         });
 
@@ -122,7 +123,7 @@ export async function POST(request: Request) {
         await Promise.all(adminUsers.map(admin => createNotification({
           userId: admin.id,
           title: 'Shift Auto-Escalated',
-          message: `${shift.caregiver.name} missed the confirmation deadline for ${shift.client.name}'s shift on ${shift.scheduledStart.toLocaleDateString()}. Auto-reassigned to backup caregiver ${backupAssignment!.caregiver.name}.`,
+          message: `${shift.caregiver.name} missed the confirmation deadline for ${shift.client.name}'s shift on ${formatDate(shift.scheduledStart)}. Auto-reassigned to backup caregiver ${backupAssignment!.caregiver.name}.`,
           type: 'SYSTEM_ALERT',
         })));
 
@@ -133,7 +134,7 @@ export async function POST(request: Request) {
           backupCaregiver: backupAssignment.caregiver.name,
           smsAlertMock: {
             to: backupAssignment.caregiver.phoneNumber || '+16045550000',
-            message: `AUTO-ALERT: Shift confirmation missed by primary caregiver. You have been assigned to cover client ${shift.client.name} on ${shift.scheduledStart.toLocaleDateString()}. Confirm before ${nextDeadline.toLocaleTimeString()}.`,
+            message: `AUTO-ALERT: Shift confirmation missed by primary caregiver. You have been assigned to cover client ${shift.client.name} on ${formatDate(shift.scheduledStart)}. Confirm before ${formatTime(nextDeadline)}.`,
           },
         });
       } else {
@@ -149,7 +150,7 @@ export async function POST(request: Request) {
         await createNotification({
           userId: shift.caregiverId,
           title: '⚠️ Missed Shift Confirmation',
-          message: `You did not confirm your shift for ${shift.client.name} (${shift.scheduledStart.toLocaleDateString()}) before the 24-hour deadline. No backup caregiver was available to cover it. Contact your coordinator immediately - repeated missed confirmations may affect your standing and future shift assignments.`,
+          message: `You did not confirm your shift for ${shift.client.name} (${formatDate(shift.scheduledStart)}) before the 24-hour deadline. No backup caregiver was available to cover it. Contact your coordinator immediately - repeated missed confirmations may affect your standing and future shift assignments.`,
           type: 'SHIFT_CONFIRMATION_MISSED',
         });
 
@@ -157,7 +158,7 @@ export async function POST(request: Request) {
         await Promise.all(adminUsers.map(admin => createNotification({
           userId: admin.id,
           title: '🚨 CRITICAL: Unfilled Shift',
-          message: `${shift.caregiver.name} missed the confirmation deadline for ${shift.client.name}'s shift on ${shift.scheduledStart.toLocaleDateString()} and no backup caregiver was available in the pod. This shift needs manual coverage now.`,
+          message: `${shift.caregiver.name} missed the confirmation deadline for ${shift.client.name}'s shift on ${formatDate(shift.scheduledStart)} and no backup caregiver was available in the pod. This shift needs manual coverage now.`,
           type: 'SYSTEM_ALERT',
         })));
 
