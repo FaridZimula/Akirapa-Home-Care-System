@@ -4,11 +4,33 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { formatDate, formatTime, formatDateTime } from '@/lib/dateFormat';
 
+// Structured client welfare check, asked every shift. Polarity is explicit per
+// question (some are "good = YES", others "bad = YES") so the computed
+// red-flag object stays consistent: true always means "this is concerning."
+const WELFARE_QUESTIONS: Array<{ key: string; question: string; concerningAnswer: 'YES' | 'NO' }> = [
+  { key: 'appetiteDecline', question: "Did the client eat well today?", concerningAnswer: 'NO' },
+  { key: 'medicationIssue', question: 'Did the client take their medication properly, without hesitation or refusal?', concerningAnswer: 'NO' },
+  { key: 'behavioralChanges', question: "Did the client's behavior or mood seem different from their normal self?", concerningAnswer: 'YES' },
+  { key: 'weaknessOrFatigue', question: 'Did the client seem weaker or more fatigued than usual?', concerningAnswer: 'YES' },
+  { key: 'mobilityOrFallIssue', question: 'Did the client stumble, fall, or have difficulty moving safely?', concerningAnswer: 'YES' },
+  { key: 'cognitiveConfusion', question: 'Did the client show any confusion or disorientation?', concerningAnswer: 'YES' },
+  { key: 'hydrationConcern', question: 'Did the client drink enough fluids today?', concerningAnswer: 'NO' },
+  { key: 'newOrWorseningPain', question: 'Did the client report any new or worsening pain?', concerningAnswer: 'YES' },
+];
+
+type WelfareAnswers = Record<string, 'YES' | 'NO' | null>;
+
+const EMPTY_WELFARE_ANSWERS: WelfareAnswers = Object.fromEntries(WELFARE_QUESTIONS.map(q => [q.key, null]));
+
+function computeWelfareRedFlags(answers: WelfareAnswers): Record<string, boolean> {
+  return Object.fromEntries(WELFARE_QUESTIONS.map(q => [q.key, answers[q.key] === q.concerningAnswer]));
+}
+
 export default function Home() {
   const { user, loading: authLoading, login, logout } = useAuth();
   
   // Navigation state
-  const [currentView, setCurrentView] = useState<'dashboard' | 'profile' | 'listings' | 'create' | 'purchases' | 'business' | 'interested' | 'settings' | 'audit' | 'financials' | 'billing' | 'messages'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'profile' | 'listings' | 'create' | 'purchases' | 'business' | 'interested' | 'settings' | 'audit' | 'financials' | 'billing' | 'messages' | 'caregiverReviews'>('dashboard');
   
   // Auth flow states
   const [viewState, setViewState] = useState<'splash' | 'login' | 'signup' | 'forgot_password' | 'dashboard'>('splash');
@@ -64,13 +86,8 @@ export default function Home() {
   const [isSubmittingClockOut, setIsSubmittingClockOut] = useState(false);
   const autoClockOutTriggeredRef = useRef<Set<string>>(new Set());
   
-  // Red Flags
-  const [redFlags, setRedFlags] = useState({
-    cognitiveConfusion: false,
-    fallDetected: false,
-    behavioralChanges: false,
-    mobilityDecline: false,
-  });
+  // Structured welfare check answers (Y/N per WELFARE_QUESTIONS)
+  const [welfareAnswers, setWelfareAnswers] = useState<WelfareAnswers>(EMPTY_WELFARE_ANSWERS);
 
   // Wellness Logs
   const [wellnessMood, setWellnessMood] = useState('Calm');
@@ -211,6 +228,12 @@ export default function Home() {
   const [carePreferences, setCarePreferences] = useState<string[]>([]);
   const [otherPreferences, setOtherPreferences] = useState('');
 
+  // Signup — About Me (personality/routine/caregiver-fit Q&A, editable later by family too)
+  const [patientPersonality, setPatientPersonality] = useState('');
+  const [patientDailyRoutine, setPatientDailyRoutine] = useState('');
+  const [patientPreferredCaregiverType, setPatientPreferredCaregiverType] = useState('');
+  const [patientAdditionalObservations, setPatientAdditionalObservations] = useState('');
+
   // Signup — Caregiver Application Details (only used when signupRole === 'CAREGIVER')
   const [cgDob, setCgDob] = useState('');
   const [cgGender, setCgGender] = useState('');
@@ -307,6 +330,23 @@ export default function Home() {
 
   // 4. Family Activity Feed Client Selector (/api/family/activity-feed)
   const [selectedFeedClientId, setSelectedFeedClientId] = useState<string>('');
+
+  // Family self-service "About Me" editor
+  const [familyAboutMePersonality, setFamilyAboutMePersonality] = useState('');
+  const [familyAboutMeDailyRoutine, setFamilyAboutMeDailyRoutine] = useState('');
+  const [familyAboutMePreferredCaregiverType, setFamilyAboutMePreferredCaregiverType] = useState('');
+  const [familyAboutMeObservations, setFamilyAboutMeObservations] = useState('');
+  const [isSavingAboutMe, setIsSavingAboutMe] = useState(false);
+
+  // Weekly caregiver review (family-facing)
+  const [weeklyReviewCaregivers, setWeeklyReviewCaregivers] = useState<Array<{ id: string; name: string; existingReview: any }>>([]);
+  const [isLoadingWeeklyReviews, setIsLoadingWeeklyReviews] = useState(false);
+  const [reviewDrafts, setReviewDrafts] = useState<Record<string, { strengths: string; improvements: string; wouldContinue: boolean | null; rating: string }>>({});
+  const [isSubmittingReviewFor, setIsSubmittingReviewFor] = useState<string | null>(null);
+
+  // Admin Caregiver Reviews
+  const [adminCaregiverReviews, setAdminCaregiverReviews] = useState<any[]>([]);
+  const [isLoadingAdminReviews, setIsLoadingAdminReviews] = useState(false);
 
   // Splash Screen Animated Progress & Role Selection State
   const [splashProgress, setSplashProgress] = useState(0);
@@ -771,6 +811,103 @@ export default function Home() {
 
   useEffect(() => { loadData(); }, []);
 
+  // Keep the family "About Me" editor in sync with whichever client is selected
+  useEffect(() => {
+    if (user?.role !== 'FAMILY_MEMBER') return;
+    const activeClient = clients.find((c: any) => c.id === selectedFeedClientId);
+    let meta: any = {};
+    try { meta = activeClient?.profileMetadata ? JSON.parse(activeClient.profileMetadata) : {}; } catch {}
+    setFamilyAboutMePersonality(meta.personality || '');
+    setFamilyAboutMeDailyRoutine(meta.dailyRoutine || '');
+    setFamilyAboutMePreferredCaregiverType(meta.preferredCaregiverType || '');
+    setFamilyAboutMeObservations(meta.additionalObservations || '');
+  }, [selectedFeedClientId, clients, user]);
+
+  const loadWeeklyReviewData = async (clientId: string) => {
+    if (!clientId) return;
+    setIsLoadingWeeklyReviews(true);
+    try {
+      const res = await fetch(`/api/family/caregiver-reviews?clientId=${clientId}`);
+      const data = await res.json();
+      if (res.ok) {
+        setWeeklyReviewCaregivers(data.caregivers || []);
+        const drafts: typeof reviewDrafts = {};
+        for (const c of data.caregivers || []) {
+          drafts[c.id] = {
+            strengths: c.existingReview?.strengths || '',
+            improvements: c.existingReview?.improvements || '',
+            wouldContinue: c.existingReview ? c.existingReview.wouldContinue : null,
+            rating: c.existingReview?.rating != null ? String(c.existingReview.rating) : '',
+          };
+        }
+        setReviewDrafts(drafts);
+      }
+    } catch (err) {
+      console.error('Failed to load weekly review data:', err);
+    } finally {
+      setIsLoadingWeeklyReviews(false);
+    }
+  };
+
+  useEffect(() => {
+    if (user?.role === 'FAMILY_MEMBER' && selectedFeedClientId) {
+      loadWeeklyReviewData(selectedFeedClientId);
+    }
+  }, [selectedFeedClientId, user]);
+
+  const handleSubmitCaregiverReview = async (caregiverId: string) => {
+    const draft = reviewDrafts[caregiverId];
+    if (!draft || draft.wouldContinue === null) {
+      showNotification('Please answer whether you\'d like to continue with this caregiver.');
+      return;
+    }
+    setIsSubmittingReviewFor(caregiverId);
+    try {
+      const res = await fetch('/api/family/caregiver-reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientId: selectedFeedClientId,
+          caregiverId,
+          strengths: draft.strengths,
+          improvements: draft.improvements,
+          wouldContinue: draft.wouldContinue,
+          rating: draft.rating ? parseInt(draft.rating) : null,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showNotification('Review submitted - thank you!');
+        loadWeeklyReviewData(selectedFeedClientId);
+      } else {
+        showNotification(data.error || 'Failed to submit review.');
+      }
+    } catch (err) {
+      console.error('Failed to submit caregiver review:', err);
+    } finally {
+      setIsSubmittingReviewFor(null);
+    }
+  };
+
+  const loadAdminCaregiverReviews = async () => {
+    setIsLoadingAdminReviews(true);
+    try {
+      const res = await fetch('/api/admin/caregiver-reviews');
+      const data = await res.json();
+      if (res.ok) setAdminCaregiverReviews(data.reviews || []);
+    } catch (err) {
+      console.error('Failed to load admin caregiver reviews:', err);
+    } finally {
+      setIsLoadingAdminReviews(false);
+    }
+  };
+
+  useEffect(() => {
+    if (currentView === 'caregiverReviews' && (user?.role === 'ADMIN' || user?.role === 'CARE_COORDINATOR')) {
+      loadAdminCaregiverReviews();
+    }
+  }, [currentView, user]);
+
   useEffect(() => {
     if (currentView === 'financials' && user?.role === 'ADMIN') {
       loadFinancials();
@@ -993,6 +1130,10 @@ export default function Home() {
             } : null,
             carePreferences,
             otherPreferences,
+            personality: patientPersonality,
+            dailyRoutine: patientDailyRoutine,
+            preferredCaregiverType: patientPreferredCaregiverType,
+            additionalObservations: patientAdditionalObservations,
           } : {}),
           ...(signupRole === 'CAREGIVER' ? {
             dob: cgDob,
@@ -1295,12 +1436,7 @@ export default function Home() {
     setOvertimeActionType('OVERTIME_CLAIM');
     setShiftNotes('');
     setSelectedMediaFiles([]);
-    setRedFlags({
-      cognitiveConfusion: false,
-      fallDetected: false,
-      behavioralChanges: false,
-      mobilityDecline: false,
-    });
+    setWelfareAnswers(EMPTY_WELFARE_ANSWERS);
     setClockOutOvertimeReason('');
     setShowClockOutModal(true);
   };
@@ -1389,7 +1525,7 @@ export default function Home() {
         body: JSON.stringify({
           shiftId,
           completedTaskIds: activeShiftTaskIds,
-          redFlags,
+          redFlags: computeWelfareRedFlags(welfareAnswers),
           notes: shiftNotes,
           latitude: lat,
           longitude: lng,
@@ -1405,12 +1541,7 @@ export default function Home() {
         showNotification(isOverride ? 'Manual Override Submitted' : (data.hasRedFlags ? 'Clocked out with CLINICAL WARNINGS' : 'Clocked out successfully!'));
         setShiftNotes('');
         setSelectedMediaFiles([]);
-        setRedFlags({
-          cognitiveConfusion: false,
-          fallDetected: false,
-          behavioralChanges: false,
-          mobilityDecline: false,
-        });
+        setWelfareAnswers(EMPTY_WELFARE_ANSWERS);
         setShowClockOutOverrideInput(false);
         setClockOutOverrideReason('');
         setClockOutOvertimeReason('');
@@ -1497,7 +1628,7 @@ export default function Home() {
           clientId,
           shiftId: shiftId || selectedShiftId || null,
           notes: shiftNotes || (selectedMediaFiles.length > 0 ? 'Uploaded care media update for family.' : 'Daily caregiver observation update.'),
-          redFlags: redFlags,
+          redFlags: computeWelfareRedFlags(welfareAnswers),
           mediaFiles: selectedMediaFiles.map(f => ({ name: f.name, type: f.type })),
           wellness: {
             mood: wellnessMood,
@@ -1514,12 +1645,7 @@ export default function Home() {
         setSelectedMediaFiles([]);
         setSelectedShiftId(null);
         setShowPostUpdateModal(false);
-        setRedFlags({
-          cognitiveConfusion: false,
-          fallDetected: false,
-          behavioralChanges: false,
-          mobilityDecline: false,
-        });
+        setWelfareAnswers(EMPTY_WELFARE_ANSWERS);
         loadData();
       } else {
         const errData = await res.json();
@@ -1609,6 +1735,35 @@ export default function Home() {
       console.error('Failed to save client settings:', err);
     } finally {
       setIsSavingClientProfile(false);
+    }
+  };
+
+  const handleSaveAboutMe = async () => {
+    if (!selectedFeedClientId) return;
+    setIsSavingAboutMe(true);
+    try {
+      const res = await fetch('/api/family/client-profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientId: selectedFeedClientId,
+          personality: familyAboutMePersonality,
+          dailyRoutine: familyAboutMeDailyRoutine,
+          preferredCaregiverType: familyAboutMePreferredCaregiverType,
+          additionalObservations: familyAboutMeObservations,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showNotification('About Me updated!');
+        loadData();
+      } else {
+        showNotification(data.error || 'Failed to save.');
+      }
+    } catch (err) {
+      console.error('Failed to save About Me:', err);
+    } finally {
+      setIsSavingAboutMe(false);
     }
   };
 
@@ -1836,10 +1991,9 @@ export default function Home() {
           shiftId: shiftId,
           notes: `[SAFETY INCIDENT] Type: ${incidentType}. Description: ${incidentDescription}. Action: ${incidentAction}`,
           redFlags: {
-            fallDetected: incidentType === 'Fall',
+            mobilityOrFallIssue: incidentType === 'Fall',
             behavioralChanges: incidentType === 'Behavioral Incident',
             cognitiveConfusion: false,
-            mobilityDecline: false,
           },
           mediaFiles: [],
           wellness: null,
@@ -2550,6 +2704,32 @@ export default function Home() {
                   <input type="text" placeholder="e.g. Prefers quiet mornings, enjoys chess" value={otherPreferences} onChange={(e) => setOtherPreferences(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
                 </div>
               </div>
+
+              <div className="pt-3 border-t border-gray-100">
+                <div className="flex flex-col items-center mb-4">
+                  <div className="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center mb-2"><i className="fa-solid fa-comment-dots text-teal-600 text-sm"></i></div>
+                  <h3 className="text-xs font-bold text-teal-700 uppercase tracking-wider">About Me</h3>
+                  <p className="text-[11px] text-gray-400 mt-1 text-center">Help your care team get to know you. You (or your family) can update these anytime later.</p>
+                </div>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 uppercase">What are you like as a person?</label>
+                    <textarea placeholder="e.g. Cheerful and independent, loves telling stories about her grandchildren" value={patientPersonality} onChange={(e) => setPatientPersonality(e.target.value)} rows={2} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 uppercase">What does a typical day look like for you?</label>
+                    <textarea placeholder="e.g. Wakes at 7am, likes tea and the news, afternoon nap, early dinner" value={patientDailyRoutine} onChange={(e) => setPatientDailyRoutine(e.target.value)} rows={2} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 uppercase">What kind of caregiver would you prefer to work with?</label>
+                    <textarea placeholder="e.g. Someone patient and soft-spoken, comfortable with a female caregiver, shares an interest in gardening" value={patientPreferredCaregiverType} onChange={(e) => setPatientPreferredCaregiverType(e.target.value)} rows={2} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 uppercase">Anything else about your life we should know?</label>
+                    <textarea placeholder="e.g. Recently lost her husband, family visits every Sunday, has a cat named Whiskers" value={patientAdditionalObservations} onChange={(e) => setPatientAdditionalObservations(e.target.value)} rows={2} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none" />
+                  </div>
+                </div>
+              </div>
             </>
           )}
 
@@ -2886,27 +3066,32 @@ export default function Home() {
                     />
                   </div>
 
-                  <div className="bg-red-50/60 border border-red-100 rounded-xl p-3 text-xs space-y-1.5">
+                  <div className="bg-red-50/60 border border-red-100 rounded-xl p-3 text-xs space-y-2">
                     <div className="font-semibold text-red-800 text-[11px] flex items-center gap-1.5 mb-1">
-                      <i className="fa-solid fa-shield-cat"></i> Flag Clinical Concerns (Optional Alert)
+                      <i className="fa-solid fa-shield-cat"></i> Daily Welfare Check <span className="text-red-500">*</span> (Required)
                     </div>
-                    <div className="grid grid-cols-2 gap-1.5 text-[11px] text-gray-700">
-                      <label className="flex items-center gap-1.5 cursor-pointer">
-                        <input type="checkbox" checked={redFlags.cognitiveConfusion} onChange={(e) => setRedFlags({ ...redFlags, cognitiveConfusion: e.target.checked })} />
-                        <span>Cognitive Confusion</span>
-                      </label>
-                      <label className="flex items-center gap-1.5 cursor-pointer">
-                        <input type="checkbox" checked={redFlags.fallDetected} onChange={(e) => setRedFlags({ ...redFlags, fallDetected: e.target.checked })} />
-                        <span>Fall / Stumble</span>
-                      </label>
-                      <label className="flex items-center gap-1.5 cursor-pointer">
-                        <input type="checkbox" checked={redFlags.behavioralChanges} onChange={(e) => setRedFlags({ ...redFlags, behavioralChanges: e.target.checked })} />
-                        <span>Behavioral Change</span>
-                      </label>
-                      <label className="flex items-center gap-1.5 cursor-pointer">
-                        <input type="checkbox" checked={redFlags.mobilityDecline} onChange={(e) => setRedFlags({ ...redFlags, mobilityDecline: e.target.checked })} />
-                        <span>Mobility Decline</span>
-                      </label>
+                    <div className="space-y-2">
+                      {WELFARE_QUESTIONS.map((q) => {
+                        const answer = welfareAnswers[q.key];
+                        const yesIsConcerning = q.concerningAnswer === 'YES';
+                        return (
+                          <div key={q.key} className="flex items-center justify-between gap-2 bg-white rounded-lg border border-red-100 px-2.5 py-2">
+                            <span className="text-gray-700 text-[11px]">{q.question}</span>
+                            <div className="flex gap-1 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => setWelfareAnswers(prev => ({ ...prev, [q.key]: 'YES' }))}
+                                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${answer === 'YES' ? (yesIsConcerning ? 'bg-red-600 text-white' : 'bg-emerald-600 text-white') : 'bg-gray-50 border border-gray-200 text-gray-500 hover:bg-gray-100'}`}
+                              >YES</button>
+                              <button
+                                type="button"
+                                onClick={() => setWelfareAnswers(prev => ({ ...prev, [q.key]: 'NO' }))}
+                                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${answer === 'NO' ? (!yesIsConcerning ? 'bg-red-600 text-white' : 'bg-emerald-600 text-white') : 'bg-gray-50 border border-gray-200 text-gray-500 hover:bg-gray-100'}`}
+                              >NO</button>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -2979,7 +3164,7 @@ export default function Home() {
                     ) : (
                       <button
                         type="submit"
-                        disabled={isSubmittingClockOut || !shiftNotes.trim()}
+                        disabled={isSubmittingClockOut || !shiftNotes.trim() || WELFARE_QUESTIONS.some(q => !welfareAnswers[q.key])}
                         className="flex-1 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs rounded-xl shadow-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
                       >
                         {isSubmittingClockOut ? (
@@ -3187,28 +3372,33 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Red Flags Checkboxes */}
-              <div className="bg-red-50/60 border border-red-100 rounded-xl p-3 text-xs space-y-1.5">
+              {/* Welfare Check (optional in this flow) */}
+              <div className="bg-red-50/60 border border-red-100 rounded-xl p-3 text-xs space-y-2">
                 <div className="font-semibold text-red-800 text-[11px] flex items-center gap-1.5 mb-1">
-                  <i className="fa-solid fa-shield-cat"></i> Flag Clinical Concerns (Optional Alert)
+                  <i className="fa-solid fa-shield-cat"></i> Client Welfare Check (Optional)
                 </div>
-                <div className="grid grid-cols-2 gap-1.5 text-[11px] text-gray-700">
-                  <label className="flex items-center gap-1.5 cursor-pointer">
-                    <input type="checkbox" checked={redFlags.cognitiveConfusion} onChange={(e) => setRedFlags({ ...redFlags, cognitiveConfusion: e.target.checked })} />
-                    <span>Cognitive Confusion</span>
-                  </label>
-                  <label className="flex items-center gap-1.5 cursor-pointer">
-                    <input type="checkbox" checked={redFlags.fallDetected} onChange={(e) => setRedFlags({ ...redFlags, fallDetected: e.target.checked })} />
-                    <span>Fall / Stumble</span>
-                  </label>
-                  <label className="flex items-center gap-1.5 cursor-pointer">
-                    <input type="checkbox" checked={redFlags.behavioralChanges} onChange={(e) => setRedFlags({ ...redFlags, behavioralChanges: e.target.checked })} />
-                    <span>Behavioral Change</span>
-                  </label>
-                  <label className="flex items-center gap-1.5 cursor-pointer">
-                    <input type="checkbox" checked={redFlags.mobilityDecline} onChange={(e) => setRedFlags({ ...redFlags, mobilityDecline: e.target.checked })} />
-                    <span>Mobility Decline</span>
-                  </label>
+                <div className="space-y-2">
+                  {WELFARE_QUESTIONS.map((q) => {
+                    const answer = welfareAnswers[q.key];
+                    const yesIsConcerning = q.concerningAnswer === 'YES';
+                    return (
+                      <div key={q.key} className="flex items-center justify-between gap-2 bg-white rounded-lg border border-red-100 px-2.5 py-2">
+                        <span className="text-gray-700 text-[11px]">{q.question}</span>
+                        <div className="flex gap-1 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => setWelfareAnswers(prev => ({ ...prev, [q.key]: 'YES' }))}
+                            className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${answer === 'YES' ? (yesIsConcerning ? 'bg-red-600 text-white' : 'bg-emerald-600 text-white') : 'bg-gray-50 border border-gray-200 text-gray-500 hover:bg-gray-100'}`}
+                          >YES</button>
+                          <button
+                            type="button"
+                            onClick={() => setWelfareAnswers(prev => ({ ...prev, [q.key]: 'NO' }))}
+                            className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${answer === 'NO' ? (!yesIsConcerning ? 'bg-red-600 text-white' : 'bg-emerald-600 text-white') : 'bg-gray-50 border border-gray-200 text-gray-500 hover:bg-gray-100'}`}
+                          >NO</button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -3892,6 +4082,11 @@ export default function Home() {
                   <i className="fa-solid fa-file-invoice-dollar w-5 text-center"></i> Billing
                 </button>
               )}
+              {(user.role === 'ADMIN' || user.role === 'CARE_COORDINATOR') && (
+                <button onClick={() => setCurrentView('caregiverReviews')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'caregiverReviews' ? 'bg-purple-50 text-purple-600 border-r-2 border-purple-600' : 'text-gray-600 hover:bg-gray-50'}`}>
+                  <i className="fa-solid fa-star-half-stroke w-5 text-center"></i> Caregiver Reviews
+                </button>
+              )}
               <button onClick={() => setCurrentView('messages')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'messages' ? 'bg-purple-50 text-purple-600 border-r-2 border-purple-600' : 'text-gray-600 hover:bg-gray-50'}`}>
                 <i className="fa-solid fa-comments w-5 text-center"></i> Message Monitoring
               </button>
@@ -3958,6 +4153,7 @@ export default function Home() {
               {currentView === 'audit' && 'Audit Logs'}
               {currentView === 'financials' && 'Payroll'}
               {currentView === 'billing' && 'Billing & Invoices'}
+              {currentView === 'caregiverReviews' && 'Caregiver Reviews'}
               {currentView === 'messages' && (user.role === 'ADMIN' || user.role === 'CARE_COORDINATOR' ? 'Message Monitoring' : 'Messages')}
             </h2>
             <div className="relative flex-1 max-w-md ml-4">
@@ -4424,6 +4620,98 @@ export default function Home() {
                         );
                       })()}
 
+                      {/* About Me - self-service Q&A, editable anytime */}
+                      <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
+                        <h4 className="font-bold text-xs text-teal-700 uppercase tracking-wider mb-1 flex items-center gap-2">
+                          <i className="fa-solid fa-comment-dots text-teal-600"></i> About Me
+                        </h4>
+                        <p className="text-[11px] text-gray-400 mb-3">Help the care team get to know your loved one. Update this anytime.</p>
+                        <div className="space-y-3">
+                          <div>
+                            <label className="text-xs font-semibold text-gray-500 uppercase">What are they like as a person?</label>
+                            <textarea rows={2} value={familyAboutMePersonality} onChange={(e) => setFamilyAboutMePersonality(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none" />
+                          </div>
+                          <div>
+                            <label className="text-xs font-semibold text-gray-500 uppercase">What does a typical day look like for them?</label>
+                            <textarea rows={2} value={familyAboutMeDailyRoutine} onChange={(e) => setFamilyAboutMeDailyRoutine(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none" />
+                          </div>
+                          <div>
+                            <label className="text-xs font-semibold text-gray-500 uppercase">What kind of caregiver would they prefer?</label>
+                            <textarea rows={2} value={familyAboutMePreferredCaregiverType} onChange={(e) => setFamilyAboutMePreferredCaregiverType(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none" />
+                          </div>
+                          <div>
+                            <label className="text-xs font-semibold text-gray-500 uppercase">Anything else we should know?</label>
+                            <textarea rows={2} value={familyAboutMeObservations} onChange={(e) => setFamilyAboutMeObservations(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none" />
+                          </div>
+                          <button
+                            onClick={handleSaveAboutMe}
+                            disabled={isSavingAboutMe || !selectedFeedClientId}
+                            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs rounded-xl transition-all disabled:opacity-50"
+                          >
+                            {isSavingAboutMe ? 'Saving...' : 'Save About Me'}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Rate This Week's Care - weekly caregiver performance review */}
+                      {weeklyReviewCaregivers.length > 0 && (
+                        <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
+                          <h4 className="font-bold text-xs text-teal-700 uppercase tracking-wider mb-1 flex items-center gap-2">
+                            <i className="fa-solid fa-star-half-stroke text-teal-600"></i> Rate This Week's Care
+                          </h4>
+                          <p className="text-[11px] text-gray-400 mb-3">Tell us how this week went with your caregiver(s). This helps us with internal staffing decisions.</p>
+                          <div className="space-y-4">
+                            {weeklyReviewCaregivers.map((c) => {
+                              const draft = reviewDrafts[c.id] || { strengths: '', improvements: '', wouldContinue: null, rating: '' };
+                              const alreadySubmitted = Boolean(c.existingReview);
+                              return (
+                                <div key={c.id} className="border border-gray-100 rounded-xl p-3 space-y-2.5">
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-semibold text-sm text-gray-800">{c.name}</span>
+                                    {alreadySubmitted && (
+                                      <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-1"><i className="fa-solid fa-circle-check"></i> Submitted this week</span>
+                                    )}
+                                  </div>
+                                  <div>
+                                    <label className="text-[10px] font-semibold text-gray-500 uppercase">What did they do well?</label>
+                                    <textarea rows={2} value={draft.strengths} onChange={(e) => setReviewDrafts(prev => ({ ...prev, [c.id]: { ...draft, strengths: e.target.value } }))} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none" />
+                                  </div>
+                                  <div>
+                                    <label className="text-[10px] font-semibold text-gray-500 uppercase">Where could they improve?</label>
+                                    <textarea rows={2} value={draft.improvements} onChange={(e) => setReviewDrafts(prev => ({ ...prev, [c.id]: { ...draft, improvements: e.target.value } }))} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none" />
+                                  </div>
+                                  <div className="flex items-center gap-4 flex-wrap">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-[10px] font-semibold text-gray-500 uppercase">Continue next week?</span>
+                                      <button type="button" onClick={() => setReviewDrafts(prev => ({ ...prev, [c.id]: { ...draft, wouldContinue: true } }))} className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${draft.wouldContinue === true ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>Yes</button>
+                                      <button type="button" onClick={() => setReviewDrafts(prev => ({ ...prev, [c.id]: { ...draft, wouldContinue: false } }))} className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${draft.wouldContinue === false ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>No</button>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-[10px] font-semibold text-gray-500 uppercase">Overall (optional)</span>
+                                      <select value={draft.rating} onChange={(e) => setReviewDrafts(prev => ({ ...prev, [c.id]: { ...draft, rating: e.target.value } }))} className="bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 text-xs">
+                                        <option value="">-</option>
+                                        <option value="1">1 - Poor</option>
+                                        <option value="2">2 - Fair</option>
+                                        <option value="3">3 - Good</option>
+                                        <option value="4">4 - Very Good</option>
+                                        <option value="5">5 - Excellent</option>
+                                      </select>
+                                    </div>
+                                  </div>
+                                  <button
+                                    onClick={() => handleSubmitCaregiverReview(c.id)}
+                                    disabled={isSubmittingReviewFor === c.id}
+                                    className="px-4 py-1.5 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs rounded-lg transition-all disabled:opacity-50"
+                                  >
+                                    {isSubmittingReviewFor === c.id ? 'Saving...' : alreadySubmitted ? 'Update Review' : 'Submit Review'}
+                                  </button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
                       {/* Care Feed Logs */}
                       {activityLogs.length === 0 ? (
                         <div className="text-center py-12 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
@@ -4754,6 +5042,19 @@ export default function Home() {
                                           <i className="fa-solid fa-heart text-gray-400 w-3.5 mt-0.5"></i>
                                           <div className="text-gray-700">
                                             <span className="font-semibold">Preferences:</span> {[...(meta.preferences || []), meta.otherPreferences].filter(Boolean).join(', ')}
+                                          </div>
+                                        </div>
+                                      )}
+
+                                      {(meta.personality || meta.dailyRoutine || meta.preferredCaregiverType || meta.additionalObservations) && (
+                                        <div className="flex items-start gap-2">
+                                          <i className="fa-solid fa-comment-dots text-gray-400 w-3.5 mt-0.5"></i>
+                                          <div className="text-gray-700 space-y-0.5">
+                                            <div className="font-semibold">About Me</div>
+                                            {meta.personality && <div><span className="text-gray-500">Personality:</span> {meta.personality}</div>}
+                                            {meta.dailyRoutine && <div><span className="text-gray-500">Typical day:</span> {meta.dailyRoutine}</div>}
+                                            {meta.preferredCaregiverType && <div><span className="text-gray-500">Prefers:</span> {meta.preferredCaregiverType}</div>}
+                                            {meta.additionalObservations && <div><span className="text-gray-500">Notes:</span> {meta.additionalObservations}</div>}
                                           </div>
                                         </div>
                                       )}
@@ -5269,6 +5570,54 @@ export default function Home() {
                     </>
                   ) : (
                     <div className="text-center py-12"><p className="text-gray-400">Unable to load billing data.</p></div>
+                  )}
+                </div>
+              )}
+
+              {/* ===== CAREGIVER REVIEWS VIEW (admin/coordinator only - never shown to caregivers) ===== */}
+              {currentView === 'caregiverReviews' && (user.role === 'ADMIN' || user.role === 'CARE_COORDINATOR') && (
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                  <h3 className="font-semibold text-gray-800 text-lg mb-1">Weekly Caregiver Reviews</h3>
+                  <p className="text-xs text-gray-400 mb-4">Submitted by clients/family members each week. Not visible to caregivers.</p>
+                  {isLoadingAdminReviews ? (
+                    <div className="py-16 text-center"><div className="w-10 h-10 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto" /></div>
+                  ) : adminCaregiverReviews.length === 0 ? (
+                    <div className="text-center py-12"><p className="text-gray-400">No reviews submitted yet</p></div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="text-left text-xs text-gray-500 uppercase border-b border-gray-100">
+                            <th className="pb-2 font-semibold">Week</th>
+                            <th className="pb-2 font-semibold">Caregiver</th>
+                            <th className="pb-2 font-semibold">Client</th>
+                            <th className="pb-2 font-semibold">Reviewed By</th>
+                            <th className="pb-2 font-semibold">Rating</th>
+                            <th className="pb-2 font-semibold">Continue?</th>
+                            <th className="pb-2 font-semibold">Strengths</th>
+                            <th className="pb-2 font-semibold">Improvements</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {adminCaregiverReviews.map((r: any) => (
+                            <tr key={r.id} className="border-b border-gray-50 align-top">
+                              <td className="py-3 text-xs text-gray-500 whitespace-nowrap">{formatDate(r.weekStart)}</td>
+                              <td className="py-3 font-semibold text-gray-800 whitespace-nowrap">{r.caregiver.name}</td>
+                              <td className="py-3 text-gray-600 whitespace-nowrap">{r.client.name}</td>
+                              <td className="py-3 text-xs text-gray-500 whitespace-nowrap">{r.reviewer.name}</td>
+                              <td className="py-3">{r.rating != null ? `${r.rating}/5` : '—'}</td>
+                              <td className="py-3">
+                                <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${r.wouldContinue ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-red-100 text-red-700 border border-red-200'}`}>
+                                  {r.wouldContinue ? 'Yes' : 'No'}
+                                </span>
+                              </td>
+                              <td className="py-3 text-gray-600 max-w-xs">{r.strengths || '—'}</td>
+                              <td className="py-3 text-gray-600 max-w-xs">{r.improvements || '—'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   )}
                 </div>
               )}

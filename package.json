@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "chat": "npx -y serve \"Messaging App\" -p 3001",
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint"

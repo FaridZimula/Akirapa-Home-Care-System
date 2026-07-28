@@ -1,18 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/session';
+import { getCurrentWeekStart } from '@/lib/weekBounds';
 import { ShiftStatus } from '@prisma/client';
-
-// Monday 00:00:00 (server local time) through now.
-function getCurrentWeekStart(): Date {
-  const now = new Date();
-  const day = now.getDay(); // 0 = Sunday, 1 = Monday, ...
-  const daysSinceMonday = (day + 6) % 7;
-  const weekStart = new Date(now);
-  weekStart.setDate(now.getDate() - daysSinceMonday);
-  weekStart.setHours(0, 0, 0, 0);
-  return weekStart;
-}
 
 export async function GET() {
   try {

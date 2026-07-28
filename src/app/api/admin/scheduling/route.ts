@@ -4,6 +4,23 @@ import { logAudit } from '@/lib/audit';
 import { getSessionUser } from '@/lib/session';
 import { ShiftStatus } from '@prisma/client';
 
+const clientInclude = {
+  caregiverPods: {
+    include: {
+      caregiver: {
+        select: { id: true, name: true, email: true, phoneNumber: true },
+      },
+    },
+  },
+  familyMembers: {
+    include: {
+      user: {
+        select: { id: true, name: true, email: true, phoneNumber: true },
+      },
+    },
+  },
+};
+
 export async function GET() {
   try {
     const sessionUser = await getSessionUser();
@@ -11,23 +28,25 @@ export async function GET() {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
+    let clientIds: string[] | null = null; // null = no restriction (admin/coordinator)
+
+    if (sessionUser.role === 'FAMILY_MEMBER') {
+      const links = await prisma.linkedFamilyMember.findMany({
+        where: { userId: sessionUser.id },
+        select: { clientId: true },
+      });
+      clientIds = links.map(l => l.clientId);
+    } else if (sessionUser.role === 'CAREGIVER') {
+      const pods = await prisma.caregiverPod.findMany({
+        where: { caregiverId: sessionUser.id },
+        select: { clientId: true },
+      });
+      clientIds = pods.map(p => p.clientId);
+    }
+
     const clients = await prisma.client.findMany({
-      include: {
-        caregiverPods: {
-          include: {
-            caregiver: {
-              select: { id: true, name: true, email: true, phoneNumber: true },
-            },
-          },
-        },
-        familyMembers: {
-          include: {
-            user: {
-              select: { id: true, name: true, email: true, phoneNumber: true },
-            },
-          },
-        },
-      },
+      where: clientIds !== null ? { id: { in: clientIds } } : undefined,
+      include: clientInclude,
     });
 
     const caregivers = await prisma.user.findMany({
@@ -36,6 +55,11 @@ export async function GET() {
     });
 
     const shifts = await prisma.shift.findMany({
+      where: sessionUser.role === 'CAREGIVER'
+        ? { caregiverId: sessionUser.id }
+        : clientIds !== null
+          ? { clientId: { in: clientIds } }
+          : undefined,
       include: {
         client: true,
         caregiver: true,

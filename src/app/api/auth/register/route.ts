@@ -52,7 +52,11 @@ export async function POST(request: Request) {
       primaryEmergency,
       secondaryEmergency,
       carePreferences,
-      otherPreferences
+      otherPreferences,
+      personality,
+      dailyRoutine,
+      preferredCaregiverType,
+      additionalObservations
     } = await request.json();
 
     if (!email || !password || !name || !code) {
@@ -227,6 +231,10 @@ export async function POST(request: Request) {
           secondaryEmergency,
           preferences: Array.isArray(carePreferences) ? carePreferences : [],
           otherPreferences: otherPreferences || '',
+          personality: personality || '',
+          dailyRoutine: dailyRoutine || '',
+          preferredCaregiverType: preferredCaregiverType || '',
+          additionalObservations: additionalObservations || '',
         });
 
         // Create custom patient profile from signup fields

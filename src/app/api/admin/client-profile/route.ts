@@ -1,9 +1,15 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { logAudit } from '@/lib/audit';
+import { getSessionUser } from '@/lib/session';
 
 export async function POST(request: Request) {
   try {
+    const sessionUser = await getSessionUser();
+    if (!sessionUser || (sessionUser.role !== 'ADMIN' && sessionUser.role !== 'CARE_COORDINATOR')) {
+      return NextResponse.json({ error: 'Client profile updates are restricted to administrators' }, { status: 403 });
+    }
+
     const { clientId, geofenceRadiusMeter, billingRatePerHour, profileMetadata } = await request.json();
 
     if (!clientId) {
@@ -27,7 +33,7 @@ export async function POST(request: Request) {
     });
 
     await logAudit({
-      userId: 'ADMIN',
+      userId: sessionUser.id,
       action: 'UPDATE_CLIENT_PROFILE_SETTINGS',
       details: `Updated profile metadata and geofence radius (${updatedClient.geofenceRadiusMeter}m) for client: ${updatedClient.name}`,
       outcome: 'SUCCESS',
