@@ -287,7 +287,7 @@ export default function Home() {
   const [viewingBillingRecord, setViewingBillingRecord] = useState<any>(null);
 
   // Messaging (caregiver <-> family, monitored by admin/coordinator)
-  const [messageConversations, setMessageConversations] = useState<Array<{ id: string; name: string }>>([]);
+  const [messageConversations, setMessageConversations] = useState<Array<{ id: string; name: string; participants: Array<{ id: string; name: string; role: string }> }>>([]);
   const [selectedMessageClientId, setSelectedMessageClientId] = useState<string>('');
   const [messageThread, setMessageThread] = useState<any[]>([]);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
@@ -5273,7 +5273,7 @@ export default function Home() {
                 </div>
               )}
 
-              {/* ===== MESSAGES VIEW (caregiver/family compose, admin/coordinator monitor read-only) ===== */}
+              {/* ===== MESSAGES VIEW (everyone can compose; admin/coordinator access is additionally audit-logged) ===== */}
               {currentView === 'messages' && (
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4" style={{ height: 'calc(100vh - 180px)' }}>
                   {/* Conversation list */}
@@ -5289,7 +5289,12 @@ export default function Home() {
                             onClick={() => setSelectedMessageClientId(c.id)}
                             className={`w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${selectedMessageClientId === c.id ? 'bg-purple-50 text-purple-600' : 'text-gray-600 hover:bg-gray-50'}`}
                           >
-                            {c.name}
+                            <div>{c.name}</div>
+                            <div className={`text-[10px] font-normal mt-0.5 ${selectedMessageClientId === c.id ? 'text-purple-400' : 'text-gray-400'}`}>
+                              {c.participants.length === 0
+                                ? 'No care team assigned yet'
+                                : c.participants.map(p => `${p.name} (${p.role === 'CAREGIVER' ? 'Caregiver' : 'Family'})`).join(' · ')}
+                            </div>
                           </button>
                         ))}
                       </div>
@@ -5300,7 +5305,7 @@ export default function Home() {
                   <div className="md:col-span-3 bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden">
                     {(user.role === 'ADMIN' || user.role === 'CARE_COORDINATOR') && (
                       <div className="px-4 py-2 bg-amber-50 border-b border-amber-100 text-[11px] text-amber-800 font-semibold flex items-center gap-1.5">
-                        <i className="fa-solid fa-eye"></i> Monitoring view — read-only, access is logged for accountability
+                        <i className="fa-solid fa-eye"></i> You can message this client's care team directly — all access and messages sent here are logged for accountability.
                       </div>
                     )}
 
@@ -5344,7 +5349,7 @@ export default function Home() {
                       )}
                     </div>
 
-                    {user.role !== 'ADMIN' && user.role !== 'CARE_COORDINATOR' && selectedMessageClientId && (
+                    {selectedMessageClientId && (
                       <div className="border-t border-gray-100 p-3">
                         {selectedMediaFiles.length > 0 && (
                           <div className="mb-2 flex items-center gap-2 bg-purple-50 rounded-lg px-3 py-1.5 text-xs text-purple-700">
