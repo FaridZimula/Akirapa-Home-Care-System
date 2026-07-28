@@ -3505,21 +3505,21 @@ export default function Home() {
                   <div className="relative w-full h-72 bg-slate-950/80 rounded-xl border border-slate-800 flex items-center justify-center overflow-hidden">
                     <svg className="w-full h-full" viewBox="0 0 500 300">
                       {/* Geofence Perimeter Circle */}
-                      <circle cx="250" cy="150" r="90" fill="rgba(89, 51, 109, 0.08)" stroke="#764b8d" strokeWidth="2" strokeDasharray="6 4" />
+                      <circle cx="250" cy="150" r="90" fill="rgba(119, 36, 140, 0.08)" stroke="#9438ad" strokeWidth="2" strokeDasharray="6 4" />
                       <circle cx="250" cy="150" r="130" fill="none" stroke="rgba(239, 68, 68, 0.3)" strokeWidth="1" strokeDasharray="4 4" />
 
                       {/* Patient Home Pin */}
                       <g transform="translate(250, 150)">
-                        <circle r="12" fill="#59336d" opacity="0.2" />
-                        <circle r="6" fill="#59336d" />
-                        <text x="0" y="22" textAnchor="middle" fill="#c4afd7" fontSize="10" fontWeight="bold">Patient Site (Center)</text>
+                        <circle r="12" fill="#77248c" opacity="0.2" />
+                        <circle r="6" fill="#77248c" />
+                        <text x="0" y="22" textAnchor="middle" fill="#d49ee6" fontSize="10" fontWeight="bold">Patient Site (Center)</text>
                       </g>
 
                       {/* GPS Breadcrumb Trail Lines */}
                       {gpsLocationHistory.length > 1 && (
                         <polyline
                           fill="none"
-                          stroke="#59beb9"
+                          stroke="#4cdbd5"
                           strokeWidth="2.5"
                           strokeDasharray="4 2"
                           points={gpsLocationHistory.map((loc, idx) => {
@@ -3542,9 +3542,9 @@ export default function Home() {
                           <g key={idx} transform={`translate(${x}, ${y})`}>
                             {isLast ? (
                               <>
-                                <circle r="14" fill="#59beb9" opacity="0.3" className="animate-ping" />
-                                <circle r="7" fill="#59beb9" />
-                                <text x="0" y="-14" textAnchor="middle" fill="#d7f4f2" fontSize="9" fontWeight="bold">Caregiver Live GPS</text>
+                                <circle r="14" fill="#4cdbd5" opacity="0.3" className="animate-ping" />
+                                <circle r="7" fill="#4cdbd5" />
+                                <text x="0" y="-14" textAnchor="middle" fill="#d3f8f6" fontSize="9" fontWeight="bold">Caregiver Live GPS</text>
                               </>
                             ) : (
                               <circle r="4" fill="#64748B" />

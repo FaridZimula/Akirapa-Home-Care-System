@@ -53,7 +53,7 @@ export async function POST(request: Request) {
 
     const html = `
       <div style="font-family: sans-serif; padding: 24px; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; rounded: 12px;">
-        <h2 style="color: #6d28d9; margin-bottom: 16px;">Akirapa In-Home Care</h2>
+        <h2 style="color: #77248c; margin-bottom: 16px;">Akirapa In-Home Care</h2>
         <p>You requested a verification code for the purpose of <strong>${purpose === 'SIGNUP' ? 'creating an account' : 'resetting your password'}</strong>.</p>
         <div style="background-color: #f3f4f6; padding: 16px; border-radius: 8px; font-size: 24px; font-weight: bold; text-align: center; letter-spacing: 4px; margin: 24px 0; color: #111;">
           ${token}
