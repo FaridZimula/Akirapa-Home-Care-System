@@ -2173,7 +2173,7 @@ export default function Home() {
     const currentStepIndex = Math.min(Math.floor((splashProgress / 100) * statusSteps.length), statusSteps.length - 1);
     const activeStatusText = isInitializing 
       ? statusSteps[currentStepIndex] 
-      : 'Select an Account Portal below to initialize system...';
+      : 'Select an Account Portal below to log in...';
 
     return (
       <div className="relative min-h-screen bg-purple-50/40 text-slate-800 flex items-center justify-center p-6 overflow-hidden selection:bg-purple-500 selection:text-white">
@@ -2185,33 +2185,21 @@ export default function Home() {
         {/* Bright Modern Glassmorphic Central Card */}
         <div className="relative max-w-lg w-full glass-card-light rounded-3xl p-8 md:p-10 text-center shadow-2xl z-10 animate-fade-in">
           
-          {/* Heartbeat Pulse Logo Container */}
-          <div className="relative w-24 h-24 mx-auto mb-6 flex items-center justify-center">
-            <div className="absolute inset-0 rounded-3xl bg-purple-600 opacity-60 blur-md animate-light-pulse-ring" />
-            <div className="relative w-24 h-24 bg-white border border-purple-200/80 rounded-3xl flex flex-col items-center justify-center shadow-md">
-              <span className="text-3xl font-black tracking-wider text-purple-600">
-                AK
-              </span>
-              <span className="text-[9px] font-bold text-purple-600 tracking-widest uppercase">Care</span>
-            </div>
+          {/* System Logo */}
+          <div className="mx-auto mb-2 flex justify-center">
+            <img 
+              src="/System logo.png" 
+              alt="Akirapa In-Home Care Systems Platform" 
+              className="h-40 md:h-44 object-contain drop-shadow-md"
+            />
           </div>
-
-          {/* Title & Tagline */}
-          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-slate-900">
-            Akirapa
-          </h1>
-          <p className="text-xs font-bold text-purple-600 tracking-widest uppercase mt-1 mb-6">
-            In-Home Care Systems Platform
-          </p>
 
           {/* Account Portal Selection Section */}
           <div className="space-y-3 mb-6">
-            <div className="flex items-center gap-3">
-              <div className="flex-1 border-t border-slate-200" />
-              <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500">
-                Select Account Portal to Initialize
+            <div className="text-center mb-1">
+              <span className="text-base font-bold text-[#77248c] tracking-wide">
+                Log In As
               </span>
-              <div className="flex-1 border-t border-slate-200" />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
@@ -2264,10 +2252,10 @@ export default function Home() {
             type="button"
             disabled={isInitializing}
             onClick={() => handlePortalSelect(null)}
-            className="w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-2xl transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+            className="w-full py-3.5 bg-[#77248c] hover:bg-[#5a1a6b] text-white font-extrabold text-sm rounded-2xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 active:scale-98"
           >
             <span>Standard Account Login</span>
-            <i className="fa-solid fa-arrow-right text-xs"></i>
+            <i className="fa-solid fa-arrow-right text-xs text-white"></i>
           </button>
         </div>
       </div>
@@ -2277,6 +2265,15 @@ export default function Home() {
   const renderLoginScreen = () => (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
       <div className="max-w-md w-full bg-white rounded-3xl shadow-xl p-8">
+        
+        {/* Back to Splash Screen Button */}
+        <button 
+          type="button"
+          onClick={() => { setSelectedPortalRole(null); setLoginError(null); }} 
+          className="text-sm font-semibold text-gray-500 hover:text-purple-600 flex items-center gap-1.5 mb-4 transition-colors cursor-pointer"
+        >
+          <i className="fa-solid fa-arrow-left text-xs"></i> Back
+        </button>
 
         {/* Selected Portal Indicator Banner */}
         {selectedPortalRole && (
@@ -2302,10 +2299,8 @@ export default function Home() {
         )}
 
         <div className="text-center mb-8">
-          <div className="w-14 h-14 bg-purple-100 rounded-2xl flex items-center justify-center mx-auto">
-            <span className="text-2xl font-bold text-purple-600">AK</span>
-          </div>
-          <h2 className="text-2xl font-bold text-gray-800 mt-4">Welcome Back</h2>
+          <img src="/System logo.png" alt="Akirapa Logo" className="h-20 mx-auto object-contain mb-3" />
+          <h2 className="text-2xl font-bold text-gray-800">Welcome Back</h2>
           <p className="text-sm text-gray-500">Sign in to your Akirapa account</p>
         </div>
 
@@ -2372,10 +2367,8 @@ export default function Home() {
       <div className="w-full max-w-2xl bg-white rounded-3xl shadow-xl p-8 max-h-[90vh] overflow-y-auto transition-all">
         <button onClick={() => { setViewState('login'); setSignupError(null); }} className="text-sm text-gray-400 hover:text-gray-600 flex items-center gap-1.5"><i className="fa-solid fa-arrow-left text-xs"></i> Back</button>
         <div className="text-center mb-6">
-          <div className="w-14 h-14 bg-purple-100 rounded-2xl flex items-center justify-center mx-auto">
-            <span className="text-2xl font-bold text-purple-600">AK</span>
-          </div>
-          <h2 className="text-2xl font-bold text-gray-800 mt-4">Create Account</h2>
+          <img src="/System logo.png" alt="Akirapa Logo" className="h-20 mx-auto object-contain mb-3" />
+          <h2 className="text-2xl font-bold text-gray-800">Create Account</h2>
           <p className="text-sm text-gray-500">Join Akirapa Care Network</p>
         </div>
 
@@ -4036,8 +4029,7 @@ export default function Home() {
         {/* Brand */}
         <div className="px-6 py-6 border-b border-gray-100">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-sm">AK</div>
-            <span className="font-semibold text-gray-800">Akirapa</span>
+            <img src="/System logo.png" alt="Akirapa System Logo" className="h-12 w-auto object-contain" />
           </div>
         </div>
 
@@ -5865,7 +5857,7 @@ export default function Home() {
             <div className="p-10">
               <div className="flex justify-between items-start border-b-2 border-teal-600 pb-4 mb-6">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-teal-600 flex items-center justify-center text-white font-bold">AK</div>
+                  <img src="/System logo.png" alt="Akirapa Logo" className="h-14 w-auto object-contain" />
                   <div>
                     <div className="font-bold text-teal-700 text-sm uppercase tracking-wide">Akirapa Home Care</div>
                     <div className="text-[10px] text-gray-400">Compassionate Care, Trusted Support</div>
@@ -5954,7 +5946,7 @@ export default function Home() {
             <div className="p-10">
               <div className="flex justify-between items-start border-b-2 border-teal-600 pb-4 mb-6">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-teal-600 flex items-center justify-center text-white font-bold">AK</div>
+                  <img src="/System logo.png" alt="Akirapa Logo" className="h-14 w-auto object-contain" />
                   <div>
                     <div className="font-bold text-teal-700 text-sm uppercase tracking-wide">Akirapa Home Care</div>
                     <div className="text-[10px] text-gray-400">Compassionate Care, Trusted Support</div>
