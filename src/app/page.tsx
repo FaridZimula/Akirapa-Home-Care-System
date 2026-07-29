@@ -2186,18 +2186,18 @@ export default function Home() {
         <div className="relative max-w-lg w-full glass-card-light rounded-3xl p-8 md:p-10 text-center shadow-2xl z-10 animate-fade-in">
           
           {/* System Logo */}
-          <div className="mx-auto mb-2 flex justify-center">
+          <div className="mx-auto flex justify-center">
             <img 
               src="/System logo.png" 
               alt="Akirapa In-Home Care Systems Platform" 
-              className="h-40 md:h-44 object-contain drop-shadow-md"
+              className="h-36 md:h-40 object-contain drop-shadow-md -mb-3"
             />
           </div>
 
           {/* Account Portal Selection Section */}
           <div className="space-y-3 mb-6">
-            <div className="text-center mb-1">
-              <span className="text-base font-bold text-[#77248c] tracking-wide">
+            <div className="text-center mb-1 -mt-2">
+              <span className="text-base font-bold text-[#77248c] tracking-wide inline-block">
                 Log In As
               </span>
             </div>
@@ -2210,8 +2210,8 @@ export default function Home() {
                 onClick={() => handlePortalSelect('CAREGIVER')}
                 className="p-3.5 bg-white/90 hover:bg-purple-50/90 border border-purple-200/80 hover:border-purple-500 rounded-2xl transition-all transform hover:-translate-y-0.5 active:scale-95 shadow-sm text-center group cursor-pointer disabled:opacity-50"
               >
-                <div className="w-9 h-9 mx-auto mb-1.5 bg-purple-100/90 text-purple-600 rounded-xl flex items-center justify-center text-base group-hover:scale-110 transition-transform">
-                  <i className="fa-solid fa-stethoscope text-base"></i>
+                <div className="w-9 h-9 mx-auto mb-1.5 bg-[#77248c] text-white rounded-xl flex items-center justify-center text-base group-hover:scale-110 transition-transform shadow-sm">
+                  <i className="fa-solid fa-stethoscope text-base text-white"></i>
                 </div>
                 <div className="text-xs font-extrabold text-slate-900">Caregiver</div>
                 <div className="text-[10px] text-slate-500 font-semibold mt-0.5">Shifts & Tasks</div>
@@ -2222,10 +2222,10 @@ export default function Home() {
                 type="button"
                 disabled={isInitializing}
                 onClick={() => handlePortalSelect('CLIENT')}
-                className="p-3.5 bg-white/90 hover:bg-emerald-50/90 border border-emerald-200/80 hover:border-emerald-500 rounded-2xl transition-all transform hover:-translate-y-0.5 active:scale-95 shadow-sm text-center group cursor-pointer disabled:opacity-50"
+                className="p-3.5 bg-white/90 hover:bg-cyan-50/90 border border-cyan-200/80 hover:border-cyan-500 rounded-2xl transition-all transform hover:-translate-y-0.5 active:scale-95 shadow-sm text-center group cursor-pointer disabled:opacity-50"
               >
-                <div className="w-9 h-9 mx-auto mb-1.5 bg-emerald-100/90 text-emerald-600 rounded-xl flex items-center justify-center text-base group-hover:scale-110 transition-transform">
-                  <i className="fa-solid fa-house text-base"></i>
+                <div className="w-9 h-9 mx-auto mb-1.5 bg-[#4cdbd5] text-white rounded-xl flex items-center justify-center text-base group-hover:scale-110 transition-transform shadow-sm">
+                  <i className="fa-solid fa-house text-base text-white"></i>
                 </div>
                 <div className="text-xs font-extrabold text-slate-900">Family</div>
                 <div className="text-[10px] text-slate-500 font-semibold mt-0.5">Care Feed & Plan</div>
@@ -2238,8 +2238,8 @@ export default function Home() {
                 onClick={() => handlePortalSelect('ADMIN')}
                 className="p-3.5 bg-white/90 hover:bg-purple-50/90 border border-purple-200/80 hover:border-purple-500 rounded-2xl transition-all transform hover:-translate-y-0.5 active:scale-95 shadow-sm text-center group cursor-pointer disabled:opacity-50"
               >
-                <div className="w-9 h-9 mx-auto mb-1.5 bg-purple-100/90 text-purple-600 rounded-xl flex items-center justify-center text-base group-hover:scale-110 transition-transform">
-                  <i className="fa-solid fa-user-shield text-base"></i>
+                <div className="w-9 h-9 mx-auto mb-1.5 bg-[#77248c] text-white rounded-xl flex items-center justify-center text-base group-hover:scale-110 transition-transform shadow-sm">
+                  <i className="fa-solid fa-user-shield text-base text-white"></i>
                 </div>
                 <div className="text-xs font-extrabold text-slate-900">Admin</div>
                 <div className="text-[10px] text-slate-500 font-semibold mt-0.5">Ops & Control</div>
@@ -2266,40 +2266,22 @@ export default function Home() {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
       <div className="max-w-md w-full bg-white rounded-3xl shadow-xl p-8">
         
-        {/* Back to Splash Screen Button */}
-        <button 
-          type="button"
-          onClick={() => { setSelectedPortalRole(null); setLoginError(null); }} 
-          className="text-sm font-semibold text-gray-500 hover:text-purple-600 flex items-center gap-1.5 mb-4 transition-colors cursor-pointer"
-        >
-          <i className="fa-solid fa-arrow-left text-xs"></i> Back
-        </button>
+        {/* Back to Splash Screen Button (Centered Theme Purple Button) */}
+        <div className="flex justify-center mb-6">
+          <button 
+            type="button"
+            onClick={() => { setViewState('splash'); setSelectedPortalRole(null); setLoginError(null); }} 
+            className="px-6 py-2.5 bg-[#77248c] hover:bg-[#5a1a6b] text-white font-extrabold text-xs rounded-full shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+          >
+            <i className="fa-solid fa-arrow-left text-xs text-white"></i>
+            <span>Back</span>
+          </button>
+        </div>
 
-        {/* Selected Portal Indicator Banner */}
-        {selectedPortalRole && (
-          <div className="mb-6 p-3 rounded-2xl bg-purple-50/90 border border-purple-200 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-lg">
-                {selectedPortalRole === 'CAREGIVER' ? <i className="fa-solid fa-stethoscope text-purple-600 text-base"></i> : selectedPortalRole === 'CLIENT' ? <i className="fa-solid fa-house text-purple-600 text-base"></i> : <i className="fa-solid fa-user-shield text-purple-600 text-base"></i>}
-              </span>
-              <div>
-                <div className="text-xs font-bold text-purple-900">
-                  {selectedPortalRole === 'CAREGIVER' ? 'Caregiver Portal' : selectedPortalRole === 'CLIENT' ? 'Family Care Portal' : 'Administrator Portal'} Login
-                </div>
-                <div className="text-[10px] text-purple-700">Pre-selected from splash screen entry</div>
-              </div>
-            </div>
-            <button
-              onClick={() => setSelectedPortalRole(null)}
-              className="text-[10px] font-semibold text-purple-600 hover:underline cursor-pointer"
-            >
-              Change
-            </button>
-          </div>
-        )}
+
 
         <div className="text-center mb-8">
-          <img src="/System logo.png" alt="Akirapa Logo" className="h-20 mx-auto object-contain mb-3" />
+          <img src="/System logo.png" alt="Akirapa Logo" className="h-[72px] mx-auto object-contain mb-2" />
           <h2 className="text-2xl font-bold text-gray-800">Welcome Back</h2>
           <p className="text-sm text-gray-500">Sign in to your Akirapa account</p>
         </div>
@@ -2310,9 +2292,9 @@ export default function Home() {
         </button>
 
         <div className="flex items-center gap-4 my-6">
-          <div className="flex-1 border-t border-gray-200" />
-          <span className="text-xs text-gray-400">or sign in with email</span>
-          <div className="flex-1 border-t border-gray-200" />
+          <div className="flex-1 border-t border-black" />
+          <span className="text-xs font-bold text-black">or sign in with email</span>
+          <div className="flex-1 border-t border-black" />
         </div>
 
         <form onSubmit={(e) => { e.preventDefault(); handlePortalLogin(loginEmail, loginPassword); }} className="space-y-4">
@@ -2347,7 +2329,7 @@ export default function Home() {
             {renderPasswordStrengthMeter(loginPassword)}
           </div>
           <div className="flex justify-end">
-            <button type="button" onClick={() => setViewState('forgot_password')} className="text-xs text-purple-600 hover:underline">Forgot password?</button>
+            <button type="button" onClick={() => setViewState('forgot_password')} className="text-xs text-purple-600 font-extrabold hover:underline">Forgot password?</button>
           </div>
           {loginError && <div className="bg-red-50 text-red-600 p-3 rounded-xl text-xs font-semibold flex items-center gap-2"><i className="fa-solid fa-triangle-exclamation"></i> {loginError}</div>}
           <button type="submit" disabled={isLoggingIn || !loginEmail || !loginPassword} className="w-full py-3.5 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-sm rounded-xl transition-all disabled:opacity-50">
@@ -2356,7 +2338,7 @@ export default function Home() {
         </form>
 
         <p className="text-center text-sm text-gray-500 mt-6">
-          Don't have an account? <button onClick={() => setViewState('signup')} className="text-purple-600 font-semibold hover:underline">Create Account</button>
+          Don't have an account? <button onClick={() => setViewState('signup')} className="text-purple-600 font-extrabold hover:underline">Create Account</button>
         </p>
       </div>
     </div>
@@ -2367,7 +2349,7 @@ export default function Home() {
       <div className="w-full max-w-2xl bg-white rounded-3xl shadow-xl p-8 max-h-[90vh] overflow-y-auto transition-all">
         <button onClick={() => { setViewState('login'); setSignupError(null); }} className="text-sm text-gray-400 hover:text-gray-600 flex items-center gap-1.5"><i className="fa-solid fa-arrow-left text-xs"></i> Back</button>
         <div className="text-center mb-6">
-          <img src="/System logo.png" alt="Akirapa Logo" className="h-20 mx-auto object-contain mb-3" />
+          <img src="/System logo.png" alt="Akirapa Logo" className="h-[72px] mx-auto object-contain mb-2" />
           <h2 className="text-2xl font-bold text-gray-800">Create Account</h2>
           <p className="text-sm text-gray-500">Join Akirapa Care Network</p>
         </div>
@@ -4029,7 +4011,7 @@ export default function Home() {
         {/* Brand */}
         <div className="px-6 py-6 border-b border-gray-100">
           <div className="flex items-center gap-2">
-            <img src="/System logo.png" alt="Akirapa System Logo" className="h-12 w-auto object-contain" />
+            <img src="/System logo.png" alt="Akirapa System Logo" className="h-10 w-auto object-contain" />
           </div>
         </div>
 
@@ -4047,42 +4029,42 @@ export default function Home() {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          <button onClick={() => setCurrentView('dashboard')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'dashboard' ? 'bg-purple-50 text-purple-600 border-r-2 border-purple-600' : 'text-gray-600 hover:bg-gray-50'}`}>
+        <nav className="flex-1 px-3 py-4 space-y-1.5 overflow-y-auto">
+          <button onClick={() => setCurrentView('dashboard')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'dashboard' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
             <i className="fa-solid fa-gauge-high w-5 text-center"></i> Dashboard
           </button>
           
           {/* Admin/Coordinator Views */}
           {(user.role === 'ADMIN' || user.role === 'CARE_COORDINATOR') && (
             <>
-              <button onClick={() => setCurrentView('listings')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'listings' ? 'bg-purple-50 text-purple-600 border-r-2 border-purple-600' : 'text-gray-600 hover:bg-gray-50'}`}>
+              <button onClick={() => setCurrentView('listings')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'listings' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                 <i className="fa-solid fa-calendar-check w-5 text-center"></i> Shifts
               </button>
-              <button onClick={() => setCurrentView('create')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'create' ? 'bg-purple-50 text-purple-600 border-r-2 border-purple-600' : 'text-gray-600 hover:bg-gray-50'}`}>
+              <button onClick={() => setCurrentView('create')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'create' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                 <i className="fa-solid fa-plus-circle w-5 text-center"></i> Create Shift
               </button>
-              <button onClick={() => setCurrentView('business')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'business' ? 'bg-purple-50 text-purple-600 border-r-2 border-purple-600' : 'text-gray-600 hover:bg-gray-50'}`}>
+              <button onClick={() => setCurrentView('business')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'business' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                 <i className="fa-solid fa-briefcase w-5 text-center"></i> Business Hub
               </button>
               {user.role === 'ADMIN' && (
-                <button onClick={() => setCurrentView('financials')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'financials' ? 'bg-purple-50 text-purple-600 border-r-2 border-purple-600' : 'text-gray-600 hover:bg-gray-50'}`}>
+                <button onClick={() => setCurrentView('financials')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'financials' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                   <i className="fa-solid fa-sack-dollar w-5 text-center"></i> Payroll
                 </button>
               )}
               {user.role === 'ADMIN' && (
-                <button onClick={() => setCurrentView('billing')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'billing' ? 'bg-purple-50 text-purple-600 border-r-2 border-purple-600' : 'text-gray-600 hover:bg-gray-50'}`}>
+                <button onClick={() => setCurrentView('billing')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'billing' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                   <i className="fa-solid fa-file-invoice-dollar w-5 text-center"></i> Billing
                 </button>
               )}
               {(user.role === 'ADMIN' || user.role === 'CARE_COORDINATOR') && (
-                <button onClick={() => setCurrentView('caregiverReviews')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'caregiverReviews' ? 'bg-purple-50 text-purple-600 border-r-2 border-purple-600' : 'text-gray-600 hover:bg-gray-50'}`}>
+                <button onClick={() => setCurrentView('caregiverReviews')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'caregiverReviews' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                   <i className="fa-solid fa-star-half-stroke w-5 text-center"></i> Caregiver Reviews
                 </button>
               )}
-              <button onClick={() => setCurrentView('messages')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'messages' ? 'bg-purple-50 text-purple-600 border-r-2 border-purple-600' : 'text-gray-600 hover:bg-gray-50'}`}>
+              <button onClick={() => setCurrentView('messages')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'messages' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                 <i className="fa-solid fa-comments w-5 text-center"></i> Message Monitoring
               </button>
-              <button onClick={() => setCurrentView('audit')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'audit' ? 'bg-purple-50 text-purple-600 border-r-2 border-purple-600' : 'text-gray-600 hover:bg-gray-50'}`}>
+              <button onClick={() => setCurrentView('audit')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'audit' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                 <i className="fa-solid fa-shield-halved w-5 text-center"></i> Audit Logs
               </button>
             </>
@@ -4091,13 +4073,13 @@ export default function Home() {
           {/* Caregiver Views */}
           {user.role === 'CAREGIVER' && (
             <>
-              <button onClick={() => setCurrentView('listings')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'listings' ? 'bg-purple-50 text-purple-600 border-r-2 border-purple-600' : 'text-gray-600 hover:bg-gray-50'}`}>
+              <button onClick={() => setCurrentView('listings')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'listings' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                 <i className="fa-solid fa-clock w-5 text-center"></i> My Shifts
               </button>
-              <button onClick={() => setCurrentView('messages')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'messages' ? 'bg-purple-50 text-purple-600 border-r-2 border-purple-600' : 'text-gray-600 hover:bg-gray-50'}`}>
+              <button onClick={() => setCurrentView('messages')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'messages' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                 <i className="fa-solid fa-comments w-5 text-center"></i> Messages
               </button>
-              <button onClick={() => setCurrentView('interested')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'interested' ? 'bg-purple-50 text-purple-600 border-r-2 border-purple-600' : 'text-gray-600 hover:bg-gray-50'}`}>
+              <button onClick={() => setCurrentView('interested')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'interested' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                 <i className="fa-solid fa-bell w-5 text-center"></i> Alerts
               </button>
             </>
@@ -4106,20 +4088,20 @@ export default function Home() {
           {/* Family Views */}
           {user.role === 'FAMILY_MEMBER' && (
             <>
-              <button onClick={() => setCurrentView('listings')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'listings' ? 'bg-purple-50 text-purple-600 border-r-2 border-purple-600' : 'text-gray-600 hover:bg-gray-50'}`}>
+              <button onClick={() => setCurrentView('listings')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'listings' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                 <i className="fa-solid fa-heart-pulse w-5 text-center"></i> Care Feed
               </button>
-              <button onClick={() => setCurrentView('messages')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'messages' ? 'bg-purple-50 text-purple-600 border-r-2 border-purple-600' : 'text-gray-600 hover:bg-gray-50'}`}>
+              <button onClick={() => setCurrentView('messages')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'messages' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                 <i className="fa-solid fa-comments w-5 text-center"></i> Messages
               </button>
-              <button onClick={() => setCurrentView('purchases')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'purchases' ? 'bg-purple-50 text-purple-600 border-r-2 border-purple-600' : 'text-gray-600 hover:bg-gray-50'}`}>
+              <button onClick={() => setCurrentView('purchases')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'purchases' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                 <i className="fa-solid fa-file-invoice w-5 text-center"></i> Documents
               </button>
             </>
           )}
 
           {/* Common Views */}
-          <button onClick={() => setCurrentView('profile')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'profile' ? 'bg-purple-50 text-purple-600 border-r-2 border-purple-600' : 'text-gray-600 hover:bg-gray-50'}`}>
+          <button onClick={() => setCurrentView('profile')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'profile' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
             <i className="fa-solid fa-user w-5 text-center"></i> My Profile
           </button>
           
@@ -4220,19 +4202,19 @@ export default function Home() {
                       <>
                         <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
                           <div className="flex items-center justify-between">
-                            <div><div className="text-sm text-gray-500">Today's Shifts</div><div className="text-2xl font-bold text-gray-800">{shifts.filter(s => s.caregiverId === user.id && new Date(s.scheduledStart).toDateString() === new Date().toDateString()).length}</div></div>
-                            <div className="w-12 h-12 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-600"><i className="fa-solid fa-calendar-day text-xl"></i></div>
+                            <div><div className="text-sm font-bold text-gray-700">Today's Shifts</div><div className="text-2xl font-bold text-gray-800">{shifts.filter(s => s.caregiverId === user.id && new Date(s.scheduledStart).toDateString() === new Date().toDateString()).length}</div></div>
+                            <div className="w-12 h-12 bg-[#77248c] rounded-2xl flex items-center justify-center text-white shadow-xs"><i className="fa-solid fa-calendar-day text-xl text-white"></i></div>
                           </div>
                         </div>
                         <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
                           <div className="flex items-center justify-between">
-                            <div><div className="text-sm text-gray-500">Unconfirmed Shifts</div><div className="text-2xl font-bold text-gray-800">{shifts.filter(s => s.caregiverId === user.id && s.status === 'UNCONFIRMED').length}</div></div>
+                            <div><div className="text-sm font-bold text-gray-700">Unconfirmed Shifts</div><div className="text-2xl font-bold text-gray-800">{shifts.filter(s => s.caregiverId === user.id && s.status === 'UNCONFIRMED').length}</div></div>
                             <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-600"><i className="fa-solid fa-triangle-exclamation text-xl"></i></div>
                           </div>
                         </div>
                         <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
                           <div className="flex items-center justify-between">
-                            <div><div className="text-sm text-gray-500">Hours This Week</div><div className="text-2xl font-bold text-gray-800">{(() => {
+                            <div><div className="text-sm font-bold text-gray-700">Hours This Week</div><div className="text-2xl font-bold text-gray-800">{(() => {
                               const weekAgo = new Date();
                               weekAgo.setDate(weekAgo.getDate() - 7);
                               const totalMs = shifts
@@ -4245,7 +4227,7 @@ export default function Home() {
                         </div>
                         <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
                           <div className="flex items-center justify-between">
-                            <div><div className="text-sm text-gray-500">My Clients</div><div className="text-2xl font-bold text-gray-800">{new Set(shifts.filter(s => s.caregiverId === user.id).map(s => s.clientId)).size}</div></div>
+                            <div><div className="text-sm font-bold text-gray-700">My Clients</div><div className="text-2xl font-bold text-gray-800">{new Set(shifts.filter(s => s.caregiverId === user.id).map(s => s.clientId)).size}</div></div>
                             <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center text-green-600"><i className="fa-solid fa-user-group text-xl"></i></div>
                           </div>
                         </div>
@@ -4254,25 +4236,25 @@ export default function Home() {
                       <>
                         <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
                           <div className="flex items-center justify-between">
-                            <div><div className="text-sm text-gray-500">Total Clients</div><div className="text-2xl font-bold text-gray-800">{clients.length}</div></div>
-                            <div className="w-12 h-12 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-600"><i className="fa-solid fa-users text-xl"></i></div>
+                            <div><div className="text-sm font-bold text-gray-700">Total Clients</div><div className="text-2xl font-bold text-gray-800">{clients.length}</div></div>
+                            <div className="w-12 h-12 bg-[#77248c] rounded-2xl flex items-center justify-center text-white shadow-xs"><i className="fa-solid fa-users text-xl text-white"></i></div>
                           </div>
                         </div>
                         <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
                           <div className="flex items-center justify-between">
-                            <div><div className="text-sm text-gray-500">Caregivers</div><div className="text-2xl font-bold text-gray-800">{caregivers.length}</div></div>
+                            <div><div className="text-sm font-bold text-gray-700">Caregivers</div><div className="text-2xl font-bold text-gray-800">{caregivers.length}</div></div>
                             <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center text-green-600"><i className="fa-solid fa-user-md text-xl"></i></div>
                           </div>
                         </div>
                         <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
                           <div className="flex items-center justify-between">
-                            <div><div className="text-sm text-gray-500">Active Shifts</div><div className="text-2xl font-bold text-gray-800">{shifts.filter(s => s.status === 'IN_PROGRESS').length}</div></div>
+                            <div><div className="text-sm font-bold text-gray-700">Active Shifts</div><div className="text-2xl font-bold text-gray-800">{shifts.filter(s => s.status === 'IN_PROGRESS').length}</div></div>
                             <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-600"><i className="fa-solid fa-clock text-xl"></i></div>
                           </div>
                         </div>
                         <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
                           <div className="flex items-center justify-between">
-                            <div><div className="text-sm text-gray-500">Completed</div><div className="text-2xl font-bold text-gray-800">{shifts.filter(s => s.status === 'COMPLETED').length}</div></div>
+                            <div><div className="text-sm font-bold text-gray-700">Completed</div><div className="text-2xl font-bold text-gray-800">{shifts.filter(s => s.status === 'COMPLETED').length}</div></div>
                             <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600"><i className="fa-solid fa-check-circle text-xl"></i></div>
                           </div>
                         </div>
@@ -4322,10 +4304,10 @@ export default function Home() {
                                     <div className="font-bold text-sm text-gray-800">{shift.client.name}</div>
                                     <div className="text-xs text-gray-400 mt-0.5"><i className="fa-regular fa-clock mr-1"></i>{formatDateTime(shift.scheduledStart)}</div>
                                   </div>
-                                  <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+                                  <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
                                     shift.status === 'IN_PROGRESS' ? 'bg-purple-100 text-purple-700 border border-purple-200' :
                                     shift.status === 'UNCONFIRMED' ? 'bg-amber-100 text-amber-700 border border-amber-200' :
-                                    shift.status === 'CONFIRMED' ? 'bg-teal-100 text-teal-700 border border-teal-200' :
+                                    shift.status === 'CONFIRMED' ? 'bg-[#4cdbd5] text-white' :
                                     'bg-gray-100 text-gray-600'
                                   }`}>{shift.status}</span>
                                 </div>
@@ -5857,7 +5839,7 @@ export default function Home() {
             <div className="p-10">
               <div className="flex justify-between items-start border-b-2 border-teal-600 pb-4 mb-6">
                 <div className="flex items-center gap-3">
-                  <img src="/System logo.png" alt="Akirapa Logo" className="h-14 w-auto object-contain" />
+                  <img src="/System logo.png" alt="Akirapa Logo" className="h-12 w-auto object-contain" />
                   <div>
                     <div className="font-bold text-teal-700 text-sm uppercase tracking-wide">Akirapa Home Care</div>
                     <div className="text-[10px] text-gray-400">Compassionate Care, Trusted Support</div>
@@ -5946,7 +5928,7 @@ export default function Home() {
             <div className="p-10">
               <div className="flex justify-between items-start border-b-2 border-teal-600 pb-4 mb-6">
                 <div className="flex items-center gap-3">
-                  <img src="/System logo.png" alt="Akirapa Logo" className="h-14 w-auto object-contain" />
+                  <img src="/System logo.png" alt="Akirapa Logo" className="h-12 w-auto object-contain" />
                   <div>
                     <div className="font-bold text-teal-700 text-sm uppercase tracking-wide">Akirapa Home Care</div>
                     <div className="text-[10px] text-gray-400">Compassionate Care, Trusted Support</div>

@@ -170,6 +170,7 @@ body {
   min-height: 100vh;
   font-size: 16px;
   line-height: 1.6;
+  font-weight: 600;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -578,8 +579,9 @@ h4 { font-size: 1.125rem; }
 }
 
 .status-badge.confirmed {
-  background: var(--color-success-ultra);
-  color: var(--color-success);
+  background: #4cdbd5;
+  color: #ffffff;
+  font-weight: 700;
 }
 
 .status-badge.unconfirmed {
