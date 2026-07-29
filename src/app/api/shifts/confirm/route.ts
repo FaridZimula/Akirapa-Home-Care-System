@@ -67,24 +67,13 @@ export async function POST(request: Request) {
     });
 
     // Log shift confirmation activity for family member view
-    const logDetails = {
-      type: 'SHIFT_CONFIRMED',
-      notes: confirmedByAdmin
-        ? `[ADMIN APPROVED] Admin has confirmed caregiver ${shift.caregiver.name} for the scheduled visit on ${formatDate(shift.scheduledStart)}.`
-        : `Caregiver ${shift.caregiver.name} has confirmed they will work the scheduled visit on ${formatDate(shift.scheduledStart)} starting at ${formatTime(shift.scheduledStart)}.`,
-      caregiverName: shift.caregiver.name,
-      hasRedFlags: false,
-    };
-
-    const encryptedLog = encrypt(JSON.stringify(logDetails));
-
-    await prisma.activityLog.create({
-      data: {
-        clientId: shift.clientId,
-        shiftId: shift.id,
-        encryptedLog,
-        mediaUrls: '[]',
-      }
+    await logAudit({
+      userId: sessionUser.id,
+      action: 'SHIFT_CONFIRMED',
+      details: confirmedByAdmin
+        ? `[ADMIN APPROVED] Admin confirmed caregiver ${shift.caregiver.name} for scheduled visit on ${formatDate(shift.scheduledStart)} (Client: ${shift.client.name}).`
+        : `Caregiver ${shift.caregiver.name} confirmed scheduled visit on ${formatDate(shift.scheduledStart)} starting at ${formatTime(shift.scheduledStart)} (Client: ${shift.client.name}).`,
+      outcome: 'SUCCESS',
     });
 
     return NextResponse.json({ success: true, shift: updatedShift, confirmedByAdmin: Boolean(confirmedByAdmin) });

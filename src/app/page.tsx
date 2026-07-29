@@ -2224,18 +2224,18 @@ export default function Home() {
         <div className="relative max-w-lg w-full glass-card-light rounded-3xl p-8 md:p-10 text-center shadow-2xl z-10 animate-fade-in">
           
           {/* System Logo */}
-          <div className="mx-auto flex justify-center">
+          <div className="mx-auto flex justify-center mb-4 md:mb-6">
             <img 
               src="/System logo.png" 
               alt="Akirapa In-Home Care Systems Platform" 
-              className="h-36 md:h-40 object-contain drop-shadow-md -mb-3"
+              className="h-36 md:h-40 object-contain drop-shadow-md"
             />
           </div>
 
           {/* Account Portal Selection Section */}
-          <div className="space-y-3 mb-6">
-            <div className="text-center mb-1 -mt-2">
-              <span className="text-base font-bold text-[#77248c] tracking-wide inline-block">
+          <div className="space-y-4 mb-6">
+            <div className="text-center mb-2 mt-2">
+              <span className="text-lg font-extrabold text-[#77248c] tracking-[-0.026em] inline-block">
                 Log In As
               </span>
             </div>
@@ -4296,7 +4296,7 @@ export default function Home() {
                         <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
                           <div className="flex items-center justify-between">
                             <div><div className="text-sm font-bold text-gray-700">My Clients</div><div className="text-2xl font-bold text-gray-800">{new Set(shifts.filter(s => s.caregiverId === user.id).map(s => s.clientId)).size}</div></div>
-                            <div className="w-12 h-12 bg-emerald-600 border-2 border-emerald-700 rounded-2xl flex items-center justify-center text-white shadow-xs"><i className="fa-solid fa-user-group text-xl text-white"></i></div>
+                            <div className="w-12 h-12 bg-[#4cdbd5] rounded-2xl flex items-center justify-center text-white shadow-xs"><i className="fa-solid fa-user-group text-xl text-white"></i></div>
                           </div>
                         </div>
                       </>
@@ -4311,7 +4311,7 @@ export default function Home() {
                         <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
                           <div className="flex items-center justify-between">
                             <div><div className="text-sm font-bold text-gray-700">Caregivers</div><div className="text-2xl font-bold text-gray-800">{caregivers.length}</div></div>
-                            <div className="w-12 h-12 bg-emerald-600 border-2 border-emerald-700 rounded-2xl flex items-center justify-center text-white shadow-xs"><i className="fa-solid fa-user-md text-xl text-white"></i></div>
+                            <div className="w-12 h-12 bg-[#4cdbd5] rounded-2xl flex items-center justify-center text-white shadow-xs"><i className="fa-solid fa-user-md text-xl text-white"></i></div>
                           </div>
                         </div>
                         <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
@@ -4806,7 +4806,7 @@ export default function Home() {
                                     <div>
                                       <div className="font-bold text-sm text-gray-900 flex items-center gap-2">
                                         <span>{log.details?.caregiverName || 'Caregiver'}</span>
-                                        <span className="bg-purple-50 text-purple-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-purple-100">
+                                        <span className="bg-[#77248c] text-white text-[10px] font-extrabold px-2.5 py-0.5 rounded-full shadow-2xs">
                                           Verified Caregiver
                                         </span>
                                       </div>
@@ -4824,8 +4824,8 @@ export default function Home() {
                                 </div>
 
                                 {/* Caption & Notes Block */}
-                                <div className="mt-4 p-3.5 bg-gray-50/80 border border-gray-100 rounded-xl text-sm text-gray-800 leading-relaxed font-normal">
-                                  <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-1">
+                                <div className="mt-4 p-3.5 bg-white border border-purple-200 rounded-xl text-sm text-gray-800 leading-relaxed font-normal shadow-2xs">
+                                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#77248c] block mb-1">
                                     💬 Caregiver Caption & Summary
                                   </span>
                                   {log.details?.notes || 'Care shift update logged.'}

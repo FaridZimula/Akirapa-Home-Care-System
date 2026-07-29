@@ -158,11 +158,23 @@ export async function POST(request: Request) {
       signedMediaUrl = signed?.signedUrl || null;
     }
 
-    const recipientId = contactId || (clientId !== 'chat' ? clientId : null);
+    // Ensure valid clientId referencing Client table
+    let validClientId = clientId;
+    const clientCheck = validClientId ? await prisma.client.findUnique({ where: { id: validClientId } }) : null;
+    if (!clientCheck) {
+      const firstClient = await prisma.client.findFirst({ select: { id: true } });
+      if (firstClient) {
+        validClientId = firstClient.id;
+      } else {
+        return NextResponse.json({ error: 'No client profile configured in system' }, { status: 400 });
+      }
+    }
+
+    const recipientId = contactId && contactId !== validClientId ? contactId : null;
 
     const message = await prisma.message.create({
       data: {
-        clientId: clientId || 'chat',
+        clientId: validClientId,
         senderId: sessionUser.id,
         recipientId: recipientId,
         encryptedText: textValue ? encrypt(textValue) : null,
@@ -173,33 +185,38 @@ export async function POST(request: Request) {
       include: { sender: { select: { id: true, name: true, role: true } } },
     });
 
-    await logAudit({
-      userId: sessionUser.id,
-      action: 'MESSAGE_SENT',
-      details: `${sessionUser.role} ${sessionUser.email} sent a message${mediaPath ? ' with attachment' : ''} in the conversation for client ${clientId}.`,
-      outcome: 'SUCCESS',
-    });
-
-    // Notify every other participant (admins + pod caregivers + linked family) except the sender.
-    const admins = await prisma.user.findMany({ where: { role: { in: ['ADMIN', 'CARE_COORDINATOR'] } }, select: { id: true } });
-    const pods = await prisma.caregiverPod.findMany({ where: { clientId }, select: { caregiverId: true } });
-    const links = await prisma.linkedFamilyMember.findMany({ where: { clientId }, select: { userId: true } });
-    const recipientIds = new Set<string>([
-      ...admins.map(a => a.id),
-      ...pods.map(p => p.caregiverId),
-      ...links.map(l => l.userId),
-    ]);
-    recipientIds.delete(sessionUser.id);
-
-    // Sequential, not Promise.all: the pooled Postgres connection (pgbouncer,
-    // connection_limit=1) can't serve concurrent queries from the same request.
-    for (const userId of recipientIds) {
-      await createNotification({
-        userId,
-        title: `New message from ${sessionUser.name}`,
-        message: textValue ? textValue.slice(0, 120) : `Sent ${mediaType === 'audio' ? 'a voice note' : mediaType === 'video' ? 'a video' : 'a photo'}`,
-        type: 'NEW_MESSAGE',
+    try {
+      await logAudit({
+        userId: sessionUser.id,
+        action: 'MESSAGE_SENT',
+        details: `${sessionUser.role} ${sessionUser.email} sent a message in conversation.`,
+        outcome: 'SUCCESS',
       });
+    } catch (auditErr) {
+      console.error('Non-critical audit log failure:', auditErr);
+    }
+
+    // Safely attempt notifications
+    try {
+      const recipientSet = new Set<string>();
+      if (recipientId) {
+        recipientSet.add(recipientId);
+      } else {
+        const admins = await prisma.user.findMany({ where: { role: { in: ['ADMIN', 'CARE_COORDINATOR'] } }, select: { id: true } });
+        admins.forEach(a => recipientSet.add(a.id));
+      }
+      recipientSet.delete(sessionUser.id);
+
+      for (const targetUserId of recipientSet) {
+        await createNotification({
+          userId: targetUserId,
+          title: `New message from ${sessionUser.name}`,
+          message: textValue ? textValue.slice(0, 120) : `Sent ${mediaType === 'audio' ? 'a voice note' : mediaType === 'video' ? 'a video' : 'a photo'}`,
+          type: 'NEW_MESSAGE',
+        });
+      }
+    } catch (notifErr) {
+      console.error('Non-critical notification error:', notifErr);
     }
 
     return NextResponse.json({

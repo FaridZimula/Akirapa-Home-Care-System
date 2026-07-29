@@ -43,7 +43,9 @@ export async function GET(request: Request) {
       };
     });
 
-    return NextResponse.json({ logs: decryptedLogs });
+    const filteredLogs = decryptedLogs.filter(log => log.details?.type !== 'SHIFT_CONFIRMED');
+
+    return NextResponse.json({ logs: filteredLogs });
   } catch (error) {
     console.error('Failed to fetch activity feed:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
