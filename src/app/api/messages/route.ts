@@ -218,3 +218,59 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+
+export async function DELETE(request: Request) {
+  try {
+    const sessionUser = await getSessionUser();
+    if (!sessionUser) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const messageId = searchParams.get('messageId');
+    if (!messageId) {
+      return NextResponse.json({ error: 'Message ID is required' }, { status: 400 });
+    }
+
+    const message = await prisma.message.findUnique({
+      where: { id: messageId },
+    });
+
+    if (!message) {
+      return NextResponse.json({ error: 'Message not found' }, { status: 404 });
+    }
+
+    const isSupervisor = sessionUser.role === 'ADMIN' || sessionUser.role === 'CARE_COORDINATOR';
+    const isSender = message.senderId === sessionUser.id;
+
+    if (!isSender && !isSupervisor) {
+      return NextResponse.json({ error: 'You are not authorized to delete this message' }, { status: 403 });
+    }
+
+    // Delete attachment from Supabase storage if present
+    if (message.mediaUrl) {
+      try {
+        await supabaseAdmin.storage.from(MESSAGE_MEDIA_BUCKET).remove([message.mediaUrl]);
+      } catch (err) {
+        console.error('Failed to remove media file from storage:', err);
+      }
+    }
+
+    // Delete message record from database
+    await prisma.message.delete({
+      where: { id: messageId },
+    });
+
+    await logAudit({
+      userId: sessionUser.id,
+      action: 'MESSAGE_DELETED',
+      details: `${sessionUser.role} ${sessionUser.email} deleted/unsent message ${messageId}.`,
+      outcome: 'SUCCESS',
+    });
+
+    return NextResponse.json({ success: true, messageId });
+  } catch (error) {
+    console.error('Failed to delete message:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
