@@ -311,8 +311,9 @@ export default function Home() {
   const [viewingBillingRecord, setViewingBillingRecord] = useState<any>(null);
 
   // Messaging (caregiver <-> family, monitored by admin/coordinator)
-  const [messageConversations, setMessageConversations] = useState<Array<{ id: string; name: string; participants: Array<{ id: string; name: string; role: string }> }>>([]);
+  const [messageConversations, setMessageConversations] = useState<Array<{ id: string; contactId?: string; name: string; subtitle?: string; roleLabel?: string; participants: Array<{ id: string; name: string; role: string }> }>>([]);
   const [selectedMessageClientId, setSelectedMessageClientId] = useState<string>('');
+  const [selectedContactId, setSelectedContactId] = useState<string>('');
   const [messageThread, setMessageThread] = useState<any[]>([]);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [messageText, setMessageText] = useState('');
@@ -708,8 +709,12 @@ export default function Home() {
       const res = await fetch('/api/messages/conversations');
       const data = await res.json();
       if (res.ok) {
-        setMessageConversations(data.conversations || []);
-        setSelectedMessageClientId(prev => prev || data.conversations?.[0]?.id || '');
+        const convs = data.conversations || [];
+        setMessageConversations(convs);
+        if (convs.length > 0) {
+          setSelectedMessageClientId(prev => prev || convs[0].id || '');
+          setSelectedContactId(prev => prev || convs[0].contactId || convs[0].id || '');
+        }
       }
     } catch (err) {
       console.error('Failed to load conversations:', err);
@@ -5636,20 +5641,25 @@ export default function Home() {
                       <p className="text-xs text-gray-400">No conversations available yet.</p>
                     ) : (
                       <div className="space-y-1">
-                        {messageConversations.map(c => (
-                          <button
-                            key={c.id}
-                            onClick={() => setSelectedMessageClientId(c.id)}
-                            className={`w-full text-left px-3.5 py-3 rounded-xl text-sm transition-all ${selectedMessageClientId === c.id ? 'bg-[#77248c] text-white shadow-md' : 'hover:bg-gray-50 border border-transparent'}`}
-                          >
-                            <div className={`font-extrabold text-sm ${selectedMessageClientId === c.id ? 'text-white' : 'text-gray-800'}`}>{c.name}</div>
-                            <div className={`text-xs font-semibold mt-1 leading-snug ${selectedMessageClientId === c.id ? 'text-purple-100' : 'text-gray-600'}`}>
-                              {c.participants.length === 0
-                                ? 'No care team assigned yet'
-                                : c.participants.map(p => `${p.name} (${p.role === 'CAREGIVER' ? 'Caregiver' : p.role === 'ADMIN' ? 'Admin' : p.role === 'CARE_COORDINATOR' ? 'Coordinator' : 'Family'})`).join(' · ')}
-                            </div>
-                          </button>
-                        ))}
+                        {messageConversations.map(c => {
+                          const contactKey = c.contactId || c.id;
+                          const isSelected = selectedContactId ? selectedContactId === contactKey : selectedMessageClientId === c.id;
+                          return (
+                            <button
+                              key={contactKey}
+                              onClick={() => {
+                                setSelectedMessageClientId(c.id);
+                                setSelectedContactId(contactKey);
+                              }}
+                              className={`w-full text-left px-3.5 py-3 rounded-xl text-sm transition-all ${isSelected ? 'bg-[#77248c] text-white shadow-md' : 'hover:bg-gray-50 border border-transparent'}`}
+                            >
+                              <div className={`font-extrabold text-sm ${isSelected ? 'text-white' : 'text-gray-800'}`}>{c.name}</div>
+                              <div className={`text-xs font-semibold mt-0.5 leading-snug ${isSelected ? 'text-purple-100' : 'text-gray-500'}`}>
+                                {c.subtitle || (c.participants && c.participants[0] ? `${c.participants[0].role.replace('_', ' ')}` : 'Individual Contact')}
+                              </div>
+                            </button>
+                          );
+                        })}
                       </div>
                     )}
                   </div>
