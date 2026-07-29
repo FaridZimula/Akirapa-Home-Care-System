@@ -5687,6 +5687,7 @@ export default function Home() {
                               onClick={() => {
                                 setSelectedMessageClientId(c.id);
                                 setSelectedContactId(contactKey);
+                                loadMessageThread(c.id, false, contactKey);
                               }}
                               className={`w-full text-left px-3.5 py-3 rounded-xl text-sm transition-all ${isSelected ? 'bg-[#77248c] text-white shadow-md' : 'hover:bg-gray-50 border border-transparent'}`}
                             >

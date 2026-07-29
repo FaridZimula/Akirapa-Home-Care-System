@@ -41,16 +41,28 @@ export async function GET(request: Request) {
 
     const targetId = contactId || clientId || '';
 
-    const messages = await prisma.message.findMany({
-      where: {
+    let whereClause: any;
+
+    if (contactId && contactId !== clientId) {
+      whereClause = {
         OR: [
-          { senderId: sessionUser.id, recipientId: targetId },
-          { senderId: targetId, recipientId: sessionUser.id },
-          { recipientId: targetId },
-          { senderId: targetId },
-          ...(clientId ? [{ clientId: clientId }] : []),
+          { senderId: sessionUser.id, recipientId: contactId },
+          { senderId: contactId, recipientId: sessionUser.id },
         ],
-      },
+      };
+    } else {
+      whereClause = {
+        OR: [
+          { clientId: targetId },
+          { recipientId: targetId },
+          { senderId: targetId, recipientId: sessionUser.id },
+          { senderId: sessionUser.id, recipientId: targetId },
+        ],
+      };
+    }
+
+    const messages = await prisma.message.findMany({
+      where: whereClause,
       orderBy: { createdAt: 'asc' },
       include: { sender: { select: { id: true, name: true, role: true } } },
     });
