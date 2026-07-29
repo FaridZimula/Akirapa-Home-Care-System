@@ -248,6 +248,7 @@ model Message {
   id            String   @id @default(uuid())
   clientId      String   // conversation is scoped to a client - all pod caregivers + linked family share one thread
   senderId      String
+  recipientId   String?  // ID of the target recipient/contact for 1-on-1 chats
   encryptedText String?  // AES-256-GCM encrypted text content; null for media-only messages
   mediaUrl      String?  // signed URL for a photo/video/audio attachment
   mediaType     String?  // 'image' | 'video' | 'audio'
