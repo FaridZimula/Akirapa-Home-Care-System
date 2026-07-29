@@ -177,10 +177,12 @@ export async function POST(request: Request) {
       outcome: 'SUCCESS',
     });
 
-    // Notify every other participant (pod caregivers + linked family) except the sender.
+    // Notify every other participant (admins + pod caregivers + linked family) except the sender.
+    const admins = await prisma.user.findMany({ where: { role: { in: ['ADMIN', 'CARE_COORDINATOR'] } }, select: { id: true } });
     const pods = await prisma.caregiverPod.findMany({ where: { clientId }, select: { caregiverId: true } });
     const links = await prisma.linkedFamilyMember.findMany({ where: { clientId }, select: { userId: true } });
     const recipientIds = new Set<string>([
+      ...admins.map(a => a.id),
       ...pods.map(p => p.caregiverId),
       ...links.map(l => l.userId),
     ]);

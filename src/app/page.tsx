@@ -138,6 +138,7 @@ export default function Home() {
   const [clientBillingRateInput, setClientBillingRateInput] = useState<string>('');
   const [clientFullMetaSnapshot, setClientFullMetaSnapshot] = useState<any>({});
   const [isSavingClientProfile, setIsSavingClientProfile] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Caregiver User Profile Metadata Editor
   const [userPhoneInput, setUserPhoneInput] = useState<string>('');
@@ -2976,8 +2977,8 @@ export default function Home() {
                         onChange={handleMediaChange}
                         className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
                       />
-                      <div className="w-10 h-10 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform">
-                        <i className="fa-solid fa-cloud-arrow-up text-lg"></i>
+                      <div className="w-10 h-10 bg-[#77248c] border-2 border-[#5a1a6b] text-white rounded-2xl flex items-center justify-center mx-auto mb-2 shadow-xs group-hover:scale-110 transition-transform">
+                        <i className="fa-solid fa-cloud-arrow-up text-lg text-white"></i>
                       </div>
                       <div className="text-xs font-bold text-gray-700">Upload photo, video, or proof of overtime</div>
                     </div>
@@ -3041,27 +3042,27 @@ export default function Home() {
                     />
                   </div>
 
-                  <div className="bg-red-50/60 border border-red-100 rounded-xl p-3 text-xs space-y-2">
-                    <div className="font-semibold text-red-800 text-[11px] flex items-center gap-1.5 mb-1">
-                      <i className="fa-solid fa-shield-cat"></i> Daily Welfare Check <span className="text-red-500">*</span> (Required)
+                  <div className="bg-purple-50/60 border border-purple-200 rounded-xl p-3 text-xs space-y-2">
+                    <div className="font-bold text-[#77248c] text-[11px] flex items-center gap-1.5 mb-1">
+                      <i className="fa-solid fa-shield-cat text-[#77248c]"></i> Daily Welfare Check <span className="text-red-500">*</span> (Required)
                     </div>
                     <div className="space-y-2">
                       {WELFARE_QUESTIONS.map((q) => {
                         const answer = welfareAnswers[q.key];
                         const yesIsConcerning = q.concerningAnswer === 'YES';
                         return (
-                          <div key={q.key} className="flex items-center justify-between gap-2 bg-white rounded-lg border border-red-100 px-2.5 py-2">
+                          <div key={q.key} className="flex items-center justify-between gap-2 bg-white rounded-lg border border-purple-100 px-2.5 py-2">
                             <span className="text-gray-700 text-[11px]">{q.question}</span>
                             <div className="flex gap-1 shrink-0">
                               <button
                                 type="button"
                                 onClick={() => setWelfareAnswers(prev => ({ ...prev, [q.key]: 'YES' }))}
-                                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${answer === 'YES' ? (yesIsConcerning ? 'bg-red-600 text-white' : 'bg-emerald-600 text-white') : 'bg-gray-50 border border-gray-200 text-gray-500 hover:bg-gray-100'}`}
+                                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${answer === 'YES' ? (yesIsConcerning ? 'bg-red-600 text-white' : 'bg-[#4cdbd5] text-white') : 'bg-gray-50 border border-gray-200 text-gray-500 hover:bg-gray-100'}`}
                               >YES</button>
                               <button
                                 type="button"
                                 onClick={() => setWelfareAnswers(prev => ({ ...prev, [q.key]: 'NO' }))}
-                                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${answer === 'NO' ? (!yesIsConcerning ? 'bg-red-600 text-white' : 'bg-emerald-600 text-white') : 'bg-gray-50 border border-gray-200 text-gray-500 hover:bg-gray-100'}`}
+                                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${answer === 'NO' ? (!yesIsConcerning ? 'bg-red-600 text-white' : 'bg-[#4cdbd5] text-white') : 'bg-gray-50 border border-gray-200 text-gray-500 hover:bg-gray-100'}`}
                               >NO</button>
                             </div>
                           </div>
@@ -3082,8 +3083,8 @@ export default function Home() {
                         onChange={handleMediaChange}
                         className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
                       />
-                      <div className="w-10 h-10 bg-purple-100 text-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform">
-                        <i className="fa-solid fa-cloud-arrow-up text-lg"></i>
+                      <div className="w-10 h-10 bg-[#77248c] border-2 border-[#5a1a6b] text-white rounded-2xl flex items-center justify-center mx-auto mb-2 shadow-xs group-hover:scale-110 transition-transform">
+                        <i className="fa-solid fa-cloud-arrow-up text-lg text-white"></i>
                       </div>
                       <div className="text-xs font-bold text-gray-700">Click or drag photos/videos to attach</div>
                     </div>
@@ -3181,12 +3182,12 @@ export default function Home() {
                 const activeShift = shifts.find(s => s.id === selectedShiftId);
                 if (!activeShift) return null;
                 return (
-                  <div className="p-3 bg-purple-50/80 border border-purple-200 rounded-xl text-xs flex justify-between items-center shadow-2xs">
+                  <div className="p-3.5 bg-[#77248c] text-white rounded-xl text-xs flex justify-between items-center shadow-xs">
                     <div>
-                      <span className="font-bold text-purple-900 block text-xs">Linked Shift: {activeShift.client.name}</span>
-                      <span className="text-[10px] text-purple-700 font-mono">Scheduled: {formatDateTime(activeShift.scheduledStart)}</span>
+                      <span className="font-bold text-white block text-xs">Linked Shift: {activeShift.client.name}</span>
+                      <span className="text-[10px] text-white/90 font-mono">Scheduled: {formatDateTime(activeShift.scheduledStart)}</span>
                     </div>
-                    <span className="px-2.5 py-0.5 rounded-full bg-purple-600 text-white font-bold text-[10px] uppercase">
+                    <span className="px-2.5 py-1 rounded-full bg-white text-[#77248c] font-extrabold text-[10px] uppercase shadow-2xs">
                       {activeShift.status}
                     </span>
                   </div>
@@ -3199,7 +3200,7 @@ export default function Home() {
                 <select
                   value={targetPostClientId || selectedFeedClientId}
                   onChange={(e) => setTargetPostClientId(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
+                  className="w-full bg-white border border-purple-200 text-[#77248c] font-bold rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-2xs mt-1 cursor-pointer"
                 >
                   {clients.map(c => (
                     <option key={c.id} value={c.id}>{c.name} ({c.address})</option>
@@ -3221,8 +3222,8 @@ export default function Home() {
                     onChange={handleMediaChange}
                     className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
                   />
-                  <div className="w-10 h-10 bg-purple-100 text-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform">
-                    <i className="fa-solid fa-cloud-arrow-up text-lg"></i>
+                  <div className="w-10 h-10 bg-[#77248c] border-2 border-[#5a1a6b] text-white rounded-2xl flex items-center justify-center mx-auto mb-2 shadow-xs group-hover:scale-110 transition-transform">
+                    <i className="fa-solid fa-cloud-arrow-up text-lg text-white"></i>
                   </div>
                   <div className="text-xs font-bold text-gray-700">Click or drag photos, videos & audio clips to attach</div>
                   <div className="text-[10px] text-gray-400 mt-0.5">Supports PNG, JPG, MP4, MOV, MP3, WAV, Voice Notes (Max 50MB)</div>
@@ -4006,13 +4007,30 @@ export default function Home() {
         </div>
       )}
 
+      {/* Mobile Sidebar Backdrop Overlay */}
+      {isMobileMenuOpen && (
+        <div 
+          onClick={() => setIsMobileMenuOpen(false)}
+          className="fixed inset-0 bg-black/50 backdrop-blur-xs z-40 lg:hidden animate-fade-in"
+        />
+      )}
+
       {/* ==================== SIDEBAR ==================== */}
-      <aside className="w-64 bg-white border-r border-gray-200 min-h-screen flex flex-col sticky top-0 print:hidden">
+      <aside className={`fixed lg:sticky top-0 left-0 z-50 w-64 bg-white border-r border-gray-200 h-screen flex flex-col transition-transform duration-300 ease-in-out print:hidden ${
+        isMobileMenuOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'
+      }`}>
         {/* Brand */}
-        <div className="px-6 py-6 border-b border-gray-100">
+        <div className="px-6 py-6 border-b border-gray-100 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <img src="/System logo.png" alt="Akirapa System Logo" className="h-10 w-auto object-contain" />
+            <img src="/System logo.png" alt="Akirapa System Logo" className="h-16 w-auto max-w-[200px] object-contain transition-all py-1" />
           </div>
+          <button 
+            type="button" 
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="lg:hidden text-gray-400 hover:text-gray-600 p-1"
+          >
+            <i className="fa-solid fa-xmark text-lg"></i>
+          </button>
         </div>
 
         {/* Profile Section */}
@@ -4030,41 +4048,41 @@ export default function Home() {
 
         {/* Navigation */}
         <nav className="flex-1 px-3 py-4 space-y-1.5 overflow-y-auto">
-          <button onClick={() => setCurrentView('dashboard')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'dashboard' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
+          <button onClick={() => { setCurrentView('dashboard'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'dashboard' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
             <i className="fa-solid fa-gauge-high w-5 text-center"></i> Dashboard
           </button>
           
           {/* Admin/Coordinator Views */}
           {(user.role === 'ADMIN' || user.role === 'CARE_COORDINATOR') && (
             <>
-              <button onClick={() => setCurrentView('listings')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'listings' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
+              <button onClick={() => { setCurrentView('listings'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'listings' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                 <i className="fa-solid fa-calendar-check w-5 text-center"></i> Shifts
               </button>
-              <button onClick={() => setCurrentView('create')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'create' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
+              <button onClick={() => { setCurrentView('create'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'create' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                 <i className="fa-solid fa-plus-circle w-5 text-center"></i> Create Shift
               </button>
-              <button onClick={() => setCurrentView('business')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'business' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
+              <button onClick={() => { setCurrentView('business'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'business' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                 <i className="fa-solid fa-briefcase w-5 text-center"></i> Business Hub
               </button>
               {user.role === 'ADMIN' && (
-                <button onClick={() => setCurrentView('financials')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'financials' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
+                <button onClick={() => { setCurrentView('financials'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'financials' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                   <i className="fa-solid fa-sack-dollar w-5 text-center"></i> Payroll
                 </button>
               )}
               {user.role === 'ADMIN' && (
-                <button onClick={() => setCurrentView('billing')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'billing' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
+                <button onClick={() => { setCurrentView('billing'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'billing' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                   <i className="fa-solid fa-file-invoice-dollar w-5 text-center"></i> Billing
                 </button>
               )}
               {(user.role === 'ADMIN' || user.role === 'CARE_COORDINATOR') && (
-                <button onClick={() => setCurrentView('caregiverReviews')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'caregiverReviews' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
+                <button onClick={() => { setCurrentView('caregiverReviews'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'caregiverReviews' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                   <i className="fa-solid fa-star-half-stroke w-5 text-center"></i> Caregiver Reviews
                 </button>
               )}
-              <button onClick={() => setCurrentView('messages')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'messages' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
+              <button onClick={() => { setCurrentView('messages'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'messages' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                 <i className="fa-solid fa-comments w-5 text-center"></i> Message Monitoring
               </button>
-              <button onClick={() => setCurrentView('audit')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'audit' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
+              <button onClick={() => { setCurrentView('audit'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'audit' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                 <i className="fa-solid fa-shield-halved w-5 text-center"></i> Audit Logs
               </button>
             </>
@@ -4073,13 +4091,13 @@ export default function Home() {
           {/* Caregiver Views */}
           {user.role === 'CAREGIVER' && (
             <>
-              <button onClick={() => setCurrentView('listings')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'listings' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
+              <button onClick={() => { setCurrentView('listings'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'listings' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                 <i className="fa-solid fa-clock w-5 text-center"></i> My Shifts
               </button>
-              <button onClick={() => setCurrentView('messages')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'messages' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
+              <button onClick={() => { setCurrentView('messages'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'messages' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                 <i className="fa-solid fa-comments w-5 text-center"></i> Messages
               </button>
-              <button onClick={() => setCurrentView('interested')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'interested' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
+              <button onClick={() => { setCurrentView('interested'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'interested' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                 <i className="fa-solid fa-bell w-5 text-center"></i> Alerts
               </button>
             </>
@@ -4088,35 +4106,43 @@ export default function Home() {
           {/* Family Views */}
           {user.role === 'FAMILY_MEMBER' && (
             <>
-              <button onClick={() => setCurrentView('listings')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'listings' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
+              <button onClick={() => { setCurrentView('listings'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'listings' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                 <i className="fa-solid fa-heart-pulse w-5 text-center"></i> Care Feed
               </button>
-              <button onClick={() => setCurrentView('messages')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'messages' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
+              <button onClick={() => { setCurrentView('messages'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'messages' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                 <i className="fa-solid fa-comments w-5 text-center"></i> Messages
               </button>
-              <button onClick={() => setCurrentView('purchases')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'purchases' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
+              <button onClick={() => { setCurrentView('purchases'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'purchases' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                 <i className="fa-solid fa-file-invoice w-5 text-center"></i> Documents
               </button>
             </>
           )}
 
           {/* Common Views */}
-          <button onClick={() => setCurrentView('profile')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'profile' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
+          <button onClick={() => { setCurrentView('profile'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'profile' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
             <i className="fa-solid fa-user w-5 text-center"></i> My Profile
           </button>
           
-          <button onClick={() => logout(false)} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 transition-all mt-4">
-            <i className="fa-solid fa-sign-out-alt w-5 text-center"></i> Sign Out
+          <button onClick={() => { logout(false); setIsMobileMenuOpen(false); }} className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold text-white bg-red-600 hover:bg-red-700 shadow-md transition-all mt-6 cursor-pointer">
+            <i className="fa-solid fa-right-from-bracket w-5 text-center text-white text-base"></i> Sign Out
           </button>
         </nav>
       </aside>
 
       {/* ==================== MAIN CONTENT ==================== */}
-      <main className="flex-1 flex flex-col min-h-screen print:hidden">
+      <main className="flex-1 flex flex-col min-h-screen w-full min-w-0 print:hidden">
         {/* Top Bar */}
-        <header className="bg-white border-b border-gray-200 px-8 py-4 flex items-center justify-between sticky top-0 z-30 print:hidden">
-          <div className="flex items-center gap-4 flex-1">
-            <h2 className="text-lg font-semibold text-gray-800">
+        <header className="bg-white border-b border-gray-200 px-4 md:px-8 py-4 flex items-center justify-between sticky top-0 z-30 print:hidden">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <button 
+              type="button" 
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
+              className="lg:hidden p-2 rounded-xl text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer shrink-0"
+              title="Toggle Menu"
+            >
+              <i className="fa-solid fa-bars text-xl"></i>
+            </button>
+            <h2 className="text-base md:text-lg font-semibold text-gray-800 truncate">
               {currentView === 'dashboard' && 'Dashboard'}
               {currentView === 'profile' && 'My Profile'}
               {currentView === 'listings' && (user.role === 'ADMIN' || user.role === 'CARE_COORDINATOR' ? 'Shift Management' : user.role === 'CAREGIVER' ? 'My Shifts' : 'Care Feed')}
@@ -4130,7 +4156,7 @@ export default function Home() {
               {currentView === 'caregiverReviews' && 'Caregiver Reviews'}
               {currentView === 'messages' && (user.role === 'ADMIN' || user.role === 'CARE_COORDINATOR' ? 'Message Monitoring' : 'Messages')}
             </h2>
-            <div className="relative flex-1 max-w-md ml-4">
+            <div className="relative flex-1 max-w-md ml-2 md:ml-4 hidden sm:block">
               <i className="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
               <input type="text" placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all" />
             </div>
@@ -4153,13 +4179,13 @@ export default function Home() {
                 <div className="notification-dropdown animate-fade-up">
                   <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50">
                     <div className="flex items-center gap-2">
-                      <i className="fa-solid fa-bell text-purple-600"></i>
-                      <span className="font-semibold text-sm text-gray-800">Notifications</span>
-                      <span className="bg-purple-100 text-purple-700 text-xs font-bold px-2 py-0.5 rounded-full">
+                      <i className="fa-solid fa-bell text-[#77248c]"></i>
+                      <span className="font-bold text-sm text-gray-800">Notifications</span>
+                      <span className="bg-[#77248c] text-white text-xs font-bold px-2.5 py-0.5 rounded-full shadow-2xs">
                         {dbNotifications.filter(n => !n.isRead).length} unread
                       </span>
                     </div>
-                    <button onClick={handleMarkAllNotificationsRead} className="text-xs font-semibold text-purple-600 hover:underline">
+                    <button onClick={handleMarkAllNotificationsRead} className="text-xs font-bold text-[#77248c] hover:underline">
                       Mark all read
                     </button>
                   </div>
@@ -4189,7 +4215,7 @@ export default function Home() {
         </header>
 
         {/* Content Area */}
-        <div className="flex-1 p-8">
+        <div className="flex-1 p-4 md:p-8 overflow-x-hidden">
           {loading ? (
             <div className="flex items-center justify-center h-64"><div className="w-10 h-10 border-4 border-purple-600 border-t-transparent rounded-full animate-spin" /></div>
           ) : (
@@ -4197,7 +4223,7 @@ export default function Home() {
               {/* ===== DASHBOARD VIEW ===== */}
               {currentView === 'dashboard' && (
                 <div className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     {user.role === 'CAREGIVER' ? (
                       <>
                         <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
@@ -4209,7 +4235,7 @@ export default function Home() {
                         <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
                           <div className="flex items-center justify-between">
                             <div><div className="text-sm font-bold text-gray-700">Unconfirmed Shifts</div><div className="text-2xl font-bold text-gray-800">{shifts.filter(s => s.caregiverId === user.id && s.status === 'UNCONFIRMED').length}</div></div>
-                            <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-600"><i className="fa-solid fa-triangle-exclamation text-xl"></i></div>
+                            <div className="w-12 h-12 bg-amber-500 border-2 border-amber-600 rounded-2xl flex items-center justify-center text-white shadow-xs"><i className="fa-solid fa-triangle-exclamation text-xl text-white"></i></div>
                           </div>
                         </div>
                         <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
@@ -4222,13 +4248,13 @@ export default function Home() {
                                 .reduce((sum, s) => sum + (new Date(s.actualEnd).getTime() - new Date(s.actualStart).getTime()), 0);
                               return (totalMs / 3600000).toFixed(1);
                             })()}</div></div>
-                            <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600"><i className="fa-solid fa-hourglass-half text-xl"></i></div>
+                            <div className="w-12 h-12 bg-[#4cdbd5] rounded-2xl flex items-center justify-center text-white shadow-xs"><i className="fa-solid fa-hourglass-half text-xl text-white"></i></div>
                           </div>
                         </div>
                         <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
                           <div className="flex items-center justify-between">
                             <div><div className="text-sm font-bold text-gray-700">My Clients</div><div className="text-2xl font-bold text-gray-800">{new Set(shifts.filter(s => s.caregiverId === user.id).map(s => s.clientId)).size}</div></div>
-                            <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center text-green-600"><i className="fa-solid fa-user-group text-xl"></i></div>
+                            <div className="w-12 h-12 bg-emerald-600 border-2 border-emerald-700 rounded-2xl flex items-center justify-center text-white shadow-xs"><i className="fa-solid fa-user-group text-xl text-white"></i></div>
                           </div>
                         </div>
                       </>
@@ -4243,7 +4269,7 @@ export default function Home() {
                         <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
                           <div className="flex items-center justify-between">
                             <div><div className="text-sm font-bold text-gray-700">Caregivers</div><div className="text-2xl font-bold text-gray-800">{caregivers.length}</div></div>
-                            <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center text-green-600"><i className="fa-solid fa-user-md text-xl"></i></div>
+                            <div className="w-12 h-12 bg-emerald-600 border-2 border-emerald-700 rounded-2xl flex items-center justify-center text-white shadow-xs"><i className="fa-solid fa-user-md text-xl text-white"></i></div>
                           </div>
                         </div>
                         <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
@@ -4306,7 +4332,7 @@ export default function Home() {
                                   </div>
                                   <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
                                     shift.status === 'IN_PROGRESS' ? 'bg-purple-100 text-purple-700 border border-purple-200' :
-                                    shift.status === 'UNCONFIRMED' ? 'bg-amber-100 text-amber-700 border border-amber-200' :
+                                    shift.status === 'UNCONFIRMED' ? 'bg-amber-500 border border-amber-600 text-white font-bold' :
                                     shift.status === 'CONFIRMED' ? 'bg-[#4cdbd5] text-white' :
                                     'bg-gray-100 text-gray-600'
                                   }`}>{shift.status}</span>
@@ -4347,7 +4373,7 @@ export default function Home() {
                       </div>
                       <h2 className="text-2xl font-bold text-gray-800 mt-4">{user.name}</h2>
                       <p className="text-gray-500">{user.email}</p>
-                      <span className="mt-2 px-4 py-1 bg-purple-50 text-purple-600 rounded-full text-sm font-medium">{user.role}</span>
+                      <span className="mt-2 px-4 py-1.5 bg-[#77248c] text-white rounded-full text-sm font-bold shadow-xs">{user.role}</span>
                       {user.phoneNumber && <p className="text-sm text-gray-500 mt-2"><i className="fa-solid fa-phone mr-2"></i>{user.phoneNumber}</p>}
                     </div>
                     <div className="grid grid-cols-2 gap-4 mt-8">
@@ -4864,16 +4890,16 @@ export default function Home() {
                   {/* Admin / Caregiver Shifts List */}
                   {user.role !== 'FAMILY_MEMBER' && (
                     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-                      <div className="flex justify-between items-center mb-4">
-                        <h3 className="font-semibold text-gray-800 text-lg">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 items-center sm:items-stretch">
+                        <h3 className="font-extrabold text-gray-900 text-xl md:text-2xl tracking-tight text-center sm:text-left w-full sm:w-auto">
                           {user.role === 'ADMIN' || user.role === 'CARE_COORDINATOR' ? 'All Scheduled Care Shifts' : 'My Assigned Shifts'}
                         </h3>
                         {user.role === 'CAREGIVER' && (
                           <button
                             onClick={() => setShowPostUpdateModal(true)}
-                            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs rounded-xl flex items-center gap-2 shadow-sm transition-all cursor-pointer"
+                            className="px-4 py-2.5 bg-[#77248c] hover:bg-purple-800 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer w-full sm:w-auto"
                           >
-                            <i className="fa-solid fa-camera"></i> Send Family Media Update
+                            <i className="fa-solid fa-camera text-white"></i> Send Family Media Update
                           </button>
                         )}
                       </div>
@@ -4893,34 +4919,38 @@ export default function Home() {
                                 user.role === 'CAREGIVER' ? 'hover:bg-purple-50/40 p-3 cursor-pointer border border-transparent hover:border-purple-200' : ''
                               }`}
                             >
-                              <div className="flex items-center justify-between">
-                                <div>
-                                  <div className="font-bold text-sm text-gray-800 flex items-center gap-2">
-                                    <span>{shift.client.name}</span>
-                                    {user.role === 'CAREGIVER' && (
-                                      <span className="text-[10px] text-purple-600 bg-purple-50 font-semibold px-2 py-0.5 rounded-md border border-purple-100">
-                                        💬 Click card to update family
-                                      </span>
-                                    )}
+                              <div className="space-y-3">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                  <div>
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <span className="font-bold text-base text-gray-800">{shift.client.name}</span>
+                                      <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                                        shift.status === 'COMPLETED' ? 'bg-[#4cdbd5] text-white shadow-2xs' :
+                                        shift.status === 'IN_PROGRESS' ? 'bg-purple-100 text-purple-700 border border-purple-200' :
+                                        shift.status === 'UNCONFIRMED' ? 'bg-amber-500 border border-amber-600 text-white' :
+                                        shift.status === 'CONFIRMED' ? 'bg-[#4cdbd5] text-white' :
+                                        'bg-gray-100 text-gray-600'
+                                      }`}>{shift.status}</span>
+                                      {shift.status === 'IN_PROGRESS' && (
+                                        <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-full text-[10px] font-bold flex items-center gap-1 animate-pulse">
+                                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-ping inline-block" />
+                                          🟢 Ongoing Service
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="text-xs text-gray-500 font-medium mt-0.5">Caregiver: {shift.caregiver.name}</div>
+                                    <div className="text-xs text-gray-400 mt-0.5 flex items-center gap-1"><i className="fa-regular fa-clock"></i>{formatDateTime(shift.scheduledStart)}</div>
                                   </div>
-                                  <div className="text-xs text-gray-500 font-medium">Caregiver: {shift.caregiver.name}</div>
-                                  <div className="text-xs text-gray-400 mt-0.5"><i className="fa-regular fa-clock mr-1"></i>{formatDateTime(shift.scheduledStart)}</div>
-                                </div>
-                                <div className="flex items-center gap-2 flex-wrap justify-end">
-                                  {shift.status === 'IN_PROGRESS' && (
-                                    <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-full text-xs font-bold flex items-center gap-1.5 animate-pulse">
-                                      <span className="w-2 h-2 rounded-full bg-emerald-600 animate-ping inline-block" />
-                                      🟢 Ongoing Service
-                                    </span>
+
+                                  {user.role === 'CAREGIVER' && (
+                                    <div className="text-[10px] text-white bg-[#77248c] font-bold px-2.5 py-1 rounded-lg shadow-2xs w-fit flex items-center gap-1.5">
+                                      <i className="fa-solid fa-comments text-white"></i> Tap card to send family update
+                                    </div>
                                   )}
-                                  <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
-                                    shift.status === 'COMPLETED' ? 'bg-green-100 text-green-700 border border-green-200' :
-                                    shift.status === 'IN_PROGRESS' ? 'bg-purple-100 text-purple-700 border border-purple-200' :
-                                    shift.status === 'UNCONFIRMED' ? 'bg-amber-100 text-amber-700 border border-amber-200' :
-                                    shift.status === 'CONFIRMED' ? 'bg-teal-100 text-teal-700 border border-teal-200' :
-                                    'bg-gray-100 text-gray-600'
-                                  }`}>{shift.status}</span>
-                                  
+                                </div>
+
+                                {/* Dedicated Responsive Action Toolbar */}
+                                <div className="flex items-center gap-2 flex-wrap pt-2.5 border-t border-gray-100">
                                   <button
                                     onClick={(e) => { e.stopPropagation(); handleFetchGpsLocationHistory(shift.id); }}
                                     className="px-3 py-1 bg-slate-800 hover:bg-slate-900 text-emerald-400 font-semibold text-xs rounded-lg flex items-center gap-1 shadow-2xs cursor-pointer"
@@ -4930,41 +4960,41 @@ export default function Home() {
 
                                   {/* Caregiver Shift Actions */}
                                   {user.role === 'CAREGIVER' && shift.status === 'UNCONFIRMED' && (
-                                    <button onClick={(e) => { e.stopPropagation(); handleConfirmShift(shift.id, false); }} className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs rounded-lg cursor-pointer shadow-2xs">Confirm Shift</button>
+                                    <button onClick={(e) => { e.stopPropagation(); handleConfirmShift(shift.id, false); }} className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-lg cursor-pointer shadow-2xs">Confirm Shift</button>
                                   )}
 
                                   {/* Admin / Coordinator Force Confirm Action */}
                                   {(user.role === 'ADMIN' || user.role === 'CARE_COORDINATOR') && shift.status === 'UNCONFIRMED' && (
-                                    <button onClick={(e) => { e.stopPropagation(); handleConfirmShift(shift.id, true); }} className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs rounded-lg cursor-pointer shadow-2xs flex items-center gap-1">
-                                      🛡️ Admin Confirm
+                                    <button onClick={(e) => { e.stopPropagation(); handleConfirmShift(shift.id, true); }} className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-lg cursor-pointer shadow-2xs flex items-center gap-1.5">
+                                      <i className="fa-solid fa-shield-halved"></i> Admin Confirm
                                     </button>
                                   )}
 
                                   {/* Caregiver Confirm Presence / Site Readiness Check-In */}
                                   {user.role === 'CAREGIVER' && shift.status === 'CONFIRMED' && (
-                                    <button onClick={(e) => { e.stopPropagation(); handleConfirmCaregiverPresence(shift.id); }} className="px-3 py-1 bg-amber-500 hover:bg-amber-600 text-white font-semibold text-xs rounded-lg cursor-pointer shadow-2xs flex items-center gap-1">
-                                      ✋ Confirm Presence
+                                    <button onClick={(e) => { e.stopPropagation(); handleConfirmCaregiverPresence(shift.id); }} className="px-3 py-1 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-lg cursor-pointer shadow-2xs flex items-center gap-1.5">
+                                      <i className="fa-solid fa-user-check text-white"></i> Confirm Presence
                                     </button>
                                   )}
 
                                   {user.role === 'CAREGIVER' && shift.status === 'CONFIRMED' && (
-                                    <button onClick={(e) => { e.stopPropagation(); handleClockIn(shift.id, false); }} className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white font-semibold text-xs rounded-lg cursor-pointer shadow-2xs">Clock In</button>
+                                    <button onClick={(e) => { e.stopPropagation(); handleClockIn(shift.id, false); }} className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white font-bold text-xs rounded-lg cursor-pointer shadow-2xs">Clock In</button>
                                   )}
 
                                   {user.role === 'CAREGIVER' && (
                                     <button
                                       onClick={(e) => { e.stopPropagation(); handleOpenShiftUpdate(shift); }}
-                                      className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs rounded-lg flex items-center gap-1 shadow-2xs cursor-pointer"
+                                      className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-lg flex items-center gap-1 shadow-2xs cursor-pointer"
                                     >
                                       <i className="fa-solid fa-camera"></i> Family Update
                                     </button>
                                   )}
 
                                   {user.role === 'CAREGIVER' && shift.status === 'IN_PROGRESS' && (
-                                    <button onClick={(e) => { e.stopPropagation(); openClockOutModal(shift.id, false); }} className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white font-semibold text-xs rounded-lg cursor-pointer shadow-2xs">Clock Out</button>
+                                    <button onClick={(e) => { e.stopPropagation(); openClockOutModal(shift.id, false); }} className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-lg cursor-pointer shadow-2xs">Clock Out</button>
                                   )}
                                   {shift.status !== 'COMPLETED' && shift.status !== 'DROPPED' && (
-                                    <button onClick={(e) => { e.stopPropagation(); handleOpenDropModal(shift.id); }} className="px-3 py-1 bg-red-50 text-red-600 hover:bg-red-100 font-semibold text-xs rounded-lg border border-red-200 transition-all">
+                                    <button onClick={(e) => { e.stopPropagation(); handleOpenDropModal(shift.id); }} className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-lg shadow-2xs transition-all cursor-pointer">
                                       Drop Shift...
                                     </button>
                                   )}
@@ -4974,8 +5004,8 @@ export default function Home() {
                               {/* Client Details - unlocked once the caregiver has confirmed the shift */}
                               {user.role === 'CAREGIVER' && (
                                 shift.status === 'UNCONFIRMED' ? (
-                                  <div className="px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg text-xs text-gray-400 flex items-center gap-1.5">
-                                    <i className="fa-solid fa-lock"></i> Confirm this shift to view client details
+                                  <div className="px-3.5 py-2.5 bg-white border border-purple-200 rounded-xl text-xs font-semibold text-[#77248c] flex items-center gap-2 shadow-2xs">
+                                    <i className="fa-solid fa-lock text-[#77248c]"></i> Confirm this shift to view client details
                                   </div>
                                 ) : (() => {
                                   const clientFull = clients.find((c: any) => c.id === shift.clientId) || shift.client;
@@ -4983,48 +5013,48 @@ export default function Home() {
                                   try { meta = clientFull.profileMetadata ? JSON.parse(clientFull.profileMetadata) : {}; } catch {}
                                   const familyContacts = clientFull.familyMembers || [];
                                   return (
-                                    <div className="p-3 bg-blue-50/40 border border-blue-100 rounded-xl space-y-2 text-xs" onClick={(e) => e.stopPropagation()}>
-                                      <div className="font-bold text-blue-900 text-[11px] uppercase tracking-wider flex items-center gap-1.5">
-                                        <i className="fa-solid fa-address-card text-blue-600"></i> Client Details
+                                    <div className="p-3.5 bg-purple-50/50 border border-purple-100/80 rounded-xl space-y-2 text-xs shadow-2xs" onClick={(e) => e.stopPropagation()}>
+                                      <div className="font-bold text-[#77248c] text-[11px] uppercase tracking-wider flex items-center gap-1.5">
+                                        <i className="fa-solid fa-address-card text-[#77248c]"></i> Client Details
                                       </div>
 
                                       <div className="flex items-start gap-2">
-                                        <i className="fa-solid fa-location-dot text-gray-400 w-3.5 mt-0.5"></i>
+                                        <i className="fa-solid fa-location-dot text-purple-400 w-3.5 mt-0.5"></i>
                                         <div>
-                                          <span className="text-gray-700">{clientFull.address}</span>
+                                          <span className="text-gray-700 font-medium">{clientFull.address}</span>
                                           <a
                                             href={`https://www.google.com/maps/search/?api=1&query=${clientFull.latitude},${clientFull.longitude}`}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="ml-2 text-blue-600 hover:underline font-semibold"
+                                            className="ml-2 text-[#77248c] hover:underline font-bold"
                                           >Get Directions</a>
                                         </div>
                                       </div>
 
                                       {(meta.medicalConditions || meta.allergiesNotes) && (
                                         <div className="flex items-start gap-2">
-                                          <i className="fa-solid fa-notes-medical text-gray-400 w-3.5 mt-0.5"></i>
+                                          <i className="fa-solid fa-notes-medical text-purple-400 w-3.5 mt-0.5"></i>
                                           <div className="text-gray-700">
-                                            {meta.medicalConditions && <div><span className="font-semibold">Care Needs:</span> {meta.medicalConditions}</div>}
-                                            {meta.allergiesNotes && <div><span className="font-semibold">Notes:</span> {meta.allergiesNotes}</div>}
+                                            {meta.medicalConditions && <div><span className="font-semibold text-gray-800">Care Needs:</span> {meta.medicalConditions}</div>}
+                                            {meta.allergiesNotes && <div><span className="font-semibold text-gray-800">Notes:</span> {meta.allergiesNotes}</div>}
                                           </div>
                                         </div>
                                       )}
 
                                       {((meta.preferences && meta.preferences.length > 0) || meta.otherPreferences) && (
                                         <div className="flex items-start gap-2">
-                                          <i className="fa-solid fa-heart text-gray-400 w-3.5 mt-0.5"></i>
+                                          <i className="fa-solid fa-heart text-purple-400 w-3.5 mt-0.5"></i>
                                           <div className="text-gray-700">
-                                            <span className="font-semibold">Preferences:</span> {[...(meta.preferences || []), meta.otherPreferences].filter(Boolean).join(', ')}
+                                            <span className="font-semibold text-gray-800">Preferences:</span> {[...(meta.preferences || []), meta.otherPreferences].filter(Boolean).join(', ')}
                                           </div>
                                         </div>
                                       )}
 
                                       {(meta.personality || meta.dailyRoutine || meta.preferredCaregiverType || meta.additionalObservations) && (
                                         <div className="flex items-start gap-2">
-                                          <i className="fa-solid fa-comment-dots text-gray-400 w-3.5 mt-0.5"></i>
+                                          <i className="fa-solid fa-comment-dots text-purple-400 w-3.5 mt-0.5"></i>
                                           <div className="text-gray-700 space-y-0.5">
-                                            <div className="font-semibold">About Me</div>
+                                            <div className="font-semibold text-gray-800">About Me</div>
                                             {meta.personality && <div><span className="text-gray-500">Personality:</span> {meta.personality}</div>}
                                             {meta.dailyRoutine && <div><span className="text-gray-500">Typical day:</span> {meta.dailyRoutine}</div>}
                                             {meta.preferredCaregiverType && <div><span className="text-gray-500">Prefers:</span> {meta.preferredCaregiverType}</div>}
@@ -5034,8 +5064,8 @@ export default function Home() {
                                       )}
 
                                       <div className="flex items-start gap-2">
-                                        <i className="fa-solid fa-phone text-gray-400 w-3.5 mt-0.5"></i>
-                                        <div className="text-gray-700">
+                                        <i className="fa-solid fa-phone text-purple-400 w-3.5 mt-0.5"></i>
+                                        <div className="text-gray-700 font-medium">
                                           {familyContacts.length > 0 ? familyContacts.map((f: any) => (
                                             <div key={f.user.id}>{f.user.name} &middot; {f.user.phoneNumber || f.user.email}</div>
                                           )) : meta.emergencyContact ? (
@@ -5610,13 +5640,13 @@ export default function Home() {
                           <button
                             key={c.id}
                             onClick={() => setSelectedMessageClientId(c.id)}
-                            className={`w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${selectedMessageClientId === c.id ? 'bg-purple-50 text-purple-600' : 'text-gray-600 hover:bg-gray-50'}`}
+                            className={`w-full text-left px-3.5 py-3 rounded-xl text-sm transition-all ${selectedMessageClientId === c.id ? 'bg-[#77248c] text-white shadow-md' : 'hover:bg-gray-50 border border-transparent'}`}
                           >
-                            <div>{c.name}</div>
-                            <div className={`text-[10px] font-normal mt-0.5 ${selectedMessageClientId === c.id ? 'text-purple-400' : 'text-gray-400'}`}>
+                            <div className={`font-extrabold text-sm ${selectedMessageClientId === c.id ? 'text-white' : 'text-gray-800'}`}>{c.name}</div>
+                            <div className={`text-xs font-semibold mt-1 leading-snug ${selectedMessageClientId === c.id ? 'text-purple-100' : 'text-gray-600'}`}>
                               {c.participants.length === 0
                                 ? 'No care team assigned yet'
-                                : c.participants.map(p => `${p.name} (${p.role === 'CAREGIVER' ? 'Caregiver' : 'Family'})`).join(' · ')}
+                                : c.participants.map(p => `${p.name} (${p.role === 'CAREGIVER' ? 'Caregiver' : p.role === 'ADMIN' ? 'Admin' : p.role === 'CARE_COORDINATOR' ? 'Coordinator' : 'Family'})`).join(' · ')}
                             </div>
                           </button>
                         ))}
@@ -5638,7 +5668,7 @@ export default function Home() {
                       ) : isLoadingMessages ? (
                         <div className="text-center py-8"><div className="w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto" /></div>
                       ) : messageThread.length === 0 ? (
-                        <p className="text-center text-gray-400 text-sm py-8">No messages yet. Start the conversation below.</p>
+                        <p className="text-center text-gray-700 font-semibold text-sm py-8">No messages yet. Start the conversation below.</p>
                       ) : (
                         messageThread.map((m: any) => {
                           const isMine = m.senderId === user.id;
@@ -5683,14 +5713,14 @@ export default function Home() {
                         <div className="flex items-center gap-2">
                           <div className="relative">
                             <input type="file" accept="image/*,video/*,audio/*" onChange={handleMediaChange} className="absolute inset-0 opacity-0 w-9 h-9 cursor-pointer z-10" />
-                            <button type="button" className="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 flex items-center justify-center"><i className="fa-solid fa-paperclip"></i></button>
+                            <button type="button" className="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-900 flex items-center justify-center"><i className="fa-solid fa-paperclip text-gray-900"></i></button>
                           </div>
                           <button
                             type="button"
                             onClick={isRecordingAudio ? handleStopVoiceRecording : handleStartVoiceRecording}
-                            className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${isRecordingAudio ? 'bg-red-600 text-white animate-pulse' : 'bg-gray-100 hover:bg-gray-200 text-gray-500'}`}
+                            className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${isRecordingAudio ? 'bg-red-600 text-white animate-pulse' : 'bg-gray-100 hover:bg-gray-200 text-gray-900'}`}
                           >
-                            <i className="fa-solid fa-microphone"></i>
+                            <i className="fa-solid fa-microphone text-gray-900"></i>
                           </button>
                           <input
                             type="text"
@@ -5698,7 +5728,7 @@ export default function Home() {
                             onChange={(e) => setMessageText(e.target.value)}
                             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }}
                             placeholder="Type a message..."
-                            className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-gray-900 placeholder:text-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
                           />
                           <button
                             onClick={handleSendMessage}
