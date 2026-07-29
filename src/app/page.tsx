@@ -739,11 +739,12 @@ export default function Home() {
     }
   };
 
-  const loadMessageThread = async (clientId: string, silent = false) => {
-    if (!clientId) return;
+  const loadMessageThread = async (clientId: string, silent = false, overrideContactId?: string) => {
+    const targetContact = overrideContactId || selectedContactId || clientId;
+    if (!clientId && !targetContact) return;
     if (!silent) setIsLoadingMessages(true);
     try {
-      const res = await fetch(`/api/messages?clientId=${clientId}`);
+      const res = await fetch(`/api/messages?clientId=${clientId}&contactId=${targetContact}`);
       const data = await res.json();
       if (res.ok) setMessageThread(data.messages || []);
     } catch (err) {
@@ -762,6 +763,7 @@ export default function Home() {
     try {
       const formData = new FormData();
       formData.append('clientId', selectedMessageClientId);
+      if (selectedContactId) formData.append('contactId', selectedContactId);
       if (messageText.trim()) formData.append('text', messageText.trim());
       if (attachment?.file) formData.append('file', attachment.file, attachment.name);
 
@@ -965,11 +967,11 @@ export default function Home() {
 
   // Messaging: load + poll the selected thread while the view is open
   useEffect(() => {
-    if (currentView !== 'messages' || !selectedMessageClientId) return;
-    loadMessageThread(selectedMessageClientId);
-    const interval = setInterval(() => loadMessageThread(selectedMessageClientId, true), 5000);
+    if (currentView !== 'messages' || (!selectedMessageClientId && !selectedContactId)) return;
+    loadMessageThread(selectedMessageClientId, false, selectedContactId);
+    const interval = setInterval(() => loadMessageThread(selectedMessageClientId, true, selectedContactId), 5000);
     return () => clearInterval(interval);
-  }, [currentView, selectedMessageClientId]);
+  }, [currentView, selectedMessageClientId, selectedContactId]);
 
   // ============================================================
   // INTELLIGENT SUGGESTIONS

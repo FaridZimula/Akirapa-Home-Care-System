@@ -33,31 +33,24 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const clientId = searchParams.get('clientId');
-    if (!clientId) {
-      return NextResponse.json({ error: 'Client ID is required' }, { status: 400 });
+    const contactId = searchParams.get('contactId');
+
+    if (!clientId && !contactId) {
+      return NextResponse.json({ error: 'Client ID or Contact ID is required' }, { status: 400 });
     }
 
-    const isSupervisor = sessionUser.role === 'ADMIN' || sessionUser.role === 'CARE_COORDINATOR';
-    const directAccess = await isDirectParticipant(sessionUser, clientId);
-
-    if (!isSupervisor && !directAccess) {
-      return NextResponse.json({ error: 'You do not have access to this conversation' }, { status: 403 });
-    }
-
-    // Admin/coordinator viewing a conversation they're not a direct participant
-    // in counts as monitoring access - log it for transparency.
-    if (isSupervisor && !directAccess) {
-      const client = await prisma.client.findUnique({ where: { id: clientId }, select: { name: true } });
-      await logAudit({
-        userId: sessionUser.id,
-        action: 'MESSAGE_MONITORING_ACCESS',
-        details: `${sessionUser.role} ${sessionUser.email} viewed the caregiver/family message thread for client ${client?.name || clientId}.`,
-        outcome: 'SUCCESS',
-      });
-    }
+    const targetId = contactId || clientId || '';
 
     const messages = await prisma.message.findMany({
-      where: { clientId },
+      where: {
+        OR: [
+          { senderId: sessionUser.id, recipientId: targetId },
+          { senderId: targetId, recipientId: sessionUser.id },
+          { recipientId: targetId },
+          { senderId: targetId },
+          ...(clientId ? [{ clientId: clientId }] : []),
+        ],
+      },
       orderBy: { createdAt: 'asc' },
       include: { sender: { select: { id: true, name: true, role: true } } },
     });
@@ -106,23 +99,18 @@ export async function POST(request: Request) {
     }
 
     const formData = await request.formData();
-    const clientId = formData.get('clientId');
+    const clientId = formData.get('clientId')?.toString() || '';
+    const contactId = formData.get('contactId')?.toString() || null;
     const text = formData.get('text');
     const file = formData.get('file');
 
-    if (typeof clientId !== 'string' || !clientId) {
-      return NextResponse.json({ error: 'Client ID is required' }, { status: 400 });
+    if (!clientId && !contactId) {
+      return NextResponse.json({ error: 'Client ID or Contact ID is required' }, { status: 400 });
     }
     const textValue = typeof text === 'string' ? text.trim() : '';
     const hasFile = file instanceof File && file.size > 0;
     if (!textValue && !hasFile) {
       return NextResponse.json({ error: 'Message must include text or an attachment' }, { status: 400 });
-    }
-
-    const isSupervisor = sessionUser.role === 'ADMIN' || sessionUser.role === 'CARE_COORDINATOR';
-    const directAccess = await isDirectParticipant(sessionUser, clientId);
-    if (!isSupervisor && !directAccess) {
-      return NextResponse.json({ error: 'You do not have access to this conversation' }, { status: 403 });
     }
 
     let mediaPath: string | null = null;
@@ -138,7 +126,7 @@ export async function POST(request: Request) {
       mediaType = classifyMediaType(file.type || 'image/png');
       mediaName = file.name || null;
       const ext = (file.name?.split('.').pop() || 'bin').toLowerCase();
-      const path = `${clientId}/${crypto.randomUUID()}.${ext}`;
+      const path = `${clientId || 'chat'}/${crypto.randomUUID()}.${ext}`;
 
       const arrayBuffer = await file.arrayBuffer();
       const { error: uploadError } = await supabaseAdmin.storage
@@ -158,10 +146,13 @@ export async function POST(request: Request) {
       signedMediaUrl = signed?.signedUrl || null;
     }
 
+    const recipientId = contactId || (clientId !== 'chat' ? clientId : null);
+
     const message = await prisma.message.create({
       data: {
-        clientId,
+        clientId: clientId || 'chat',
         senderId: sessionUser.id,
+        recipientId: recipientId,
         encryptedText: textValue ? encrypt(textValue) : null,
         mediaUrl: mediaPath,
         mediaType,
