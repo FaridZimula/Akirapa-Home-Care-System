@@ -2640,12 +2640,12 @@ export default function Home() {
               <div className="pt-3 border-t border-gray-100">
                 <div className="flex flex-col items-center mb-4">
                   <div className="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center mb-2"><i className="fa-solid fa-notes-medical text-teal-600 text-sm"></i></div>
-                  <h3 className="text-xs font-bold text-teal-700 uppercase tracking-wider">Medical Information</h3>
+                  <h3 className="text-xs font-bold text-teal-700 uppercase tracking-wider">Health & Care Notes</h3>
                   <p className="text-[11px] text-gray-400 mt-1 text-center">Helps caregivers prepare properly and stay alert to what matters.</p>
                 </div>
                 <div className="space-y-3">
                   <div>
-                    <label className="text-xs font-semibold text-gray-500 uppercase">Medical Conditions</label>
+                    <label className="text-xs font-semibold text-gray-500 uppercase">Health Notes & Conditions</label>
                     <textarea placeholder="e.g. Hypertension, Type 2 Diabetes, Early Stage Dementia" value={patientMedicalConditions} onChange={(e) => setPatientMedicalConditions(e.target.value)} rows={2} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none" />
                   </div>
                   <div>
@@ -3870,7 +3870,7 @@ export default function Home() {
                 <h3 className="font-bold text-gray-800 text-base flex items-center gap-2">
                   <i className="fa-solid fa-users-line text-emerald-600"></i> Family Account Linker
                 </h3>
-                <p className="text-xs text-gray-400">Map family accounts to patient: {targetFamilyLinkClient.name}</p>
+                <p className="text-xs text-gray-400">Map family accounts to client: {targetFamilyLinkClient.name}</p>
               </div>
               <button onClick={() => setShowFamilyLinkModal(false)} className="text-gray-400 hover:text-gray-600 font-bold">✕</button>
             </div>
@@ -4300,6 +4300,33 @@ export default function Home() {
                           </div>
                         </div>
                       </>
+                    ) : user.role === 'FAMILY_MEMBER' ? (
+                      <>
+                        <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
+                          <div className="flex items-center justify-between">
+                            <div><div className="text-xs font-bold text-gray-500 uppercase">Client</div><div className="text-lg font-extrabold text-gray-900 truncate max-w-[150px] mt-0.5">{clients[0]?.name || 'Sarah Jenkins'}</div></div>
+                            <div className="w-12 h-12 bg-[#77248c] rounded-2xl flex items-center justify-center text-white shadow-xs"><i className="fa-solid fa-heart text-xl text-white"></i></div>
+                          </div>
+                        </div>
+                        <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
+                          <div className="flex items-center justify-between">
+                            <div><div className="text-xs font-bold text-gray-500 uppercase">Assigned Caregiver</div><div className="text-lg font-extrabold text-gray-900 truncate max-w-[150px] mt-0.5">Amara Okafor</div></div>
+                            <div className="w-12 h-12 bg-[#4cdbd5] rounded-2xl flex items-center justify-center text-white shadow-xs"><i className="fa-solid fa-user-nurse text-xl text-white"></i></div>
+                          </div>
+                        </div>
+                        <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
+                          <div className="flex items-center justify-between">
+                            <div><div className="text-xs font-bold text-gray-500 uppercase">Latest Wellness</div><div className="text-lg font-extrabold text-emerald-600 truncate max-w-[150px] mt-0.5">Calm & Good</div></div>
+                            <div className="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center text-white shadow-xs"><i className="fa-solid fa-face-smile text-xl text-white"></i></div>
+                          </div>
+                        </div>
+                        <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
+                          <div className="flex items-center justify-between">
+                            <div><div className="text-xs font-bold text-gray-500 uppercase">Care Feed Status</div><div className="text-lg font-extrabold text-purple-700 truncate max-w-[150px] mt-0.5">Active Feed</div></div>
+                            <div className="w-12 h-12 bg-purple-600 rounded-2xl flex items-center justify-center text-white shadow-xs"><i className="fa-solid fa-photo-film text-xl text-white"></i></div>
+                          </div>
+                        </div>
+                      </>
                     ) : (
                       <>
                         <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
@@ -4329,6 +4356,28 @@ export default function Home() {
                       </>
                     )}
                   </div>
+
+                  {user.role === 'FAMILY_MEMBER' && (
+                    <div className="bg-gradient-to-r from-purple-50 via-white to-purple-50/50 rounded-3xl p-6 border border-purple-100 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+                      <div className="flex items-center gap-4">
+                        <div className="w-14 h-14 rounded-2xl bg-[#77248c] text-white flex items-center justify-center text-2xl font-bold shadow-md">
+                          <i className="fa-solid fa-house-chimney-medical"></i>
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-extrabold text-gray-900">Family Care Portal</h3>
+                          <p className="text-xs text-gray-500 font-medium">Stay updated on care, message your assigned caregiver, and access care documents.</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 w-full md:w-auto">
+                        <button onClick={() => setCurrentView('messages')} className="flex-1 md:flex-initial px-4 py-2.5 bg-[#77248c] hover:bg-purple-800 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 transition-all shadow-sm cursor-pointer">
+                          <i className="fa-solid fa-comments"></i> Message Care Team
+                        </button>
+                        <button onClick={() => setCurrentView('listings')} className="flex-1 md:flex-initial px-4 py-2.5 bg-white border border-purple-200 text-[#77248c] hover:bg-purple-50 font-bold rounded-xl text-xs flex items-center justify-center gap-2 transition-all shadow-2xs cursor-pointer">
+                          <i className="fa-solid fa-heart-pulse"></i> View Care Feed
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
                   {user.role === 'CAREGIVER' && (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
