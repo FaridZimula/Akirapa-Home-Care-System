@@ -30,7 +30,7 @@ export default function Home() {
   const { user, loading: authLoading, login, logout } = useAuth();
   
   // Navigation state
-  const [currentView, setCurrentView] = useState<'dashboard' | 'profile' | 'listings' | 'create' | 'purchases' | 'business' | 'interested' | 'settings' | 'audit' | 'financials' | 'billing' | 'messages' | 'caregiverReviews'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'profile' | 'listings' | 'create' | 'purchases' | 'business' | 'interested' | 'settings' | 'audit' | 'financials' | 'billing' | 'messages' | 'caregiverReviews' | 'messageOversight'>('dashboard');
   
   // Auth flow states
   const [viewState, setViewState] = useState<'splash' | 'login' | 'signup' | 'forgot_password' | 'dashboard'>('splash');
@@ -367,6 +367,15 @@ export default function Home() {
   // Admin Caregiver Reviews
   const [adminCaregiverReviews, setAdminCaregiverReviews] = useState<any[]>([]);
   const [isLoadingAdminReviews, setIsLoadingAdminReviews] = useState(false);
+
+  // Admin Message Oversight (system-wide chat monitoring, read-only)
+  const [oversightStats, setOversightStats] = useState<any>(null);
+  const [oversightThreads, setOversightThreads] = useState<any[]>([]);
+  const [isLoadingOversight, setIsLoadingOversight] = useState(false);
+  const [oversightSearch, setOversightSearch] = useState('');
+  const [oversightTypeFilter, setOversightTypeFilter] = useState<'ALL' | 'DIRECT' | 'GROUP'>('ALL');
+  const [viewingTranscript, setViewingTranscript] = useState<any>(null);
+  const [isLoadingTranscript, setIsLoadingTranscript] = useState(false);
 
   // Splash Screen Animated Progress & Role Selection State
   const [splashProgress, setSplashProgress] = useState(0);
@@ -945,6 +954,50 @@ export default function Home() {
       loadAdminCaregiverReviews();
     }
   }, [currentView, user]);
+
+  const loadMessageOversight = async () => {
+    setIsLoadingOversight(true);
+    try {
+      const res = await fetch('/api/admin/message-oversight');
+      const data = await res.json();
+      if (res.ok) {
+        setOversightStats(data.stats || null);
+        setOversightThreads(data.threads || []);
+      } else {
+        showNotification(data.error || 'Failed to load message oversight.');
+      }
+    } catch (err) {
+      console.error('Failed to load message oversight:', err);
+    } finally {
+      setIsLoadingOversight(false);
+    }
+  };
+
+  useEffect(() => {
+    if (currentView === 'messageOversight' && (user?.role === 'ADMIN' || user?.role === 'CARE_COORDINATOR')) {
+      loadMessageOversight();
+    }
+  }, [currentView, user]);
+
+  const handleOpenTranscript = async (thread: any) => {
+    setIsLoadingTranscript(true);
+    setViewingTranscript({ ...thread, messages: null });
+    try {
+      const res = await fetch(`/api/admin/message-oversight?threadKey=${encodeURIComponent(thread.threadKey)}`);
+      const data = await res.json();
+      if (res.ok) {
+        setViewingTranscript({ ...thread, messages: data.messages || [] });
+      } else {
+        showNotification(data.error || 'Failed to load transcript.');
+        setViewingTranscript(null);
+      }
+    } catch (err) {
+      console.error('Failed to load transcript:', err);
+      setViewingTranscript(null);
+    } finally {
+      setIsLoadingTranscript(false);
+    }
+  };
 
   useEffect(() => {
     if (currentView === 'financials' && user?.role === 'ADMIN') {
@@ -4122,8 +4175,13 @@ export default function Home() {
                 </button>
               )}
               <button onClick={() => { setCurrentView('messages'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'messages' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
-                <i className="fa-solid fa-comments w-5 text-center"></i> Message Monitoring
+                <i className="fa-solid fa-comments w-5 text-center"></i> Messages
               </button>
+              {(user.role === 'ADMIN' || user.role === 'CARE_COORDINATOR') && (
+                <button onClick={() => { setCurrentView('messageOversight'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'messageOversight' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
+                  <i className="fa-solid fa-eye w-5 text-center"></i> Message Oversight
+                </button>
+              )}
               <button onClick={() => { setCurrentView('audit'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'audit' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                 <i className="fa-solid fa-shield-halved w-5 text-center"></i> Audit Logs
               </button>
@@ -4196,7 +4254,8 @@ export default function Home() {
               {currentView === 'financials' && 'Payroll'}
               {currentView === 'billing' && 'Billing & Invoices'}
               {currentView === 'caregiverReviews' && 'Caregiver Reviews'}
-              {currentView === 'messages' && (user.role === 'ADMIN' || user.role === 'CARE_COORDINATOR' ? 'Message Monitoring' : 'Messages')}
+              {currentView === 'messages' && 'Messages'}
+              {currentView === 'messageOversight' && 'Message Oversight'}
             </h2>
             <div className="relative flex-1 max-w-md ml-2 md:ml-4 hidden sm:block">
               <i className="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
@@ -5717,6 +5776,150 @@ export default function Home() {
                 </div>
               )}
 
+              {/* ===== MESSAGE OVERSIGHT VIEW (admin/coordinator only - read-only, no composer) ===== */}
+              {currentView === 'messageOversight' && (user.role === 'ADMIN' || user.role === 'CARE_COORDINATOR') && (
+                <div className="space-y-6">
+                  <div className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 text-xs text-amber-900 font-semibold flex items-start gap-2">
+                    <i className="fa-solid fa-eye mt-0.5"></i>
+                    <span>
+                      Oversight view — every conversation on the platform, including private direct messages between staff and families.
+                      Opening a transcript is recorded in the Audit Logs against your account.
+                    </span>
+                  </div>
+
+                  {isLoadingOversight ? (
+                    <div className="py-16 text-center">
+                      <div className="w-10 h-10 border-4 border-[#77248c] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                      <p className="text-xs font-semibold text-gray-500">Loading message activity...</p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                        <div className="bg-white rounded-2xl shadow-sm p-5 border border-gray-100">
+                          <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Total Messages</div>
+                          <div className="text-2xl font-bold text-gray-800">{oversightStats?.totalMessages ?? 0}</div>
+                        </div>
+                        <div className="bg-white rounded-2xl shadow-sm p-5 border border-gray-100">
+                          <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Conversations</div>
+                          <div className="text-2xl font-bold text-gray-800">{oversightStats?.totalConversations ?? 0}</div>
+                        </div>
+                        <div className="bg-[#77248c] rounded-2xl shadow-sm p-5">
+                          <div className="text-[10px] font-bold text-purple-100 uppercase tracking-wider mb-1">Private DMs</div>
+                          <div className="text-2xl font-bold text-white">{oversightStats?.directConversations ?? 0}</div>
+                        </div>
+                        <div className="bg-white rounded-2xl shadow-sm p-5 border border-gray-100">
+                          <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Sent Today</div>
+                          <div className="text-2xl font-bold text-emerald-600">{oversightStats?.messagesToday ?? 0}</div>
+                        </div>
+                        <div className="bg-white rounded-2xl shadow-sm p-5 border border-gray-100">
+                          <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Attachments</div>
+                          <div className="text-2xl font-bold text-gray-800">{oversightStats?.attachmentsShared ?? 0}</div>
+                        </div>
+                      </div>
+
+                      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-4">
+                          <div>
+                            <h3 className="font-semibold text-gray-800 text-lg">All Conversations</h3>
+                            <p className="text-xs text-gray-400">{oversightStats?.activeParticipants ?? 0} people have sent messages on the platform</p>
+                          </div>
+                          <div className="flex gap-2 w-full md:w-auto">
+                            <input
+                              type="text"
+                              placeholder="Search people or message text..."
+                              value={oversightSearch}
+                              onChange={(e) => setOversightSearch(e.target.value)}
+                              className="flex-1 md:w-64 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#77248c]"
+                            />
+                            <select
+                              value={oversightTypeFilter}
+                              onChange={(e) => setOversightTypeFilter(e.target.value as any)}
+                              className="bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#77248c]"
+                            >
+                              <option value="ALL">All types</option>
+                              <option value="DIRECT">Direct messages</option>
+                              <option value="GROUP">Care-team threads</option>
+                            </select>
+                            <button onClick={loadMessageOversight} className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl text-sm" title="Refresh">
+                              <i className="fa-solid fa-arrows-rotate"></i>
+                            </button>
+                          </div>
+                        </div>
+
+                        {(() => {
+                          const q = oversightSearch.trim().toLowerCase();
+                          const filtered = oversightThreads.filter(t => {
+                            if (oversightTypeFilter !== 'ALL' && t.type !== oversightTypeFilter) return false;
+                            if (!q) return true;
+                            return (t.searchBlob || '').includes(q) || (t.clientName || '').toLowerCase().includes(q);
+                          });
+
+                          if (oversightThreads.length === 0) {
+                            return <div className="text-center py-12"><p className="text-gray-400">No messages have been sent on the platform yet</p></div>;
+                          }
+                          if (filtered.length === 0) {
+                            return <div className="text-center py-12"><p className="text-gray-400">No conversations match your search</p></div>;
+                          }
+
+                          return (
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-sm">
+                                <thead>
+                                  <tr className="text-left text-xs text-gray-500 uppercase border-b border-gray-100">
+                                    <th className="pb-2 font-semibold">Participants</th>
+                                    <th className="pb-2 font-semibold">Type</th>
+                                    <th className="pb-2 font-semibold">Latest Message</th>
+                                    <th className="pb-2 font-semibold text-right">Msgs</th>
+                                    <th className="pb-2 font-semibold text-right">Files</th>
+                                    <th className="pb-2 font-semibold">Last Activity</th>
+                                    <th className="pb-2 font-semibold"></th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {filtered.map((t: any) => (
+                                    <tr key={t.threadKey} className="border-b border-gray-50 align-top">
+                                      <td className="py-3 pr-3">
+                                        <div className="font-semibold text-gray-800">
+                                          {t.type === 'DIRECT'
+                                            ? t.participants.map((p: any) => p.name).join(' ↔ ')
+                                            : `${t.clientName} care team`}
+                                        </div>
+                                        <div className="text-[11px] text-gray-400">
+                                          {t.participants.map((p: any) => `${p.name} (${p.role.replace('_', ' ')})`).join(' · ')}
+                                        </div>
+                                      </td>
+                                      <td className="py-3 pr-3">
+                                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${t.type === 'DIRECT' ? 'bg-purple-100 text-purple-700 border border-purple-200' : 'bg-teal-100 text-teal-700 border border-teal-200'}`}>
+                                          {t.type === 'DIRECT' ? 'PRIVATE DM' : 'CARE TEAM'}
+                                        </span>
+                                      </td>
+                                      <td className="py-3 pr-3 text-gray-600 max-w-xs">
+                                        <span className="text-gray-400">{t.lastSenderName}:</span> {t.lastMessagePreview}
+                                      </td>
+                                      <td className="py-3 pr-3 text-right font-semibold">{t.messageCount}</td>
+                                      <td className="py-3 pr-3 text-right">{t.attachmentCount || '—'}</td>
+                                      <td className="py-3 pr-3 text-xs text-gray-500 whitespace-nowrap">{formatDateTime(t.lastMessageAt)}</td>
+                                      <td className="py-3 text-right">
+                                        <button
+                                          onClick={() => handleOpenTranscript(t)}
+                                          className="px-3 py-1 bg-white hover:bg-purple-50 text-[#77248c] font-semibold text-xs rounded-lg border border-gray-200 hover:border-purple-300 whitespace-nowrap"
+                                        >
+                                          View Transcript
+                                        </button>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+
               {/* ===== MESSAGES VIEW (everyone can compose; admin/coordinator access is additionally audit-logged) ===== */}
               {currentView === 'messages' && (
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4" style={{ height: 'calc(100vh - 180px)' }}>
@@ -5753,9 +5956,13 @@ export default function Home() {
 
                   {/* Thread */}
                   <div className="md:col-span-3 bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden">
-                    {(user.role === 'ADMIN' || user.role === 'CARE_COORDINATOR') && (
+                    {(user.role === 'ADMIN' || user.role === 'CARE_COORDINATOR') ? (
                       <div className="px-4 py-2 bg-amber-50 border-b border-amber-100 text-[11px] text-amber-800 font-semibold flex items-center gap-1.5">
                         <i className="fa-solid fa-eye"></i> You can message this client's care team directly — all access and messages sent here are logged for accountability.
+                      </div>
+                    ) : (
+                      <div className="px-4 py-2 bg-gray-50 border-b border-gray-100 text-[11px] text-gray-500 flex items-center gap-1.5">
+                        <i className="fa-solid fa-circle-info"></i> Messages here may be reviewed by your care coordinator for quality and safeguarding.
                       </div>
                     )}
 
@@ -6068,6 +6275,62 @@ export default function Home() {
               <div className="text-center text-xs text-gray-400 mt-6 pt-4 border-t border-gray-100">
                 Thank you for trusting our care services.
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Message Oversight - read-only full transcript viewer */}
+      {viewingTranscript && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="p-4 border-b border-gray-100 flex justify-between items-start gap-3">
+              <div>
+                <h3 className="font-bold text-gray-800 text-sm flex items-center gap-2">
+                  <i className="fa-solid fa-eye text-[#77248c]"></i>
+                  {viewingTranscript.type === 'DIRECT'
+                    ? viewingTranscript.participants.map((p: any) => p.name).join(' ↔ ')
+                    : `${viewingTranscript.clientName} care team`}
+                </h3>
+                <p className="text-[11px] text-gray-400 mt-0.5">
+                  {viewingTranscript.type === 'DIRECT' ? 'Private direct message' : 'Shared care-team thread'} · read-only · this view has been audit-logged
+                </p>
+              </div>
+              <button onClick={() => setViewingTranscript(null)} className="text-gray-400 hover:text-gray-600 font-bold shrink-0">
+                <i className="fa-solid fa-xmark text-lg"></i>
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/60">
+              {isLoadingTranscript || viewingTranscript.messages === null ? (
+                <div className="text-center py-10"><div className="w-8 h-8 border-4 border-[#77248c] border-t-transparent rounded-full animate-spin mx-auto" /></div>
+              ) : viewingTranscript.messages.length === 0 ? (
+                <p className="text-center text-gray-400 text-sm py-8">This conversation has no messages.</p>
+              ) : (
+                viewingTranscript.messages.map((m: any) => (
+                  <div key={m.id} className="bg-white rounded-xl border border-gray-100 p-3">
+                    <div className="flex justify-between items-baseline gap-2 mb-1">
+                      <span className="text-[11px] font-bold text-[#77248c]">
+                        {m.senderName} <span className="text-gray-400 font-medium">· {m.senderRole.replace('_', ' ')}</span>
+                        {m.recipientName && <span className="text-gray-400 font-medium"> → {m.recipientName}</span>}
+                      </span>
+                      <span className="text-[10px] text-gray-400 whitespace-nowrap">{formatDateTime(m.createdAt)}</span>
+                    </div>
+                    {m.text && <p className="text-sm text-gray-800 whitespace-pre-wrap">{m.text}</p>}
+                    {m.hasAttachment && (
+                      <div className="mt-1.5 text-xs text-gray-500 italic flex items-center gap-1.5">
+                        <i className="fa-solid fa-paperclip"></i>
+                        {m.mediaType === 'audio' ? 'Voice note' : m.mediaType === 'video' ? 'Video' : 'Photo'}
+                        {m.mediaName ? ` — ${m.mediaName}` : ''}
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="p-3 border-t border-gray-100 bg-white text-[11px] text-gray-400 text-center">
+              {viewingTranscript.messages?.length ?? 0} message{(viewingTranscript.messages?.length ?? 0) === 1 ? '' : 's'} · oversight is read-only, you cannot reply from here
             </div>
           </div>
         </div>
