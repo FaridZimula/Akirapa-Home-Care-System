@@ -1,12 +1,18 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { logAudit } from '@/lib/audit';
+import { getSessionUser } from '@/lib/session';
 import { ShiftStatus } from '@prisma/client';
 import { encrypt } from '@/lib/crypto';
 import { formatDate, formatTime } from '@/lib/dateFormat';
 
 export async function POST(request: Request) {
   try {
+    const sessionUser = await getSessionUser();
+    if (!sessionUser) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
     const { shiftId, confirmedByAdmin, confirmPresence } = await request.json();
 
     if (!shiftId) {
@@ -20,6 +26,12 @@ export async function POST(request: Request) {
 
     if (!shift) {
       return NextResponse.json({ error: 'Shift not found' }, { status: 404 });
+    }
+
+    const isAssignedCaregiver = shift.caregiverId === sessionUser.id;
+    const isSupervisor = sessionUser.role === 'ADMIN' || sessionUser.role === 'CARE_COORDINATOR';
+    if (!isAssignedCaregiver && !isSupervisor) {
+      return NextResponse.json({ error: 'You are not authorized to act on this shift' }, { status: 403 });
     }
 
     const now = new Date();
@@ -60,7 +72,7 @@ export async function POST(request: Request) {
       : `Caregiver ${shift.caregiver.name} confirmed shift availability for client ${shift.client.name} (Scheduled: ${shift.scheduledStart.toISOString()}).`;
 
     await logAudit({
-      userId: confirmedByAdmin ? 'ADMIN' : shift.caregiverId,
+      userId: sessionUser.id,
       action: actionName,
       details: auditDetails,
       outcome: 'SUCCESS',
