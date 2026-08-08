@@ -22,6 +22,26 @@ type WelfareAnswers = Record<string, 'YES' | 'NO' | null>;
 
 const EMPTY_WELFARE_ANSWERS: WelfareAnswers = Object.fromEntries(WELFARE_QUESTIONS.map(q => [q.key, null]));
 
+const US_STATES = [
+  { abbr: 'AL', name: 'Alabama' }, { abbr: 'AK', name: 'Alaska' }, { abbr: 'AZ', name: 'Arizona' },
+  { abbr: 'AR', name: 'Arkansas' }, { abbr: 'CA', name: 'California' }, { abbr: 'CO', name: 'Colorado' },
+  { abbr: 'CT', name: 'Connecticut' }, { abbr: 'DE', name: 'Delaware' }, { abbr: 'FL', name: 'Florida' },
+  { abbr: 'GA', name: 'Georgia' }, { abbr: 'HI', name: 'Hawaii' }, { abbr: 'ID', name: 'Idaho' },
+  { abbr: 'IL', name: 'Illinois' }, { abbr: 'IN', name: 'Indiana' }, { abbr: 'IA', name: 'Iowa' },
+  { abbr: 'KS', name: 'Kansas' }, { abbr: 'KY', name: 'Kentucky' }, { abbr: 'LA', name: 'Louisiana' },
+  { abbr: 'ME', name: 'Maine' }, { abbr: 'MD', name: 'Maryland' }, { abbr: 'MA', name: 'Massachusetts' },
+  { abbr: 'MI', name: 'Michigan' }, { abbr: 'MN', name: 'Minnesota' }, { abbr: 'MS', name: 'Mississippi' },
+  { abbr: 'MO', name: 'Missouri' }, { abbr: 'MT', name: 'Montana' }, { abbr: 'NE', name: 'Nebraska' },
+  { abbr: 'NV', name: 'Nevada' }, { abbr: 'NH', name: 'New Hampshire' }, { abbr: 'NJ', name: 'New Jersey' },
+  { abbr: 'NM', name: 'New Mexico' }, { abbr: 'NY', name: 'New York' }, { abbr: 'NC', name: 'North Carolina' },
+  { abbr: 'ND', name: 'North Dakota' }, { abbr: 'OH', name: 'Ohio' }, { abbr: 'OK', name: 'Oklahoma' },
+  { abbr: 'OR', name: 'Oregon' }, { abbr: 'PA', name: 'Pennsylvania' }, { abbr: 'RI', name: 'Rhode Island' },
+  { abbr: 'SC', name: 'South Carolina' }, { abbr: 'SD', name: 'South Dakota' }, { abbr: 'TN', name: 'Tennessee' },
+  { abbr: 'TX', name: 'Texas' }, { abbr: 'UT', name: 'Utah' }, { abbr: 'VT', name: 'Vermont' },
+  { abbr: 'VA', name: 'Virginia' }, { abbr: 'WA', name: 'Washington' }, { abbr: 'WV', name: 'West Virginia' },
+  { abbr: 'WI', name: 'Wisconsin' }, { abbr: 'WY', name: 'Wyoming' }, { abbr: 'DC', name: 'District of Columbia' },
+];
+
 function computeWelfareRedFlags(answers: WelfareAnswers): Record<string, boolean> {
   return Object.fromEntries(WELFARE_QUESTIONS.map(q => [q.key, answers[q.key] === q.concerningAnswer]));
 }
@@ -60,6 +80,7 @@ export default function Home() {
   const [schedulerWarning, setSchedulerWarning] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [showAllCaregivers, setShowAllCaregivers] = useState(false);
 
   // Pod Management
   const [selectedPodClient, setSelectedPodClient] = useState('');
@@ -239,7 +260,8 @@ export default function Home() {
   const [cgDob, setCgDob] = useState('');
   const [cgGender, setCgGender] = useState('');
   const [cgNationality, setCgNationality] = useState('');
-  const [cgIdPassport, setCgIdPassport] = useState('');
+  const [cgSsn, setCgSsn] = useState('');
+  const [cgWorkAuthNumber, setCgWorkAuthNumber] = useState('');
   const [cgAddress, setCgAddress] = useState('');
   const [cgCity, setCgCity] = useState('');
   const [cgState, setCgState] = useState('');
@@ -1230,7 +1252,8 @@ export default function Home() {
             dob: cgDob,
             gender: cgGender,
             nationality: cgNationality,
-            idPassport: cgIdPassport,
+            ssn: cgSsn,
+            workAuthNumber: cgWorkAuthNumber,
             address: cgAddress,
             city: cgCity,
             state: cgState,
@@ -1274,7 +1297,8 @@ export default function Home() {
         setCgDob('');
         setCgGender('');
         setCgNationality('');
-        setCgIdPassport('');
+        setCgSsn('');
+        setCgWorkAuthNumber('');
         setCgAddress('');
         setCgCity('');
         setCgState('');
@@ -2539,8 +2563,12 @@ export default function Home() {
                     <input type="text" value={cgNationality} onChange={(e) => setCgNationality(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
                   </div>
                   <div className="col-span-1">
-                    <label className="text-xs font-semibold text-gray-500 uppercase">ID / Passport No.</label>
-                    <input type="text" value={cgIdPassport} onChange={(e) => setCgIdPassport(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                    <label className="text-xs font-semibold text-gray-500 uppercase">Social Security No.</label>
+                    <input type="text" placeholder="XXX-XX-XXXX" value={cgSsn} onChange={(e) => setCgSsn(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="text-xs font-semibold text-gray-500 uppercase">Work Authorization No.</label>
+                    <input type="text" placeholder="e.g. EAD Card No. / Work Permit No." value={cgWorkAuthNumber} onChange={(e) => setCgWorkAuthNumber(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
                   </div>
                   <div className="col-span-2">
                     <label className="text-xs font-semibold text-gray-500 uppercase">Home Address</label>
@@ -2552,11 +2580,14 @@ export default function Home() {
                   </div>
                   <div className="col-span-1">
                     <label className="text-xs font-semibold text-gray-500 uppercase">State</label>
-                    <input type="text" value={cgState} onChange={(e) => setCgState(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                    <select value={cgState} onChange={(e) => setCgState(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                      <option value="">Select State</option>
+                      {US_STATES.map(s => <option key={s.abbr} value={s.abbr}>{s.name} ({s.abbr})</option>)}
+                    </select>
                   </div>
                   <div className="col-span-1">
                     <label className="text-xs font-semibold text-gray-500 uppercase">Zip Code</label>
-                    <input type="text" value={cgZip} onChange={(e) => setCgZip(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                    <input type="text" maxLength={10} placeholder="e.g. 90210" value={cgZip} onChange={(e) => setCgZip(e.target.value.replace(/[^0-9-]/g, ''))} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
                   </div>
                 </div>
               </div>
@@ -2681,11 +2712,14 @@ export default function Home() {
                   </div>
                   <div className="col-span-1">
                     <label className="text-xs font-semibold text-gray-500 uppercase">State</label>
-                    <input type="text" value={patientStateInput} onChange={(e) => setPatientStateInput(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                    <select value={patientStateInput} onChange={(e) => setPatientStateInput(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                      <option value="">Select State</option>
+                      {US_STATES.map(s => <option key={s.abbr} value={s.abbr}>{s.name} ({s.abbr})</option>)}
+                    </select>
                   </div>
                   <div className="col-span-1">
                     <label className="text-xs font-semibold text-gray-500 uppercase">Zip Code</label>
-                    <input type="text" value={patientZipInput} onChange={(e) => setPatientZipInput(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                    <input type="text" maxLength={10} placeholder="e.g. 90210" value={patientZipInput} onChange={(e) => setPatientZipInput(e.target.value.replace(/[^0-9-]/g, ''))} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
                   </div>
                 </div>
               </div>
@@ -2899,24 +2933,70 @@ export default function Home() {
         </div>
       )}
 
-      {/* Incident Modal */}
+      {/* Incident / Emergency Modal */}
       {showIncidentModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl p-8">
-            <div className="flex items-center gap-3 border-b border-gray-100 pb-4 mb-4">
-              <div className="bg-red-100 text-red-600 p-3 rounded-2xl"><i className="fa-solid fa-triangle-exclamation text-xl"></i></div>
-              <div><h3 className="text-lg font-bold text-gray-800">Report Safety Incident</h3><p className="text-xs text-gray-400">Risk Management & Compliance</p></div>
+            <div className={`flex items-center gap-3 border-b pb-4 mb-4 ${incidentType === 'Emergency SOS' ? 'border-red-200' : 'border-gray-100'}`}>
+              <div className={`p-3 rounded-2xl ${incidentType === 'Emergency SOS' ? 'bg-red-600 text-white animate-pulse' : 'bg-red-100 text-red-600'}`}>
+                <i className={`text-xl ${incidentType === 'Emergency SOS' ? 'fa-solid fa-bell' : 'fa-solid fa-triangle-exclamation'}`}></i>
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-800">{incidentType === 'Emergency SOS' ? '🚨 Emergency Alert' : 'Report Safety Incident'}</h3>
+                <p className="text-xs text-gray-400">{incidentType === 'Emergency SOS' ? 'Admin & Care Coordinator notified immediately' : 'Risk Management & Compliance'}</p>
+              </div>
             </div>
-            <form onSubmit={(e) => {
+            {incidentType === 'Emergency SOS' && (
+              <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4 text-xs text-red-700 font-semibold flex items-center gap-2">
+                <i className="fa-solid fa-circle-exclamation"></i> This will instantly notify the admin and care coordinator. Use only for real emergencies.
+              </div>
+            )}
+            <form onSubmit={async (e) => {
               e.preventDefault();
               const activeShift = shifts.find(s => s.caregiverId === user.id && s.status === 'IN_PROGRESS');
-              if (activeShift) handleSubmitIncident(activeShift.id);
-              else showNotification('No active shift found.');
+              if (activeShift) {
+                handleSubmitIncident(activeShift.id);
+              } else {
+                if (!incidentDescription.trim()) { showNotification('Please enter a description.'); return; }
+                setIsReportingIncident(true);
+                try {
+                  await fetch('/api/notifications', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      type: 'CLINICAL_ALERT',
+                      title: `🚨 ${incidentType} — ${user.name}`,
+                      message: incidentDescription + (incidentAction ? ` | Action: ${incidentAction}` : ''),
+                    }),
+                  });
+                  showNotification('Emergency alert sent to admin!');
+                  setSmsAlerts(prev => [{ to: 'Admin / Care Coordinator', message: `EMERGENCY: ${incidentType} reported by caregiver ${user.name}. ${incidentDescription}`, timestamp: new Date() }, ...prev]);
+                  setShowIncidentModal(false);
+                  setIncidentDescription('');
+                  setIncidentAction('');
+                  setIncidentType('Fall');
+                } catch (err) { console.error(err); showNotification('Failed to send alert.'); }
+                finally { setIsReportingIncident(false); }
+              }
             }} className="space-y-4">
-              <div><label className="text-xs font-semibold text-gray-500 uppercase">Incident Type</label><select value={incidentType} onChange={(e) => setIncidentType(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"><option value="Fall">Fall Incident</option><option value="Injury">Physical Injury</option><option value="Medication Error">Medication Error</option><option value="Behavioral Incident">Behavioral Incident</option></select></div>
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase">Incident Type</label>
+                <select value={incidentType} onChange={(e) => setIncidentType(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                  <option value="Emergency SOS">🚨 Emergency SOS</option>
+                  <option value="Fall">Fall Incident</option>
+                  <option value="Injury">Physical Injury</option>
+                  <option value="Medication Error">Medication Error</option>
+                  <option value="Behavioral Incident">Behavioral Incident</option>
+                </select>
+              </div>
               <div><label className="text-xs font-semibold text-gray-500 uppercase">Description</label><textarea rows={3} required placeholder="Describe what happened..." value={incidentDescription} onChange={(e) => setIncidentDescription(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" /></div>
               <div><label className="text-xs font-semibold text-gray-500 uppercase">Action Taken</label><textarea rows={2} placeholder="Immediate action..." value={incidentAction} onChange={(e) => setIncidentAction(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" /></div>
-              <div className="flex gap-3"><button type="submit" disabled={isReportingIncident} className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold text-sm rounded-xl transition-all disabled:opacity-50">{isReportingIncident ? 'Filing...' : 'File Report'}</button><button type="button" onClick={() => setShowIncidentModal(false)} className="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-sm rounded-xl transition-all">Cancel</button></div>
+              <div className="flex gap-3">
+                <button type="submit" disabled={isReportingIncident} className={`flex-1 py-3 text-white font-semibold text-sm rounded-xl transition-all disabled:opacity-50 ${incidentType === 'Emergency SOS' ? 'bg-red-600 hover:bg-red-700' : 'bg-red-600 hover:bg-red-700'}`}>
+                  {isReportingIncident ? 'Sending...' : (incidentType === 'Emergency SOS' ? '🚨 Send Emergency Alert' : 'File Report')}
+                </button>
+                <button type="button" onClick={() => setShowIncidentModal(false)} className="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-sm rounded-xl transition-all">Cancel</button>
+              </div>
             </form>
           </div>
         </div>
@@ -4412,6 +4492,24 @@ export default function Home() {
                             <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600"><i className="fa-solid fa-check-circle text-xl"></i></div>
                           </div>
                         </div>
+                        {(() => {
+                          const assignedClientIds = new Set(shifts.filter(s => s.status !== 'DROPPED' && s.status !== 'COMPLETED').map(s => s.clientId));
+                          const unassigned = clients.filter(c => !assignedClientIds.has(c.id));
+                          return (
+                            <div className="bg-white rounded-2xl shadow-sm p-6 border border-orange-100 col-span-1 sm:col-span-2 lg:col-span-1">
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <div className="text-sm font-bold text-orange-700">Unassigned Clients</div>
+                                  <div className="text-2xl font-bold text-orange-600">{unassigned.length}</div>
+                                  {unassigned.length > 0 && (
+                                    <div className="text-xs text-gray-400 mt-1 truncate max-w-[140px]">{unassigned.map(c => c.name).join(', ')}</div>
+                                  )}
+                                </div>
+                                <div className="w-12 h-12 bg-orange-50 rounded-2xl flex items-center justify-center text-orange-500"><i className="fa-solid fa-user-xmark text-xl"></i></div>
+                              </div>
+                            </div>
+                          );
+                        })()}
                       </>
                     )}
                   </div>
@@ -4435,6 +4533,26 @@ export default function Home() {
                           <i className="fa-solid fa-heart-pulse"></i> View Care Feed
                         </button>
                       </div>
+                    </div>
+                  )}
+
+                  {user.role === 'CAREGIVER' && (
+                    <div className="bg-red-50 border border-red-200 rounded-2xl px-5 py-4 flex items-center justify-between gap-4 shadow-sm">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-red-600 rounded-xl flex items-center justify-center shadow-sm">
+                          <i className="fa-solid fa-bell text-white text-base"></i>
+                        </div>
+                        <div>
+                          <div className="font-bold text-red-800 text-sm">Emergency Reporting</div>
+                          <div className="text-xs text-red-500">Report an incident or send an immediate SOS to admin and the care coordinator.</div>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => { setIncidentType('Emergency SOS'); setShowIncidentModal(true); }}
+                        className="flex-shrink-0 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl flex items-center gap-2 transition-all shadow-sm cursor-pointer"
+                      >
+                        <i className="fa-solid fa-triangle-exclamation"></i> Report / SOS
+                      </button>
                     </div>
                   )}
 
@@ -5213,15 +5331,37 @@ export default function Home() {
                                         </div>
                                       )}
 
+                                      {(meta.dob || meta.gender) && (
+                                        <div className="flex items-start gap-2">
+                                          <i className="fa-solid fa-id-card text-purple-400 w-3.5 mt-0.5"></i>
+                                          <div className="text-gray-700 space-y-0.5">
+                                            {meta.dob && <div><span className="font-semibold text-gray-800">DOB:</span> {meta.dob} {meta.dob ? `(Age ${Math.floor((Date.now() - new Date(meta.dob).getTime()) / 3.15576e10)})` : ''}</div>}
+                                            {meta.gender && <div><span className="font-semibold text-gray-800">Gender:</span> {meta.gender}</div>}
+                                          </div>
+                                        </div>
+                                      )}
+
                                       <div className="flex items-start gap-2">
-                                        <i className="fa-solid fa-phone text-purple-400 w-3.5 mt-0.5"></i>
-                                        <div className="text-gray-700 font-medium">
-                                          {familyContacts.length > 0 ? familyContacts.map((f: any) => (
-                                            <div key={f.user.id}>{f.user.name} &middot; {f.user.phoneNumber || f.user.email}</div>
-                                          )) : meta.emergencyContact ? (
-                                            <div>{meta.emergencyContact}</div>
-                                          ) : (
-                                            <div className="text-gray-400">No contact on file</div>
+                                        <i className="fa-solid fa-phone-volume text-red-400 w-3.5 mt-0.5"></i>
+                                        <div className="text-gray-700 space-y-0.5 w-full">
+                                          <div className="font-semibold text-gray-800 text-[11px] uppercase tracking-wide text-red-600">Emergency Contacts</div>
+                                          {meta.primaryEmergency ? (
+                                            <div className="bg-red-50 border border-red-100 rounded-lg px-2 py-1.5 space-y-0.5">
+                                              <div className="font-semibold text-gray-800">{meta.primaryEmergency.name} <span className="text-gray-400 font-normal">({meta.primaryEmergency.relationship})</span></div>
+                                              <a href={`tel:${meta.primaryEmergency.phone}`} className="text-red-600 font-bold hover:underline">{meta.primaryEmergency.phone}</a>
+                                            </div>
+                                          ) : null}
+                                          {meta.secondaryEmergency ? (
+                                            <div className="bg-gray-50 border border-gray-100 rounded-lg px-2 py-1.5 space-y-0.5">
+                                              <div className="font-semibold text-gray-800">{meta.secondaryEmergency.name} <span className="text-gray-400 font-normal">({meta.secondaryEmergency.relationship})</span></div>
+                                              <a href={`tel:${meta.secondaryEmergency.phone}`} className="text-gray-600 font-bold hover:underline">{meta.secondaryEmergency.phone}</a>
+                                            </div>
+                                          ) : null}
+                                          {familyContacts.length > 0 && familyContacts.map((f: any) => (
+                                            <div key={f.user.id} className="text-gray-600">{f.user.name} &middot; {f.user.phoneNumber || f.user.email}</div>
+                                          ))}
+                                          {!meta.primaryEmergency && !meta.secondaryEmergency && familyContacts.length === 0 && (
+                                            <div className="text-gray-400">No emergency contact on file</div>
                                           )}
                                         </div>
                                       </div>
@@ -5311,11 +5451,26 @@ export default function Home() {
                         </select>
                       </div>
                       <div>
-                        <label className="text-sm font-medium text-gray-600">Caregiver</label>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-sm font-medium text-gray-600">Caregiver</label>
+                          <button
+                            type="button"
+                            onClick={() => setShowAllCaregivers(v => !v)}
+                            className={`text-xs font-semibold px-3 py-1 rounded-lg transition-all ${showAllCaregivers ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                          >
+                            {showAllCaregivers ? <><i className="fa-solid fa-list mr-1"></i>All Caregivers</> : <><i className="fa-solid fa-wand-magic-sparkles mr-1"></i>AI Suggestions</>}
+                          </button>
+                        </div>
                         <select value={newShiftCaregiverId} onChange={(e) => setNewShiftCaregiverId(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
-                          {suggestions.length > 0 ? suggestions.map((s: any) => <option key={s.id} value={s.id} disabled={s.hasConflict}>{s.name} {s.rankLabel ? `- ${s.rankLabel}` : ''}</option>) : caregivers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                          {showAllCaregivers
+                            ? caregivers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)
+                            : (suggestions.length > 0
+                                ? suggestions.map((s: any) => <option key={s.id} value={s.id} disabled={s.hasConflict}>{s.name}{s.rankLabel ? ` — ${s.rankLabel}` : ''}</option>)
+                                : caregivers.map(c => <option key={c.id} value={c.id}>{c.name}</option>))
+                          }
                         </select>
-                        {loadingSuggestions && <div className="text-xs text-gray-400 mt-1"><i className="fa-solid fa-spinner animate-spin mr-1"></i> Finding best match...</div>}
+                        {loadingSuggestions && !showAllCaregivers && <div className="text-xs text-gray-400 mt-1"><i className="fa-solid fa-spinner animate-spin mr-1"></i> Finding best match...</div>}
+                        {showAllCaregivers && <div className="text-xs text-amber-600 mt-1 flex items-center gap-1"><i className="fa-solid fa-triangle-exclamation"></i> Manual override — distance & availability checks bypassed.</div>}
                       </div>
                       <div>
                         <label className="text-sm font-medium text-gray-600">Start Time</label>
@@ -5337,11 +5492,44 @@ export default function Home() {
               {currentView === 'business' && (user.role === 'ADMIN' || user.role === 'CARE_COORDINATOR') && (
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                   <h3 className="font-semibold text-gray-800 mb-4">Business Hub</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                    <div className="bg-purple-50 rounded-xl p-4 text-center"><div className="text-2xl font-bold text-purple-600">{clients.length}</div><div className="text-sm text-gray-600">Total Clients</div></div>
-                    <div className="bg-green-50 rounded-xl p-4 text-center"><div className="text-2xl font-bold text-green-600">{caregivers.length}</div><div className="text-sm text-gray-600">Active Caregivers</div></div>
-                    <div className="bg-amber-50 rounded-xl p-4 text-center"><div className="text-2xl font-bold text-amber-600">{shifts.length}</div><div className="text-sm text-gray-600">Total Shifts</div></div>
-                  </div>
+                  {(() => {
+                    const assignedClientIds = new Set(shifts.filter(s => s.status !== 'DROPPED' && s.status !== 'COMPLETED').map(s => s.clientId));
+                    const unassignedClients = clients.filter(c => !assignedClientIds.has(c.id));
+                    return (
+                      <>
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                          <div className="bg-purple-50 rounded-xl p-4 text-center"><div className="text-2xl font-bold text-purple-600">{clients.length}</div><div className="text-sm text-gray-600">Total Clients</div></div>
+                          <div className="bg-green-50 rounded-xl p-4 text-center"><div className="text-2xl font-bold text-green-600">{caregivers.length}</div><div className="text-sm text-gray-600">Active Caregivers</div></div>
+                          <div className="bg-amber-50 rounded-xl p-4 text-center"><div className="text-2xl font-bold text-amber-600">{shifts.length}</div><div className="text-sm text-gray-600">Total Shifts</div></div>
+                          <div className="bg-orange-50 rounded-xl p-4 text-center"><div className="text-2xl font-bold text-orange-600">{unassignedClients.length}</div><div className="text-sm text-gray-600">Unassigned Clients</div></div>
+                        </div>
+                        {unassignedClients.length > 0 && (
+                          <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-6">
+                            <div className="flex items-center gap-2 mb-3">
+                              <i className="fa-solid fa-user-xmark text-orange-600"></i>
+                              <span className="font-bold text-orange-700 text-sm">Clients Without Active Caregiver Assignment</span>
+                            </div>
+                            <div className="space-y-2">
+                              {unassignedClients.map(c => (
+                                <div key={c.id} className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-orange-100 text-sm">
+                                  <div>
+                                    <span className="font-semibold text-gray-800">{c.name}</span>
+                                    <span className="text-gray-400 text-xs ml-2">{c.address}</span>
+                                  </div>
+                                  <button
+                                    onClick={() => { setNewShiftClientId(c.id); setCurrentView('create'); }}
+                                    className="text-xs px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg cursor-pointer"
+                                  >
+                                    Assign Caregiver
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
                   
                   {/* Pod Management */}
                   <div className="border-t border-gray-100 pt-6 mt-4">
