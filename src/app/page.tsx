@@ -199,12 +199,26 @@ export default function Home() {
   const [smsAlerts, setSmsAlerts] = useState<Array<{ timestamp: Date; to: string; message: string }>>([]);
   const [systemNotification, setSystemNotification] = useState<string | null>(null);
 
+  // Admin Multi-Portal Switcher & Account Provisioning
+  const [adminPreviewRole, setAdminPreviewRole] = useState<'ADMIN' | 'CAREGIVER' | 'CARE_COORDINATOR' | 'FAMILY_MEMBER'>('ADMIN');
+  const effectiveRole = user?.role === 'ADMIN' ? adminPreviewRole : user?.role;
+
+  const [showAddUserModal, setShowAddUserModal] = useState(false);
+  const [newUserEmail, setNewUserEmail] = useState('');
+  const [newUserPassword, setNewUserPassword] = useState('');
+  const [newUserName, setNewUserName] = useState('');
+  const [newUserRole, setNewUserRole] = useState<'CAREGIVER' | 'CARE_COORDINATOR' | 'ADMIN'>('CAREGIVER');
+  const [newUserPhone, setNewUserPhone] = useState('');
+  const [newUserPayRate, setNewUserPayRate] = useState('28.00');
+  const [isCreatingUser, setIsCreatingUser] = useState(false);
+  const [addUserError, setAddUserError] = useState<string | null>(null);
+
   // Signup States
   const [signupName, setSignupName] = useState('');
   const [signupEmail, setSignupEmail] = useState('');
   const [signupPassword, setSignupPassword] = useState('');
   const [signupPhone, setSignupPhone] = useState('');
-  const [signupRole, setSignupRole] = useState<'CAREGIVER' | 'CLIENT'>('CAREGIVER');
+  const [signupRole, setSignupRole] = useState<'CLIENT' | 'CAREGIVER'>('CLIENT');
   const [signupError, setSignupError] = useState<string | null>(null);
   const [isSigningUp, setIsSigningUp] = useState(false);
 
@@ -1318,6 +1332,45 @@ export default function Home() {
       setSignupError('A network error occurred.');
     } finally {
       setIsSigningUp(false);
+    }
+  };
+
+  const handleAdminCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAddUserError(null);
+    setIsCreatingUser(true);
+
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: newUserEmail,
+          password: newUserPassword,
+          name: newUserName,
+          role: newUserRole,
+          phoneNumber: newUserPhone,
+          payRate: newUserRole === 'CAREGIVER' ? parseFloat(newUserPayRate) : null,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setAddUserError(data.error || 'Failed to create user account');
+        return;
+      }
+
+      showNotification(`Account created for ${newUserEmail} (${newUserRole})`);
+      setShowAddUserModal(false);
+      setNewUserEmail('');
+      setNewUserPassword('');
+      setNewUserName('');
+      setNewUserPhone('');
+      await loadData();
+    } catch (err) {
+      setAddUserError('An unexpected error occurred.');
+    } finally {
+      setIsCreatingUser(false);
     }
   };
 
@@ -2924,7 +2977,172 @@ export default function Home() {
   // ============================================================
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Admin Portal Role Access Switcher (Visible to Admins Only) */}
+      {user?.role === 'ADMIN' && (
+        <div className="bg-slate-900 text-white px-6 py-2.5 flex flex-wrap items-center justify-between shadow-lg z-40 border-b border-purple-500/20 text-xs">
+          <div className="flex items-center gap-3 font-bold text-amber-400">
+            <i className="fa-solid fa-user-shield text-sm"></i>
+            <span>ADMIN PORTAL ACCESS SWITCHER:</span>
+            <span className="text-gray-300 font-normal hidden md:inline">Switch active view to operate all portals natively</span>
+          </div>
+
+          <div className="flex items-center gap-2 mt-1 sm:mt-0">
+            <div className="flex items-center gap-1 bg-slate-800/90 p-1 rounded-xl border border-slate-700">
+              <button
+                onClick={() => setAdminPreviewRole('ADMIN')}
+                className={`px-3 py-1.5 rounded-lg font-semibold transition-all flex items-center gap-1.5 ${adminPreviewRole === 'ADMIN' ? 'bg-purple-600 text-white shadow-md' : 'text-gray-300 hover:text-white'}`}
+              >
+                <i className="fa-solid fa-shield-halved"></i> Admin Portal
+              </button>
+
+              <button
+                onClick={() => setAdminPreviewRole('CAREGIVER')}
+                className={`px-3 py-1.5 rounded-lg font-semibold transition-all flex items-center gap-1.5 ${adminPreviewRole === 'CAREGIVER' ? 'bg-purple-600 text-white shadow-md' : 'text-gray-300 hover:text-white'}`}
+              >
+                <i className="fa-solid fa-user-nurse"></i> Caregiver Portal
+              </button>
+
+              <button
+                onClick={() => setAdminPreviewRole('CARE_COORDINATOR')}
+                className={`px-3 py-1.5 rounded-lg font-semibold transition-all flex items-center gap-1.5 ${adminPreviewRole === 'CARE_COORDINATOR' ? 'bg-purple-600 text-white shadow-md' : 'text-gray-300 hover:text-white'}`}
+              >
+                <i className="fa-solid fa-[#77248c] fa-clipboard-user"></i> Coordinator Portal
+              </button>
+
+              <button
+                onClick={() => setAdminPreviewRole('FAMILY_MEMBER')}
+                className={`px-3 py-1.5 rounded-lg font-semibold transition-all flex items-center gap-1.5 ${adminPreviewRole === 'FAMILY_MEMBER' ? 'bg-purple-600 text-white shadow-md' : 'text-gray-300 hover:text-white'}`}
+              >
+                <i className="fa-solid fa-house-medical"></i> Family Portal
+              </button>
+            </div>
+
+            <button
+              onClick={() => setShowAddUserModal(true)}
+              className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 shadow-md ml-2"
+              title="Create Caregiver or Staff Account"
+            >
+              <i className="fa-solid fa-user-plus text-xs"></i> Provision Staff Account
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Admin User Account Provisioning Modal */}
+      {showAddUserModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl p-8 animate-fade-up">
+            <div className="flex justify-between items-center border-b border-gray-100 pb-4 mb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 bg-purple-100 rounded-xl flex items-center justify-center text-purple-700 font-bold">
+                  <i className="fa-solid fa-user-plus"></i>
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-800 text-base">Provision Staff / Caregiver</h3>
+                  <p className="text-xs text-gray-400">Must use @akirapahomecareus.com</p>
+                </div>
+              </div>
+              <button onClick={() => setShowAddUserModal(false)} className="text-gray-400 hover:text-gray-600 font-bold">
+                <i className="fa-solid fa-xmark text-lg"></i>
+              </button>
+            </div>
+
+            <form onSubmit={handleAdminCreateUser} className="space-y-4 text-xs">
+              <div>
+                <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Full Name</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Sarah Jenkins"
+                  value={newUserName}
+                  onChange={(e) => setNewUserName(e.target.value)}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Company Email (@akirapahomecareus.com)</label>
+                <input
+                  type="email"
+                  required
+                  placeholder="sarah@akirapahomecareus.com"
+                  value={newUserEmail}
+                  onChange={(e) => setNewUserEmail(e.target.value)}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Initial Password</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Caregiver2026!"
+                  value={newUserPassword}
+                  onChange={(e) => setNewUserPassword(e.target.value)}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Role</label>
+                  <select
+                    value={newUserRole}
+                    onChange={(e: any) => setNewUserRole(e.target.value)}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
+                  >
+                    <option value="CAREGIVER">Caregiver</option>
+                    <option value="CARE_COORDINATOR">Care Coordinator</option>
+                    <option value="ADMIN">System Admin</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Phone Number</label>
+                  <input
+                    type="text"
+                    placeholder="+16045550199"
+                    value={newUserPhone}
+                    onChange={(e) => setNewUserPhone(e.target.value)}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
+                  />
+                </div>
+              </div>
+
+              {newUserRole === 'CAREGIVER' && (
+                <div>
+                  <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Hourly Pay Rate ($/hr)</label>
+                  <input
+                    type="number"
+                    step="0.50"
+                    value={newUserPayRate}
+                    onChange={(e) => setNewUserPayRate(e.target.value)}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
+                  />
+                </div>
+              )}
+
+              {addUserError && (
+                <div className="bg-red-50 text-red-600 p-3 rounded-xl text-xs font-semibold flex items-center gap-2">
+                  <i className="fa-solid fa-triangle-exclamation"></i> {addUserError}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={isCreatingUser || !newUserEmail || !newUserPassword || !newUserName}
+                className="w-full py-3.5 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-sm rounded-xl transition-all disabled:opacity-50 mt-2"
+              >
+                {isCreatingUser ? 'Provisioning Account...' : 'Create Staff Account'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      <div className="flex-1 flex overflow-hidden">
       {/* Notification Banner */}
       {systemNotification && (
         <div className="fixed top-6 right-6 bg-purple-600 text-white px-6 py-4 rounded-2xl shadow-xl z-50 flex items-center gap-3 animate-fade-up border border-purple-500/30">
@@ -6632,6 +6850,7 @@ export default function Home() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

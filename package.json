@@ -7,7 +7,8 @@
     "chat": "npx -y serve \"Messaging App\" -p 3001",
     "build": "prisma generate && next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "prep-prod": "node scripts/prep-production.js"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",

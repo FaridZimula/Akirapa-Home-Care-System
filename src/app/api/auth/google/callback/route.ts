@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { logAudit } from '@/lib/audit';
 import { hashPassword } from '@/lib/password';
 import { createSessionCookie, sessionCookieOptions } from '@/lib/session';
-import { isAdminEmailAllowed } from '@/lib/adminAllowlist';
+import { isAdminEmailAllowed, isCompanyDomainEmail, OFFICIAL_DOMAIN } from '@/lib/adminAllowlist';
 import crypto from 'crypto';
 
 export async function GET(request: Request) {
@@ -57,52 +57,46 @@ export async function GET(request: Request) {
     }
 
     const googleUser = await userRes.json();
-    const email = googleUser.email;
+    const email = (googleUser.email || '').trim().toLowerCase();
     const name = googleUser.name || googleUser.given_name || 'Google User';
 
     if (!email) {
       return NextResponse.redirect(new URL('/?error=email_not_provided', requestUrl.origin));
     }
 
-    // Look up or create user record
+    // 1. Strict domain check: Must be @akirapahomecareus.com
+    if (!isCompanyDomainEmail(email)) {
+      console.warn(`[OAUTH_DENIED] Google OAuth login attempt from non-company domain: ${email}`);
+      return NextResponse.redirect(new URL(`/?error=${encodeURIComponent(`Only @${OFFICIAL_DOMAIN} accounts can access this system`)}`, requestUrl.origin));
+    }
+
+    // Look up user record
     let user = await prisma.user.findUnique({
       where: { email },
     });
 
     let isNewUser = false;
     if (!user) {
-      isNewUser = true;
-
-      // OAuth sign-ups are always provisioned as FAMILY_MEMBER. Elevated roles
-      // (ADMIN, CARE_COORDINATOR, CAREGIVER) must be granted directly in the
-      // database - they can never be self-assigned via a public sign-up flow.
-      user = await prisma.user.create({
-        data: {
-          email,
-          name,
-          // Google OAuth users authenticate via Google only; this hash is never used for password login.
-          passwordHash: await hashPassword(crypto.randomBytes(24).toString('hex')),
-          role: 'FAMILY_MEMBER',
-          phoneNumber: '+16045550199',
-        },
-      });
-
-      // Seeding helper: If new Family Member registers, link them to the first existing client recipient
-      if (user.role === 'FAMILY_MEMBER') {
-        const client = await prisma.client.findFirst();
-        if (client) {
-          await prisma.linkedFamilyMember.create({
-            data: {
-              clientId: client.id,
-              userId: user.id,
-            },
-          }).catch(() => {});
-        }
+      // Check if email is in official Admin allowlist
+      if (isAdminEmailAllowed(email)) {
+        isNewUser = true;
+        user = await prisma.user.create({
+          data: {
+            email,
+            name,
+            passwordHash: await hashPassword(crypto.randomBytes(24).toString('hex')),
+            role: 'ADMIN',
+            phoneNumber: '+16045550199',
+          },
+        });
+      } else {
+        // Staff/caregiver accounts must be pre-created by an Admin
+        console.warn(`[OAUTH_DENIED] Unregistered company email attempted Google OAuth: ${email}`);
+        return NextResponse.redirect(new URL('/?error=account_not_precreated', requestUrl.origin));
       }
     }
 
-    // Admin access via Google is restricted to explicitly authorized emails,
-    // even for accounts that already carry the ADMIN role in the database.
+    // Admin access via Google is restricted to explicitly authorized emails
     if (user.role === 'ADMIN' && !isAdminEmailAllowed(email)) {
       await logAudit({
         userId: user.id,

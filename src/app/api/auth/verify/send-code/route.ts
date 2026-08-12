@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { sendEmail } from '@/lib/email';
+import { isCompanyDomainEmail, OFFICIAL_DOMAIN } from '@/lib/adminAllowlist';
 
 export async function POST(request: Request) {
   try {
@@ -8,6 +9,10 @@ export async function POST(request: Request) {
 
     if (!email || !purpose) {
       return NextResponse.json({ error: 'Email and purpose are required' }, { status: 400 });
+    }
+
+    if (!isCompanyDomainEmail(email)) {
+      return NextResponse.json({ error: `Verification codes can only be sent to official @${OFFICIAL_DOMAIN} email addresses.` }, { status: 403 });
     }
 
     if (purpose !== 'SIGNUP' && purpose !== 'PASSWORD_RESET') {

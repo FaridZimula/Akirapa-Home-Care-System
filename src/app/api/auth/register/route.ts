@@ -4,6 +4,7 @@ import { logAudit } from '@/lib/audit';
 import { hashPassword } from '@/lib/password';
 import { createSessionCookie, sessionCookieOptions } from '@/lib/session';
 import { UserRole, PodRole, ShiftStatus } from '@prisma/client';
+import { isCompanyDomainEmail, OFFICIAL_DOMAIN } from '@/lib/adminAllowlist';
 
 export async function POST(request: Request) {
   try {
@@ -64,6 +65,20 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: 'Name, email, password, and verification code are required' },
         { status: 400 }
+      );
+    }
+
+    if (!isCompanyDomainEmail(email)) {
+      return NextResponse.json(
+        { error: `Registration is restricted to official @${OFFICIAL_DOMAIN} email addresses.` },
+        { status: 403 }
+      );
+    }
+
+    if (role === 'CAREGIVER') {
+      return NextResponse.json(
+        { error: 'Caregiver accounts cannot be self-registered. An Administrator will create your account and provide your login details.' },
+        { status: 403 }
       );
     }
 
