@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { hashPassword } from '@/lib/password';
+import { isCompanyDomainEmail, OFFICIAL_DOMAIN } from '@/lib/adminAllowlist';
 
 export async function POST(request: Request) {
   try {
@@ -8,6 +9,10 @@ export async function POST(request: Request) {
 
     if (!email || !token || !newPassword) {
       return NextResponse.json({ error: 'Email, verification token, and new password are required' }, { status: 400 });
+    }
+
+    if (!isCompanyDomainEmail(email)) {
+      return NextResponse.json({ error: `Password resets are restricted to official @${OFFICIAL_DOMAIN} email addresses.` }, { status: 403 });
     }
 
     // Find and validate verification token

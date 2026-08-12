@@ -2913,7 +2913,7 @@ export default function Home() {
         <form onSubmit={isForgotCodeSent ? handleResetPasswordSubmit : handleSendForgotCode} className="space-y-4">
           <div>
             <label className="text-xs font-semibold text-gray-500 uppercase">Email</label>
-            <input type="email" required disabled={isForgotCodeSent} placeholder="email@akirapa.com" value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50" />
+            <input type="email" required disabled={isForgotCodeSent} placeholder="name@akirapahomecareus.com" value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50" />
           </div>
           {isForgotCodeSent && (
             <>
