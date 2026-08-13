@@ -2327,15 +2327,10 @@ export default function Home() {
       setSelectedPortalRole(role);
       if (role === 'CAREGIVER') {
         setSignupRole('CAREGIVER');
-        setLoginEmail('caregiver@akirapahomecareus.com');
       } else if (role === 'CLIENT') {
         setSignupRole('CLIENT');
-        setLoginEmail('family@akirapahomecareus.com');
-      } else if (role === 'ADMIN') {
-        setLoginEmail('farid@akirapahomecareus.com');
-      } else {
-        setLoginEmail('');
       }
+      setLoginEmail('');
       setLoginPassword('');
       setSplashProgress(0);
       setIsInitializing(true);
@@ -2568,9 +2563,13 @@ export default function Home() {
                 type="button"
                 onClick={handleSendSignupCode}
                 disabled={isSendingSignupCode || isSignupCodeSent || !signupEmail}
-                className="px-4 py-2 bg-purple-100 hover:bg-purple-200 text-purple-700 font-semibold text-xs rounded-xl whitespace-nowrap transition-all disabled:opacity-50"
+                className={`px-5 py-2.5 font-bold text-xs rounded-xl whitespace-nowrap transition-all cursor-pointer shadow-xs disabled:opacity-50 ${
+                  signupEmail && !isSignupCodeSent
+                    ? 'bg-[#77248c] hover:bg-[#5a1a6b] text-white shadow-md'
+                    : 'bg-purple-100 text-purple-700'
+                }`}
               >
-                {isSignupCodeSent ? <><i className="fa-solid fa-check"></i> Sent</> : (isSendingSignupCode ? 'Sending...' : 'Send Code')}
+                {isSignupCodeSent ? <><i className="fa-solid fa-check text-white"></i> Sent</> : (isSendingSignupCode ? 'Sending...' : 'Send Code')}
               </button>
             </div>
           </div>
@@ -2622,7 +2621,7 @@ export default function Home() {
             <>
               <div className="pt-3 border-t border-gray-100">
                 <div className="flex flex-col items-center mb-4">
-                  <div className="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center mb-2"><i className="fa-solid fa-id-card text-teal-600 text-sm"></i></div>
+                  <div className="w-11 h-11 bg-[#4cdbd5] rounded-full flex items-center justify-center mb-2 shadow-xs"><i className="fa-solid fa-id-card text-white text-base"></i></div>
                   <h3 className="text-xs font-bold text-teal-700 uppercase tracking-wider">Caregiver Details</h3>
                 </div>
                 <div className="grid grid-cols-3 gap-3">
@@ -2675,7 +2674,7 @@ export default function Home() {
 
               <div className="pt-3 border-t border-gray-100">
                 <div className="flex flex-col items-center mb-4">
-                  <div className="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center mb-2"><i className="fa-solid fa-briefcase text-teal-600 text-sm"></i></div>
+                  <div className="w-11 h-11 bg-[#4cdbd5] rounded-full flex items-center justify-center mb-2 shadow-xs"><i className="fa-solid fa-briefcase text-white text-base"></i></div>
                   <h3 className="text-xs font-bold text-teal-700 uppercase tracking-wider">Position Details</h3>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -2754,7 +2753,7 @@ export default function Home() {
             <>
               <div className="pt-3 border-t border-gray-100">
                 <div className="flex flex-col items-center mb-4">
-                  <div className="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center mb-2"><i className="fa-solid fa-user text-teal-600 text-sm"></i></div>
+                  <div className="w-11 h-11 bg-[#4cdbd5] rounded-full flex items-center justify-center mb-2 shadow-xs"><i className="fa-solid fa-user text-white text-base"></i></div>
                   <h3 className="text-xs font-bold text-teal-700 uppercase tracking-wider">Client Details</h3>
                 </div>
                 <div className="grid grid-cols-3 gap-3">
@@ -2807,7 +2806,7 @@ export default function Home() {
 
               <div className="pt-3 border-t border-gray-100">
                 <div className="flex flex-col items-center mb-4">
-                  <div className="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center mb-2"><i className="fa-solid fa-notes-medical text-teal-600 text-sm"></i></div>
+                  <div className="w-11 h-11 bg-[#4cdbd5] rounded-full flex items-center justify-center mb-2 shadow-xs"><i className="fa-solid fa-notes-medical text-white text-base"></i></div>
                   <h3 className="text-xs font-bold text-teal-700 uppercase tracking-wider">Health & Care Notes</h3>
                   <p className="text-[11px] text-gray-400 mt-1 text-center">Helps caregivers prepare properly and stay alert to what matters.</p>
                 </div>
@@ -2825,7 +2824,7 @@ export default function Home() {
 
               <div className="pt-3 border-t border-gray-100">
                 <div className="flex flex-col items-center mb-4">
-                  <div className="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center mb-2"><i className="fa-solid fa-phone text-teal-600 text-sm"></i></div>
+                  <div className="w-11 h-11 bg-[#4cdbd5] rounded-full flex items-center justify-center mb-2 shadow-xs"><i className="fa-solid fa-phone text-white text-base"></i></div>
                   <h3 className="text-xs font-bold text-teal-700 uppercase tracking-wider">Emergency Contact</h3>
                 </div>
                 <div className="space-y-4">
@@ -2868,7 +2867,7 @@ export default function Home() {
 
               <div className="pt-3 border-t border-gray-100">
                 <div className="flex flex-col items-center mb-4">
-                  <div className="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center mb-2"><i className="fa-solid fa-heart text-teal-600 text-sm"></i></div>
+                  <div className="w-11 h-11 bg-[#4cdbd5] rounded-full flex items-center justify-center mb-2 shadow-xs"><i className="fa-solid fa-heart text-white text-base"></i></div>
                   <h3 className="text-xs font-bold text-teal-700 uppercase tracking-wider">Care Preferences</h3>
                   <p className="text-[11px] text-gray-400 mt-1 text-center">What kind of care & comfort services would you like? This helps us match the right caregiver.</p>
                 </div>
@@ -2893,7 +2892,7 @@ export default function Home() {
 
               <div className="pt-3 border-t border-gray-100">
                 <div className="flex flex-col items-center mb-4">
-                  <div className="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center mb-2"><i className="fa-solid fa-comment-dots text-teal-600 text-sm"></i></div>
+                  <div className="w-11 h-11 bg-[#4cdbd5] rounded-full flex items-center justify-center mb-2 shadow-xs"><i className="fa-solid fa-comment-dots text-white text-base"></i></div>
                   <h3 className="text-xs font-bold text-teal-700 uppercase tracking-wider">About Me</h3>
                   <p className="text-[11px] text-gray-400 mt-1 text-center">Help your care team get to know you. You (or your family) can update these anytime later.</p>
                 </div>
@@ -2984,7 +2983,7 @@ export default function Home() {
             </>
           )}
           {forgotError && <div className="bg-red-50 text-red-600 p-3 rounded-xl text-xs font-semibold"><i className="fa-solid fa-triangle-exclamation"></i> {forgotError}</div>}
-          <button type="submit" disabled={isSendingForgotCode || isResettingPassword || !forgotEmail} className="w-full py-3.5 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-sm rounded-xl transition-all disabled:opacity-50">
+          <button type="submit" disabled={isSendingForgotCode || isResettingPassword || !forgotEmail} className="w-full py-3.5 bg-[#77248c] hover:bg-[#5a1a6b] text-white font-extrabold text-sm rounded-xl transition-all disabled:opacity-50 shadow-md cursor-pointer">
             {isForgotCodeSent ? (isResettingPassword ? 'Resetting...' : 'Reset Password') : (isSendingForgotCode ? 'Sending...' : 'Send Reset Code')}
           </button>
         </form>
