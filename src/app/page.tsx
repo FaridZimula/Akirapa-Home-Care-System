@@ -2522,7 +2522,14 @@ export default function Home() {
 
         {selectedPortalRole !== 'ADMIN' && (
           <p className="text-center text-sm text-gray-500 mt-6">
-            Don't have an account? <button onClick={() => setViewState('signup')} className="text-purple-600 font-extrabold hover:underline">Create Account</button>
+            First time using the platform?{' '}
+            <button 
+              type="button"
+              onClick={() => { setViewState('signup'); setSignupError(null); }} 
+              className="text-[#77248c] font-extrabold hover:underline cursor-pointer"
+            >
+              Add User Details
+            </button>
           </p>
         )}
       </div>
@@ -2544,8 +2551,8 @@ export default function Home() {
         </div>
         <div className="text-center mb-6">
           <img src="/System logo.png" alt="Akirapa Logo" className="h-[72px] mx-auto object-contain mb-2" />
-          <h2 className="text-2xl font-bold text-gray-800">Create Account</h2>
-          <p className="text-sm text-gray-500">Join Akirapa Care Network</p>
+          <h2 className="text-2xl font-bold text-gray-800">First-Time Onboarding — Add User Details</h2>
+          <p className="text-sm text-gray-500 mt-1">Please provide your required details to setup and activate your account</p>
         </div>
 
         <form onSubmit={handleRegister} className="space-y-4">
@@ -2913,8 +2920,8 @@ export default function Home() {
           )}
 
           {signupError && <div className="bg-red-50 text-red-600 p-3 rounded-xl text-xs font-semibold"><i className="fa-solid fa-triangle-exclamation"></i> {signupError}</div>}
-          <button type="submit" disabled={isSigningUp || !isSignupCodeSent || signupCode.length !== 6} className="w-full py-3.5 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-sm rounded-xl transition-all disabled:opacity-50">
-            {isSigningUp ? 'Creating...' : 'Create Account'}
+          <button type="submit" disabled={isSigningUp || !isSignupCodeSent || signupCode.length !== 6} className="w-full py-3.5 bg-[#77248c] hover:bg-[#5a1a6b] text-white font-extrabold text-sm rounded-xl transition-all disabled:opacity-50 shadow-md cursor-pointer">
+            {isSigningUp ? 'Submitting Details...' : 'Submit User Details & Activate Account'}
           </button>
         </form>
       </div>

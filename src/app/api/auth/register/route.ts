@@ -77,13 +77,6 @@ export async function POST(request: Request) {
       );
     }
 
-    if (role === 'CAREGIVER') {
-      return NextResponse.json(
-        { error: 'Caregiver accounts cannot be self-registered. An Administrator will create your account and provide your login details.' },
-        { status: 403 }
-      );
-    }
-
     if (role === 'ADMIN') {
       return NextResponse.json(
         { error: 'Admin portal accounts cannot be created via registration.' },
