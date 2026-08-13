@@ -26,6 +26,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid user role' }, { status: 400 });
     }
 
+    if (role === 'ADMIN') {
+      return NextResponse.json(
+        { error: 'Creation of Admin portal accounts is disabled. Admin accounts are restricted to system configuration.' },
+        { status: 403 }
+      );
+    }
+
     const existingUser = await prisma.user.findUnique({
       where: { email: normalizedEmail },
     });

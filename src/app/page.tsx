@@ -207,7 +207,7 @@ export default function Home() {
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserPassword, setNewUserPassword] = useState('');
   const [newUserName, setNewUserName] = useState('');
-  const [newUserRole, setNewUserRole] = useState<'CAREGIVER' | 'CARE_COORDINATOR' | 'ADMIN'>('CAREGIVER');
+  const [newUserRole, setNewUserRole] = useState<'CAREGIVER' | 'CARE_COORDINATOR'>('CAREGIVER');
   const [newUserPhone, setNewUserPhone] = useState('');
   const [newUserPayRate, setNewUserPayRate] = useState('28.00');
   const [isCreatingUser, setIsCreatingUser] = useState(false);
@@ -300,7 +300,7 @@ export default function Home() {
   // Google Sign-In
   const [showGoogleModal, setShowGoogleModal] = useState(false);
   const [googleEmailInput, setGoogleEmailInput] = useState('');
-  const [googleCustomRole, setGoogleCustomRole] = useState<'ADMIN' | 'CAREGIVER' | 'CLIENT'>('CAREGIVER');
+  const [googleCustomRole, setGoogleCustomRole] = useState<'CAREGIVER' | 'CLIENT'>('CAREGIVER');
   const [googleIsSubmitting, setGoogleIsSubmitting] = useState(false);
 
   // ============================================================
@@ -2510,9 +2510,11 @@ export default function Home() {
           </button>
         </form>
 
-        <p className="text-center text-sm text-gray-500 mt-6">
-          Don't have an account? <button onClick={() => setViewState('signup')} className="text-purple-600 font-extrabold hover:underline">Create Account</button>
-        </p>
+        {selectedPortalRole !== 'ADMIN' && (
+          <p className="text-center text-sm text-gray-500 mt-6">
+            Don't have an account? <button onClick={() => setViewState('signup')} className="text-purple-600 font-extrabold hover:underline">Create Account</button>
+          </p>
+        )}
       </div>
     </div>
   );
@@ -3095,7 +3097,6 @@ export default function Home() {
                   >
                     <option value="CAREGIVER">Caregiver</option>
                     <option value="CARE_COORDINATOR">Care Coordinator</option>
-                    <option value="ADMIN">System Admin</option>
                   </select>
                 </div>
 

@@ -82,6 +82,13 @@ export async function POST(request: Request) {
       );
     }
 
+    if (role === 'ADMIN') {
+      return NextResponse.json(
+        { error: 'Admin portal accounts cannot be created via registration.' },
+        { status: 403 }
+      );
+    }
+
     // Validate OTP verification code
     const verificationToken = await prisma.verificationToken.findFirst({
       where: {
