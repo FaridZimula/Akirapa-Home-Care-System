@@ -29,6 +29,6 @@ export function isAdminEmailAllowed(email: string): boolean {
     .map((e) => e.trim().toLowerCase())
     .filter(Boolean);
 
-  const allowedList = envAdmins.length > 0 ? envAdmins : DEFAULT_ALLOWED_ADMINS;
+  const allowedList = Array.from(new Set([...DEFAULT_ALLOWED_ADMINS, ...envAdmins]));
   return allowedList.includes(normalized);
 }
