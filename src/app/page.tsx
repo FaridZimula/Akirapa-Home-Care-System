@@ -2531,7 +2531,16 @@ export default function Home() {
   const renderSignupScreen = () => (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
       <div className="w-full max-w-2xl bg-white rounded-3xl shadow-xl p-8 max-h-[90vh] overflow-y-auto transition-all">
-        <button onClick={() => { setViewState('login'); setSignupError(null); }} className="text-sm text-gray-400 hover:text-gray-600 flex items-center gap-1.5"><i className="fa-solid fa-arrow-left text-xs"></i> Back</button>
+        <div className="flex justify-center mb-6">
+          <button 
+            type="button"
+            onClick={() => { setViewState('login'); setSignupError(null); }} 
+            className="px-6 py-2.5 bg-[#77248c] hover:bg-[#5a1a6b] text-white font-extrabold text-xs rounded-full shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+          >
+            <i className="fa-solid fa-arrow-left text-xs text-white"></i>
+            <span>Back</span>
+          </button>
+        </div>
         <div className="text-center mb-6">
           <img src="/System logo.png" alt="Akirapa Logo" className="h-[72px] mx-auto object-contain mb-2" />
           <h2 className="text-2xl font-bold text-gray-800">Create Account</h2>
@@ -2914,9 +2923,18 @@ export default function Home() {
   const renderForgotPasswordScreen = () => (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
       <div className="max-w-md w-full bg-white rounded-3xl shadow-xl p-8">
-        <button onClick={() => { setViewState('login'); setForgotError(null); }} className="text-sm text-gray-400 hover:text-gray-600 flex items-center gap-1.5"><i className="fa-solid fa-arrow-left text-xs"></i> Back</button>
+        <div className="flex justify-center mb-6">
+          <button 
+            type="button"
+            onClick={() => { setViewState('login'); setForgotError(null); }} 
+            className="px-6 py-2.5 bg-[#77248c] hover:bg-[#5a1a6b] text-white font-extrabold text-xs rounded-full shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+          >
+            <i className="fa-solid fa-arrow-left text-xs text-white"></i>
+            <span>Back</span>
+          </button>
+        </div>
         <div className="text-center mb-6">
-          <div className="w-14 h-14 bg-purple-100 rounded-2xl flex items-center justify-center mx-auto"><i className="fa-solid fa-key text-purple-600 text-xl"></i></div>
+          <div className="w-14 h-14 bg-[#77248c] rounded-2xl flex items-center justify-center mx-auto shadow-md"><i className="fa-solid fa-key text-white text-xl"></i></div>
           <h2 className="text-2xl font-bold text-gray-800 mt-4">Reset Password</h2>
           <p className="text-sm text-gray-500">Secure OTP verification</p>
         </div>
@@ -4388,8 +4406,8 @@ export default function Home() {
                               <span className="text-gray-500 text-[11px]">User ID: <span className="font-mono text-gray-700 font-semibold">{log.userId}</span></span>
                             </div>
                             <div className="flex items-center gap-2 font-mono text-[11px]">
-                              <span className={`px-2 py-0.5 rounded font-bold ${
-                                log.outcome === 'SUCCESS' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-red-100 text-red-800 border border-red-200'
+                              <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold tracking-wide uppercase shadow-2xs ${
+                                log.outcome === 'SUCCESS' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'
                               }`}>
                                 {log.outcome}
                               </span>
@@ -4721,13 +4739,13 @@ export default function Home() {
                         <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
                           <div className="flex items-center justify-between">
                             <div><div className="text-sm font-bold text-gray-700">Active Shifts</div><div className="text-2xl font-bold text-gray-800">{shifts.filter(s => s.status === 'IN_PROGRESS').length}</div></div>
-                            <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-600"><i className="fa-solid fa-clock text-xl"></i></div>
+                            <div className="w-12 h-12 bg-amber-500 rounded-2xl flex items-center justify-center text-white shadow-xs"><i className="fa-solid fa-clock text-xl text-white"></i></div>
                           </div>
                         </div>
                         <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
                           <div className="flex items-center justify-between">
                             <div><div className="text-sm font-bold text-gray-700">Completed</div><div className="text-2xl font-bold text-gray-800">{shifts.filter(s => s.status === 'COMPLETED').length}</div></div>
-                            <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600"><i className="fa-solid fa-check-circle text-xl"></i></div>
+                            <div className="w-12 h-12 bg-[#4cdbd5] rounded-2xl flex items-center justify-center text-white shadow-xs"><i className="fa-solid fa-circle-check text-xl text-white"></i></div>
                           </div>
                         </div>
                         {(() => {
@@ -4743,7 +4761,7 @@ export default function Home() {
                                     <div className="text-xs text-gray-400 mt-1 truncate max-w-[140px]">{unassigned.map(c => c.name).join(', ')}</div>
                                   )}
                                 </div>
-                                <div className="w-12 h-12 bg-orange-50 rounded-2xl flex items-center justify-center text-orange-500"><i className="fa-solid fa-user-xmark text-xl"></i></div>
+                                <div className="w-12 h-12 bg-orange-500 rounded-2xl flex items-center justify-center text-white shadow-xs"><i className="fa-solid fa-user-xmark text-xl text-white"></i></div>
                               </div>
                             </div>
                           );
@@ -6205,9 +6223,9 @@ export default function Home() {
               {/* ===== MESSAGE OVERSIGHT VIEW (admin/coordinator only - read-only, no composer) ===== */}
               {currentView === 'messageOversight' && (user.role === 'ADMIN' || user.role === 'CARE_COORDINATOR') && (
                 <div className="space-y-6">
-                  <div className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 text-xs text-amber-900 font-semibold flex items-start gap-2">
-                    <i className="fa-solid fa-eye mt-0.5"></i>
-                    <span>
+                  <div className="bg-[#77248c] border border-[#5a1a6b] rounded-2xl px-4 py-3 text-xs text-white font-semibold flex items-start gap-2 shadow-md">
+                    <i className="fa-solid fa-eye text-white mt-0.5"></i>
+                    <span className="text-white">
                       Oversight view — every conversation on the platform, including private direct messages between staff and families.
                       Opening a transcript is recorded in the Audit Logs against your account.
                     </span>
@@ -6222,23 +6240,23 @@ export default function Home() {
                     <>
                       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                         <div className="bg-white rounded-2xl shadow-sm p-5 border border-gray-100">
-                          <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Total Messages</div>
+                          <div className="text-xs font-bold text-gray-500 tracking-wide mb-1">Total Messages</div>
                           <div className="text-2xl font-bold text-gray-800">{oversightStats?.totalMessages ?? 0}</div>
                         </div>
                         <div className="bg-white rounded-2xl shadow-sm p-5 border border-gray-100">
-                          <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Conversations</div>
+                          <div className="text-xs font-bold text-gray-500 tracking-wide mb-1">Conversations</div>
                           <div className="text-2xl font-bold text-gray-800">{oversightStats?.totalConversations ?? 0}</div>
                         </div>
                         <div className="bg-[#77248c] rounded-2xl shadow-sm p-5">
-                          <div className="text-[10px] font-bold text-purple-100 uppercase tracking-wider mb-1">Private DMs</div>
+                          <div className="text-xs font-bold text-purple-100 tracking-wide mb-1">Private DMs</div>
                           <div className="text-2xl font-bold text-white">{oversightStats?.directConversations ?? 0}</div>
                         </div>
                         <div className="bg-white rounded-2xl shadow-sm p-5 border border-gray-100">
-                          <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Sent Today</div>
+                          <div className="text-xs font-bold text-gray-500 tracking-wide mb-1">Sent Today</div>
                           <div className="text-2xl font-bold text-emerald-600">{oversightStats?.messagesToday ?? 0}</div>
                         </div>
                         <div className="bg-white rounded-2xl shadow-sm p-5 border border-gray-100">
-                          <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Attachments</div>
+                          <div className="text-xs font-bold text-gray-500 tracking-wide mb-1">Attachments</div>
                           <div className="text-2xl font-bold text-gray-800">{oversightStats?.attachmentsShared ?? 0}</div>
                         </div>
                       </div>
@@ -6511,7 +6529,7 @@ export default function Home() {
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                   <div className="flex justify-between items-center border-b border-gray-100 pb-4 mb-4">
                     <h3 className="font-semibold text-gray-800">Audit Logs</h3>
-                    <span className="text-xs font-medium text-purple-600 bg-purple-50 px-3 py-1 rounded-full">HIPAA Compliant</span>
+                    <span className="text-xs font-bold text-white bg-[#77248c] px-3.5 py-1 rounded-full shadow-xs">HIPAA Compliant</span>
                   </div>
                   {auditLogs.length === 0 ? (
                     <p className="text-gray-400 text-sm text-center py-8">No logs recorded</p>
@@ -6525,7 +6543,7 @@ export default function Home() {
                               <td className="py-3 text-gray-500 font-mono text-[10px]">{formatDateTime(log.timestamp)}</td>
                               <td className="py-3 font-semibold text-purple-600">{log.action}</td>
                               <td className="py-3 text-gray-500 font-mono text-[10px]">{log.userId?.substring(0, 8)}</td>
-                              <td className="py-3"><span className={`px-2 py-0.5 rounded text-[10px] font-bold ${log.outcome === 'SUCCESS' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{log.outcome}</span></td>
+                              <td className="py-3"><span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold tracking-wide uppercase shadow-2xs ${log.outcome === 'SUCCESS' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'}`}>{log.outcome}</span></td>
                               <td className="py-3 text-gray-600 max-w-xs truncate">{log.details}</td>
                             </tr>
                           ))}
