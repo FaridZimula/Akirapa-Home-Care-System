@@ -419,6 +419,7 @@ export default function Home() {
   const [isLoadingOversight, setIsLoadingOversight] = useState(false);
   const [oversightSearch, setOversightSearch] = useState('');
   const [oversightTypeFilter, setOversightTypeFilter] = useState<'ALL' | 'DIRECT' | 'GROUP'>('ALL');
+  const [oversightTabFilter, setOversightTabFilter] = useState<'ALL' | 'CONVERSATIONS' | 'DIRECT' | 'TODAY' | 'ATTACHMENTS'>('ALL');
   const [viewingTranscript, setViewingTranscript] = useState<any>(null);
   const [isLoadingTranscript, setIsLoadingTranscript] = useState(false);
 
@@ -4400,18 +4401,18 @@ export default function Home() {
                         <div key={log.id} className="p-3.5 bg-gray-50 border border-gray-200 rounded-xl space-y-1 hover:border-gray-300 transition-colors">
                           <div className="flex justify-between items-center text-xs">
                             <div className="flex items-center gap-2">
-                              <span className="font-mono font-bold text-slate-800 bg-white border border-gray-200 px-2 py-0.5 rounded shadow-2xs">
+                              <span className="font-bold text-slate-800 bg-white border border-gray-200 px-2 py-0.5 rounded shadow-2xs">
                                 {log.action}
                               </span>
-                              <span className="text-gray-500 text-[11px]">User ID: <span className="font-mono text-gray-700 font-semibold">{log.userId}</span></span>
+                              <span className="text-gray-500 text-xs">User ID: <span className="text-gray-700 font-semibold">{log.userId}</span></span>
                             </div>
-                            <div className="flex items-center gap-2 font-mono text-[11px]">
+                            <div className="flex items-center gap-2 text-xs">
                               <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold tracking-wide uppercase shadow-2xs ${
                                 log.outcome === 'SUCCESS' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'
                               }`}>
                                 {log.outcome}
                               </span>
-                              <span className="text-gray-400">{formatDateTime(log.timestamp)}</span>
+                              <span className="text-gray-500 font-medium">{formatDateTime(log.timestamp)}</span>
                             </div>
                           </div>
 
@@ -6239,26 +6240,66 @@ export default function Home() {
                   ) : (
                     <>
                       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                        <div className="bg-white rounded-2xl shadow-sm p-5 border border-gray-100">
-                          <div className="text-xs font-bold text-gray-500 tracking-wide mb-1">Total Messages</div>
-                          <div className="text-2xl font-bold text-gray-800">{oversightStats?.totalMessages ?? 0}</div>
-                        </div>
-                        <div className="bg-white rounded-2xl shadow-sm p-5 border border-gray-100">
-                          <div className="text-xs font-bold text-gray-500 tracking-wide mb-1">Conversations</div>
-                          <div className="text-2xl font-bold text-gray-800">{oversightStats?.totalConversations ?? 0}</div>
-                        </div>
-                        <div className="bg-[#77248c] rounded-2xl shadow-sm p-5">
-                          <div className="text-xs font-bold text-purple-100 tracking-wide mb-1">Private DMs</div>
-                          <div className="text-2xl font-bold text-white">{oversightStats?.directConversations ?? 0}</div>
-                        </div>
-                        <div className="bg-white rounded-2xl shadow-sm p-5 border border-gray-100">
-                          <div className="text-xs font-bold text-gray-500 tracking-wide mb-1">Sent Today</div>
-                          <div className="text-2xl font-bold text-emerald-600">{oversightStats?.messagesToday ?? 0}</div>
-                        </div>
-                        <div className="bg-white rounded-2xl shadow-sm p-5 border border-gray-100">
-                          <div className="text-xs font-bold text-gray-500 tracking-wide mb-1">Attachments</div>
-                          <div className="text-2xl font-bold text-gray-800">{oversightStats?.attachmentsShared ?? 0}</div>
-                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setOversightTabFilter('ALL')}
+                          className={`rounded-2xl p-5 text-left transition-all cursor-pointer active:scale-95 ${
+                            oversightTabFilter === 'ALL'
+                              ? 'bg-[#77248c] text-white shadow-md ring-2 ring-[#77248c]'
+                              : 'bg-white text-gray-800 border border-gray-100 shadow-sm hover:border-purple-200'
+                          }`}
+                        >
+                          <div className={`text-xs font-bold tracking-wide mb-1 ${oversightTabFilter === 'ALL' ? 'text-purple-100' : 'text-gray-500'}`}>Total Messages</div>
+                          <div className={`text-2xl font-bold ${oversightTabFilter === 'ALL' ? 'text-white' : 'text-gray-800'}`}>{oversightStats?.totalMessages ?? 0}</div>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setOversightTabFilter('CONVERSATIONS')}
+                          className={`rounded-2xl p-5 text-left transition-all cursor-pointer active:scale-95 ${
+                            oversightTabFilter === 'CONVERSATIONS'
+                              ? 'bg-[#77248c] text-white shadow-md ring-2 ring-[#77248c]'
+                              : 'bg-white text-gray-800 border border-gray-100 shadow-sm hover:border-purple-200'
+                          }`}
+                        >
+                          <div className={`text-xs font-bold tracking-wide mb-1 ${oversightTabFilter === 'CONVERSATIONS' ? 'text-purple-100' : 'text-gray-500'}`}>Conversations</div>
+                          <div className={`text-2xl font-bold ${oversightTabFilter === 'CONVERSATIONS' ? 'text-white' : 'text-gray-800'}`}>{oversightStats?.totalConversations ?? 0}</div>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setOversightTabFilter('DIRECT')}
+                          className={`rounded-2xl p-5 text-left transition-all cursor-pointer active:scale-95 ${
+                            oversightTabFilter === 'DIRECT'
+                              ? 'bg-[#77248c] text-white shadow-md ring-2 ring-[#77248c]'
+                              : 'bg-white text-gray-800 border border-gray-100 shadow-sm hover:border-purple-200'
+                          }`}
+                        >
+                          <div className={`text-xs font-bold tracking-wide mb-1 ${oversightTabFilter === 'DIRECT' ? 'text-purple-100' : 'text-gray-500'}`}>Private DMs</div>
+                          <div className={`text-2xl font-bold ${oversightTabFilter === 'DIRECT' ? 'text-white' : 'text-gray-800'}`}>{oversightStats?.directConversations ?? 0}</div>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setOversightTabFilter('TODAY')}
+                          className={`rounded-2xl p-5 text-left transition-all cursor-pointer active:scale-95 ${
+                            oversightTabFilter === 'TODAY'
+                              ? 'bg-[#77248c] text-white shadow-md ring-2 ring-[#77248c]'
+                              : 'bg-white text-gray-800 border border-gray-100 shadow-sm hover:border-purple-200'
+                          }`}
+                        >
+                          <div className={`text-xs font-bold tracking-wide mb-1 ${oversightTabFilter === 'TODAY' ? 'text-purple-100' : 'text-gray-500'}`}>Sent Today</div>
+                          <div className={`text-2xl font-bold ${oversightTabFilter === 'TODAY' ? 'text-white' : 'text-emerald-600'}`}>{oversightStats?.messagesToday ?? 0}</div>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setOversightTabFilter('ATTACHMENTS')}
+                          className={`rounded-2xl p-5 text-left transition-all cursor-pointer active:scale-95 ${
+                            oversightTabFilter === 'ATTACHMENTS'
+                              ? 'bg-[#77248c] text-white shadow-md ring-2 ring-[#77248c]'
+                              : 'bg-white text-gray-800 border border-gray-100 shadow-sm hover:border-purple-200'
+                          }`}
+                        >
+                          <div className={`text-xs font-bold tracking-wide mb-1 ${oversightTabFilter === 'ATTACHMENTS' ? 'text-purple-100' : 'text-gray-500'}`}>Attachments</div>
+                          <div className={`text-2xl font-bold ${oversightTabFilter === 'ATTACHMENTS' ? 'text-white' : 'text-gray-800'}`}>{oversightStats?.attachmentsShared ?? 0}</div>
+                        </button>
                       </div>
 
                       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
@@ -6293,6 +6334,13 @@ export default function Home() {
                         {(() => {
                           const q = oversightSearch.trim().toLowerCase();
                           const filtered = oversightThreads.filter(t => {
+                            if (oversightTabFilter === 'DIRECT' && t.type !== 'DIRECT') return false;
+                            if (oversightTabFilter === 'CONVERSATIONS' && t.type !== 'GROUP') return false;
+                            if (oversightTabFilter === 'TODAY') {
+                              const today = new Date().toISOString().slice(0, 10);
+                              if (!t.lastMessageAt || !t.lastMessageAt.startsWith(today)) return false;
+                            }
+                            if (oversightTabFilter === 'ATTACHMENTS' && (!t.attachmentsCount || t.attachmentsCount === 0)) return false;
                             if (oversightTypeFilter !== 'ALL' && t.type !== oversightTypeFilter) return false;
                             if (!q) return true;
                             return (t.searchBlob || '').includes(q) || (t.clientName || '').toLowerCase().includes(q);
@@ -6536,13 +6584,13 @@ export default function Home() {
                   ) : (
                     <div className="overflow-x-auto">
                       <table className="w-full text-xs">
-                        <thead><tr className="text-gray-400 border-b"><th className="py-3 text-left">Time</th><th className="py-3 text-left">Action</th><th className="py-3 text-left">User</th><th className="py-3 text-left">Outcome</th><th className="py-3 text-left">Details</th></tr></thead>
+                        <thead><tr className="text-black font-bold border-b border-gray-200"><th className="py-3 text-left font-bold text-black">Time</th><th className="py-3 text-left font-bold text-black">Action</th><th className="py-3 text-left font-bold text-black">User</th><th className="py-3 text-left font-bold text-black">Outcome</th><th className="py-3 text-left font-bold text-black">Details</th></tr></thead>
                         <tbody>
                           {auditLogs.map(log => (
                             <tr key={log.id} className="border-b border-gray-100/50 hover:bg-gray-50/30">
-                              <td className="py-3 text-gray-500 font-mono text-[10px]">{formatDateTime(log.timestamp)}</td>
+                              <td className="py-3 text-gray-600 font-medium text-xs whitespace-nowrap">{formatDateTime(log.timestamp)}</td>
                               <td className="py-3 font-semibold text-purple-600">{log.action}</td>
-                              <td className="py-3 text-gray-500 font-mono text-[10px]">{log.userId?.substring(0, 8)}</td>
+                              <td className="py-3 text-gray-600 font-medium text-xs">{log.userId?.substring(0, 8)}</td>
                               <td className="py-3"><span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold tracking-wide uppercase shadow-2xs ${log.outcome === 'SUCCESS' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'}`}>{log.outcome}</span></td>
                               <td className="py-3 text-gray-600 max-w-xs truncate">{log.details}</td>
                             </tr>
