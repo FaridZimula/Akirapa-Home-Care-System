@@ -11,7 +11,9 @@ export async function sendEmail({ to, subject, html }: SendEmailParams): Promise
   const port = process.env.SMTP_PORT;
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
-  const from = process.env.SMTP_FROM || (user ? `Akirapa Home Care <${user}>` : 'Akirapa Home Care <info@akirapahomecareus.com>');
+  // Never fall back to SMTP_USER: if that account is ever a personal address,
+  // it ends up in the From line of password reset mail sent to clients and staff.
+  const from = process.env.SMTP_FROM || 'Akirapa Home Care <info@akirapahomecareus.com>';
 
   if (!host || !port || !user || !pass) {
     console.error('[SMTP Email Error] SMTP_HOST/PORT/USER/PASS are not configured; email was not sent.');
