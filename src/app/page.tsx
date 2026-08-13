@@ -2327,10 +2327,10 @@ export default function Home() {
       setSelectedPortalRole(role);
       if (role === 'CAREGIVER') {
         setSignupRole('CAREGIVER');
-        setLoginEmail('caregiver@akirapa.com');
+        setLoginEmail('caregiver@akirapahomecareus.com');
       } else if (role === 'CLIENT') {
         setSignupRole('CLIENT');
-        setLoginEmail('family@akirapa.com');
+        setLoginEmail('family@akirapahomecareus.com');
       } else if (role === 'ADMIN') {
         setLoginEmail('farid@akirapahomecareus.com');
       } else {
@@ -2483,7 +2483,7 @@ export default function Home() {
         <form onSubmit={(e) => { e.preventDefault(); handlePortalLogin(loginEmail, loginPassword); }} className="space-y-4">
           <div>
             <label className="text-xs font-semibold text-gray-500 uppercase">Email address</label>
-            <input type="email" required placeholder="email@akirapa.com" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all" />
+            <input type="email" required placeholder="email@akirapahomecareus.com" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all" />
           </div>
           <div>
             <label className="text-xs font-semibold text-gray-500 uppercase">Password</label>
@@ -2556,7 +2556,7 @@ export default function Home() {
           <div>
             <label className="text-xs font-semibold text-gray-500 uppercase">Email</label>
             <div className="flex gap-2">
-              <input type="email" required disabled={isSignupCodeSent} placeholder="jane@example.com" value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} className="flex-1 min-w-0 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50" />
+              <input type="email" required disabled={isSignupCodeSent} placeholder="email@akirapahomecareus.com" value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} className="flex-1 min-w-0 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50" />
               <button
                 type="button"
                 onClick={handleSendSignupCode}
@@ -2774,7 +2774,7 @@ export default function Home() {
                   </div>
                   <div className="col-span-2">
                     <label className="text-xs font-semibold text-gray-500 uppercase">Email Address</label>
-                    <input type="email" placeholder="client@example.com" value={patientEmailInput} onChange={(e) => setPatientEmailInput(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                    <input type="email" placeholder="email@akirapahomecareus.com" value={patientEmailInput} onChange={(e) => setPatientEmailInput(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
                   </div>
                   <div className="col-span-3">
                     <label className="text-xs font-semibold text-gray-500 uppercase">Home Address</label>
@@ -2943,7 +2943,7 @@ export default function Home() {
         <form onSubmit={isForgotCodeSent ? handleResetPasswordSubmit : handleSendForgotCode} className="space-y-4">
           <div>
             <label className="text-xs font-semibold text-gray-500 uppercase">Email</label>
-            <input type="email" required disabled={isForgotCodeSent} placeholder="name@akirapahomecareus.com" value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50" />
+            <input type="email" required disabled={isForgotCodeSent} placeholder="email@akirapahomecareus.com" value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50" />
           </div>
           {isForgotCodeSent && (
             <>
@@ -3106,7 +3106,7 @@ export default function Home() {
                 <input
                   type="email"
                   required
-                  placeholder="sarah@akirapahomecareus.com"
+                  placeholder="email@akirapahomecareus.com"
                   value={newUserEmail}
                   onChange={(e) => setNewUserEmail(e.target.value)}
                   className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
@@ -4301,7 +4301,7 @@ export default function Home() {
                 <div className="flex gap-2">
                   <input
                     type="email"
-                    placeholder="family@akirapa.com"
+                    placeholder="email@akirapahomecareus.com"
                     value={selectedFamilyUserIdToLink}
                     onChange={(e) => setSelectedFamilyUserIdToLink(e.target.value)}
                     className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-none"
