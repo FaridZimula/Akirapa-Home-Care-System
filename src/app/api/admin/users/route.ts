@@ -3,10 +3,22 @@ import { prisma } from '@/lib/prisma';
 import { logAudit } from '@/lib/audit';
 import { hashPassword } from '@/lib/password';
 import { isCompanyDomainEmail, OFFICIAL_DOMAIN } from '@/lib/adminAllowlist';
+import { getSessionUser } from '@/lib/session';
 import { UserRole } from '@prisma/client';
 
 export async function POST(request: Request) {
   try {
+    // Account provisioning is an administrator action. Without this gate the
+    // endpoint mints caregiver, coordinator and family accounts for anyone
+    // who can reach it.
+    const sessionUser = await getSessionUser();
+    if (!sessionUser || sessionUser.role !== 'ADMIN') {
+      return NextResponse.json(
+        { error: 'Account provisioning is restricted to administrators' },
+        { status: 403 }
+      );
+    }
+
     const { email, password, name, role, phoneNumber, payRate, latitude, longitude, profileMetadata } = await request.json();
 
     if (!email || !password || !name || !role) {
@@ -58,9 +70,9 @@ export async function POST(request: Request) {
     });
 
     await logAudit({
-      userId: user.id,
+      userId: sessionUser.id,
       action: 'ADMIN_CREATE_USER',
-      details: `Admin created user account for ${user.email} with role ${user.role}`,
+      details: `Admin ${sessionUser.email} created user account for ${user.email} with role ${user.role}`,
       outcome: 'SUCCESS',
     });
 
