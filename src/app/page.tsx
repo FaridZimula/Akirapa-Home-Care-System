@@ -2322,7 +2322,7 @@ export default function Home() {
         setSignupRole('CLIENT');
         setLoginEmail('family@akirapa.com');
       } else if (role === 'ADMIN') {
-        setLoginEmail('admin@akirapa.com');
+        setLoginEmail('farid@akirapahomecareus.com');
       } else {
         setLoginEmail('');
       }
