@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { cookies } from 'next/headers';
 import { prisma } from './prisma';
+import { isAdminEmailAllowed } from './adminAllowlist';
 
 export const SESSION_COOKIE_NAME = 'akirapa_session';
 
@@ -74,6 +75,7 @@ export function sessionCookieOptions(maxAge: number) {
   };
 }
 
+
 export async function getSessionUser(): Promise<SessionUser | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
@@ -84,6 +86,10 @@ export async function getSessionUser(): Promise<SessionUser | null> {
 
   const user = await prisma.user.findUnique({ where: { id: payload.sub } });
   if (!user) return null;
+
+  if (user.role === 'ADMIN' && !isAdminEmailAllowed(user.email)) {
+    return null;
+  }
 
   return {
     id: user.id,
