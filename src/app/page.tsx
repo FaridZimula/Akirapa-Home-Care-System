@@ -1172,11 +1172,11 @@ export default function Home() {
     setIsLoggingIn(true);
     setLoginError(null);
     try {
-      const success = await login(email, pass);
-      if (success) {
+      const res = await login(email, pass);
+      if (res.success) {
         await loadData();
       } else {
-        setLoginError('Invalid credentials.');
+        setLoginError(res.error || 'Invalid credentials.');
       }
     } catch (err) {
       console.error(err);
@@ -2278,12 +2278,12 @@ export default function Home() {
 
     try {
       await new Promise(resolve => setTimeout(resolve, 1200));
-      const success = await login(email, password);
-      if (success) {
+      const res = await login(email, password);
+      if (res.success) {
         await loadData();
         setShowGoogleModal(false);
       } else {
-        setLoginError('Google Authentication failed.');
+        setLoginError(res.error || 'Google Authentication failed.');
       }
     } catch (err) {
       console.error(err);

@@ -16,7 +16,7 @@ export interface User {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string, role?: string) => Promise<boolean>;
+  login: (email: string, password: string, role?: string) => Promise<{ success: boolean; error?: string }>;
   logout: (isTimeout?: boolean) => Promise<void>;
   triggerAudit: (action: string, details: string, outcome: 'SUCCESS' | 'FAILURE') => Promise<void>;
 }
@@ -83,23 +83,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [user]);
 
-  const login = async (email: string, password: string, role?: string): Promise<boolean> => {
+  const login = async (email: string, password: string, role?: string): Promise<{ success: boolean; error?: string }> => {
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, role }),
       });
+      const data = await res.json();
       if (res.ok) {
-        const data = await res.json();
         setUser(data.user);
         router.push('/');
-        return true;
+        return { success: true };
       }
-      return false;
+      return { success: false, error: data.error || 'Invalid credentials.' };
     } catch (err) {
       console.error('Login request failed:', err);
-      return false;
+      return { success: false, error: 'Network error. Please try again.' };
     }
   };
 
