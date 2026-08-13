@@ -68,7 +68,9 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!isCompanyDomainEmail(email)) {
+    const normalizedEmail = email.trim().toLowerCase();
+
+    if (!isCompanyDomainEmail(normalizedEmail)) {
       return NextResponse.json(
         { error: `Registration is restricted to official @${OFFICIAL_DOMAIN} email addresses.` },
         { status: 403 }
@@ -92,7 +94,7 @@ export async function POST(request: Request) {
     // Validate OTP verification code
     const verificationToken = await prisma.verificationToken.findFirst({
       where: {
-        email,
+        email: normalizedEmail,
         token: code,
         purpose: 'SIGNUP',
       },
@@ -114,7 +116,7 @@ export async function POST(request: Request) {
     }
 
     const existingUser = await prisma.user.findUnique({
-      where: { email },
+      where: { email: normalizedEmail },
     });
 
     if (existingUser) {
@@ -153,7 +155,7 @@ export async function POST(request: Request) {
     // Create new user record
     const user = await prisma.user.create({
       data: {
-        email,
+        email: normalizedEmail,
         passwordHash: await hashPassword(password),
         name,
         role: finalRole,

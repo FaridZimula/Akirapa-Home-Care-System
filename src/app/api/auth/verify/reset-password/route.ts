@@ -11,14 +11,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Email, verification token, and new password are required' }, { status: 400 });
     }
 
-    if (!isCompanyDomainEmail(email)) {
+    const normalizedEmail = email.trim().toLowerCase();
+
+    if (!isCompanyDomainEmail(normalizedEmail)) {
       return NextResponse.json({ error: `Password resets are restricted to official @${OFFICIAL_DOMAIN} email addresses.` }, { status: 403 });
     }
 
     // Find and validate verification token
     const verificationToken = await prisma.verificationToken.findFirst({
       where: {
-        email,
+        email: normalizedEmail,
         token,
         purpose: 'PASSWORD_RESET',
       },
@@ -37,7 +39,7 @@ export async function POST(request: Request) {
 
     // Find corresponding user
     const user = await prisma.user.findUnique({
-      where: { email },
+      where: { email: normalizedEmail },
     });
 
     if (!user) {
@@ -46,7 +48,7 @@ export async function POST(request: Request) {
 
     // Update password
     await prisma.user.update({
-      where: { email },
+      where: { email: normalizedEmail },
       data: {
         passwordHash: await hashPassword(newPassword),
       },
@@ -62,7 +64,7 @@ export async function POST(request: Request) {
       data: {
         userId: user.id,
         action: 'PASSWORD_RESET_SUCCESS',
-        details: `Password successfully reset for account: ${email} via email token verification.`,
+        details: `Password successfully reset for account: ${normalizedEmail} via email token verification.`,
         outcome: 'SUCCESS',
       },
     }).catch(() => {});

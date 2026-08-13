@@ -11,7 +11,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Email and purpose are required' }, { status: 400 });
     }
 
-    if (!isCompanyDomainEmail(email)) {
+    const normalizedEmail = email.trim().toLowerCase();
+
+    if (!isCompanyDomainEmail(normalizedEmail)) {
       return NextResponse.json({ error: `Verification codes can only be sent to official @${OFFICIAL_DOMAIN} email addresses.` }, { status: 403 });
     }
 
@@ -21,7 +23,7 @@ export async function POST(request: Request) {
 
     // Check user existence
     const user = await prisma.user.findUnique({
-      where: { email },
+      where: { email: normalizedEmail },
     });
 
     if (purpose === 'SIGNUP' && user) {
@@ -38,13 +40,13 @@ export async function POST(request: Request) {
 
     // Delete any previous tokens for this email and purpose to avoid clutter
     await prisma.verificationToken.deleteMany({
-      where: { email, purpose },
+      where: { email: normalizedEmail, purpose },
     });
 
     // Create the token in the database
     await prisma.verificationToken.create({
       data: {
-        email,
+        email: normalizedEmail,
         token,
         purpose,
         expiresAt,
@@ -67,7 +69,7 @@ export async function POST(request: Request) {
       </div>
     `;
 
-    const sent = await sendEmail({ to: email, subject, html });
+    const sent = await sendEmail({ to: normalizedEmail, subject, html });
 
     if (sent) {
       return NextResponse.json({ success: true, message: 'Verification code sent successfully' });
