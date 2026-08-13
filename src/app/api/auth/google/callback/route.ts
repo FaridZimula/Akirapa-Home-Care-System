@@ -41,7 +41,21 @@ export async function GET(request: Request) {
     if (!tokenRes.ok) {
       const errBody = await tokenRes.text();
       console.error('Failed to exchange Google OAuth code:', errBody);
-      return NextResponse.redirect(new URL('/?error=token_exchange_failed', requestUrl.origin));
+
+      // Runtime logs are not retained on this plan, so surface Google's own
+      // error code in the redirect - it is the only way to tell a bad client
+      // secret (invalid_client) from a reused or expired code (invalid_grant).
+      let reason = 'token_exchange_failed';
+      try {
+        const googleError = JSON.parse(errBody)?.error;
+        if (typeof googleError === 'string' && googleError) {
+          reason = `token_exchange_failed_${googleError}`;
+        }
+      } catch {
+        // Non-JSON body - fall back to the generic reason
+      }
+
+      return NextResponse.redirect(new URL(`/?error=${encodeURIComponent(reason)}`, requestUrl.origin));
     }
 
     const { access_token } = await tokenRes.json();
