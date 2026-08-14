@@ -19,7 +19,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { email, password, name, role, phoneNumber, payRate, latitude, longitude, profileMetadata } = await request.json();
+    const { email, password, name, role, phoneNumber, payRate, latitude, longitude, profileMetadata, mustChangePassword } = await request.json();
 
     if (!email || !password || !name || !role) {
       return NextResponse.json({ error: 'Email, password, name, and role are required' }, { status: 400 });
@@ -66,6 +66,9 @@ export async function POST(request: Request) {
         latitude: latitude ? parseFloat(latitude) : null,
         longitude: longitude ? parseFloat(longitude) : null,
         profileMetadata: typeof profileMetadata === 'string' ? profileMetadata : profileMetadata ? JSON.stringify(profileMetadata) : null,
+        // Opt-in per account: when set, login diverts to a set-your-own-password
+        // step so the admin-issued temporary password stops working immediately.
+        mustChangePassword: mustChangePassword === true,
       },
     });
 
@@ -96,9 +99,25 @@ export async function POST(request: Request) {
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    // This returns the full staff and client directory, so it carries the same
+    // administrator gate as provisioning.
+    const sessionUser = await getSessionUser();
+    if (!sessionUser || sessionUser.role !== 'ADMIN') {
+      return NextResponse.json(
+        { error: 'Account administration is restricted to administrators' },
+        { status: 403 }
+      );
+    }
+
+    const roleFilter = new URL(request.url).searchParams.get('role');
+    if (roleFilter && !Object.values(UserRole).includes(roleFilter as UserRole)) {
+      return NextResponse.json({ error: 'Invalid user role' }, { status: 400 });
+    }
+
     const users = await prisma.user.findMany({
+      where: roleFilter ? { role: roleFilter as UserRole } : undefined,
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,
@@ -110,6 +129,8 @@ export async function GET() {
         latitude: true,
         longitude: true,
         createdAt: true,
+        mustChangePassword: true,
+        passwordUpdatedAt: true,
       },
     });
 

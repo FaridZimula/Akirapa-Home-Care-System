@@ -50,6 +50,7 @@ export interface SessionUser {
   phoneNumber: string | null;
   latitude: number | null;
   longitude: number | null;
+  mustChangePassword: boolean;
 }
 
 // expiresAt lets a caller (e.g. clock-in) keep the session alive past the normal
@@ -99,5 +100,6 @@ export async function getSessionUser(): Promise<SessionUser | null> {
     phoneNumber: user.phoneNumber,
     latitude: user.latitude,
     longitude: user.longitude,
+    mustChangePassword: user.mustChangePassword,
   };
 }

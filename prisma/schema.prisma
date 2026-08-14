@@ -47,6 +47,13 @@ model User {
   // Caregiver's hourly pay rate (USD), admin-set only, used for payroll reporting
   payRate         Float?
 
+  // Account provisioning. An admin creates staff/client accounts with a temporary
+  // password and hands it over out of band; only the hash is ever stored, so the
+  // password is knowable at creation time and never afterwards.
+  // mustChangePassword is opt-in per account, not forced on every provisioned user.
+  mustChangePassword Boolean   @default(false)
+  passwordUpdatedAt  DateTime?
+
   // Relations
   podAssignments CaregiverPod[]
   assignedShifts Shift[]

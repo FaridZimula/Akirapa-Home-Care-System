@@ -79,6 +79,7 @@ export async function POST(request: Request) {
         phoneNumber: user.phoneNumber,
         latitude: user.latitude,
         longitude: user.longitude,
+        mustChangePassword: user.mustChangePassword,
       },
     });
 

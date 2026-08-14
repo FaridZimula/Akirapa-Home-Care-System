@@ -46,11 +46,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No user found with this email' }, { status: 404 });
     }
 
-    // Update password
+    // Update password. This is the user choosing their own credential, so it
+    // also clears any pending admin-issued temporary password requirement.
     await prisma.user.update({
       where: { email: normalizedEmail },
       data: {
         passwordHash: await hashPassword(newPassword),
+        mustChangePassword: false,
+        passwordUpdatedAt: new Date(),
       },
     });
 

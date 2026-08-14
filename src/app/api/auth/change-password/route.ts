@@ -44,11 +44,16 @@ export async function POST(request: Request) {
       );
     }
 
-    // Update password
+    // Update password. Clearing mustChangePassword is what releases an account
+    // provisioned with a temporary password into normal use.
     const passwordHash = await hashPassword(newPassword);
     await prisma.user.update({
       where: { id: sessionUser.id },
-      data: { passwordHash },
+      data: {
+        passwordHash,
+        mustChangePassword: false,
+        passwordUpdatedAt: new Date(),
+      },
     });
 
     // Log audit action
