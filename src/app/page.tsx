@@ -3078,66 +3078,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Admin Portal Role Access Switcher (Visible to Admins Only) */}
-      {user?.role === 'ADMIN' && (
-        <div className="bg-gradient-to-r from-purple-950 to-purple-900 text-white shadow-lg z-40 border-b border-cyan-400/25">
-          <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-x-6 gap-y-3 text-xs">
-            {/* Context label */}
-            <div className="flex items-center gap-3 min-w-0">
-              <span className="w-8 h-8 shrink-0 rounded-lg bg-cyan-400/15 border border-cyan-400/30 flex items-center justify-center text-cyan-300">
-                <i className="fa-solid fa-user-shield text-sm"></i>
-              </span>
-              <div className="min-w-0">
-                <p className="font-bold tracking-wider uppercase text-[11px] text-white leading-tight">
-                  Portal Access Switcher
-                </p>
-                <p className="text-purple-200/70 font-normal text-[11px] leading-tight hidden md:block">
-                  Switch active view to operate all portals natively
-                </p>
-              </div>
-            </div>
 
-            {/* Controls */}
-            <div className="flex items-center gap-3 flex-wrap">
-              <div
-                role="group"
-                aria-label="Active portal view"
-                className="flex items-center gap-1 bg-purple-950/60 p-1 rounded-xl border border-purple-400/20"
-              >
-                {ADMIN_PORTAL_VIEWS.map(({ role, label, icon }) => {
-                  const isActive = adminPreviewRole === role;
-                  return (
-                    <button
-                      key={role}
-                      onClick={() => setAdminPreviewRole(role)}
-                      aria-pressed={isActive}
-                      title={`${label} Portal`}
-                      className={`px-3 py-1.5 rounded-lg font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap ${
-                        isActive
-                          ? 'bg-cyan-400 text-purple-950 shadow-md'
-                          : 'text-purple-200 hover:bg-white/10 hover:text-white'
-                      }`}
-                    >
-                      <i className={`fa-solid ${icon}`}></i>
-                      {label}<span className="hidden lg:inline">&nbsp;Portal</span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              <span className="hidden sm:block w-px h-6 bg-white/15" aria-hidden="true" />
-
-              <button
-                onClick={() => setShowAddUserModal(true)}
-                className="bg-white/10 hover:bg-white/20 border border-cyan-400/30 hover:border-cyan-400/60 text-white font-bold px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 whitespace-nowrap"
-                title="Create Caregiver or Staff Account"
-              >
-                <i className="fa-solid fa-user-plus text-xs text-cyan-300"></i> Provision Staff Account
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Admin Set First-Time Caregiver Password Modal */}
       {showAdminPasswordModal && targetPasswordUser && (
