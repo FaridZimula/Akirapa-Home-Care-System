@@ -140,3 +140,66 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+
+export async function PUT(request: Request) {
+  try {
+    const sessionUser = await getSessionUser();
+    if (!sessionUser || sessionUser.role !== 'ADMIN') {
+      return NextResponse.json(
+        { error: 'Password management is restricted to administrators' },
+        { status: 403 }
+      );
+    }
+
+    const { userId, newPassword, mustChangePassword } = await request.json();
+
+    if (!userId || !newPassword) {
+      return NextResponse.json(
+        { error: 'userId and newPassword are required' },
+        { status: 400 }
+      );
+    }
+
+    if (newPassword.length < 6) {
+      return NextResponse.json(
+        { error: 'Password must be at least 6 characters long' },
+        { status: 400 }
+      );
+    }
+
+    const targetUser = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!targetUser) {
+      return NextResponse.json({ error: 'Target user account not found' }, { status: 404 });
+    }
+
+    const passwordHash = await hashPassword(newPassword);
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        passwordHash,
+        mustChangePassword: mustChangePassword !== undefined ? mustChangePassword : true,
+        passwordUpdatedAt: new Date(),
+      },
+    });
+
+    await logAudit({
+      userId: sessionUser.id,
+      action: 'ADMIN_SET_USER_PASSWORD',
+      details: `Admin ${sessionUser.email} set a new initial password for user ${targetUser.email} (Role: ${targetUser.role})`,
+      outcome: 'SUCCESS',
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: `Password updated successfully for ${targetUser.name} (${targetUser.email}).`,
+    });
+  } catch (error) {
+    console.error('Failed to set user password:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+

@@ -19,14 +19,6 @@ export async function POST(request: Request) {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    // 1. Strict company domain validation
-    if (!isCompanyDomainEmail(normalizedEmail)) {
-      return NextResponse.json(
-        { error: `Only official @${OFFICIAL_DOMAIN} email addresses are authorized to access this system.` },
-        { status: 403 }
-      );
-    }
-
     // 2. Lookup existing user record
     const user = await prisma.user.findUnique({
       where: { email: normalizedEmail },
@@ -34,7 +26,7 @@ export async function POST(request: Request) {
 
     if (!user) {
       return NextResponse.json(
-        { error: `Account not found for ${normalizedEmail}. Caregiver and staff accounts must be created by an Administrator.` },
+        { error: `Account not found for ${normalizedEmail}. Please check your credentials or contact an administrator.` },
         { status: 404 }
       );
     }

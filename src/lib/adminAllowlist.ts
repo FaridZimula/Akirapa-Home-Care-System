@@ -32,3 +32,14 @@ export function isAdminEmailAllowed(email: string): boolean {
   const allowedList = Array.from(new Set([...DEFAULT_ALLOWED_ADMINS, ...envAdmins]));
   return allowedList.includes(normalized);
 }
+
+export const BUSINESS_HUB_AUTHORIZED_EMAILS = [
+  'info@akirapahomecareus.com',
+  'cathy@akirapahomecareus.com',
+];
+
+export function isBusinessHubAuthorized(email: string): boolean {
+  if (!email || typeof email !== 'string') return false;
+  const normalized = email.trim().toLowerCase();
+  return BUSINESS_HUB_AUTHORIZED_EMAILS.includes(normalized);
+}

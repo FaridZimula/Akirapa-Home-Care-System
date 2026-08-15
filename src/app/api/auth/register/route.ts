@@ -68,14 +68,8 @@ export async function POST(request: Request) {
       );
     }
 
+    // Note: Clients and caregivers can register with their personal or assigned emails.
     const normalizedEmail = email.trim().toLowerCase();
-
-    if (!isCompanyDomainEmail(normalizedEmail)) {
-      return NextResponse.json(
-        { error: `Registration is restricted to official @${OFFICIAL_DOMAIN} email addresses.` },
-        { status: 403 }
-      );
-    }
 
     if (role === 'ADMIN') {
       return NextResponse.json(

@@ -428,6 +428,73 @@ export default function Home() {
   const [selectedPortalRole, setSelectedPortalRole] = useState<'CAREGIVER' | 'CLIENT' | 'ADMIN' | null>(null);
   const [isInitializing, setIsInitializing] = useState(false);
 
+  // Business Hub Analytics & Security
+  const [businessStats, setBusinessStats] = useState<any>(null);
+  const [isLoadingBusinessStats, setIsLoadingBusinessStats] = useState(false);
+  const [businessStatsError, setBusinessStatsError] = useState<string | null>(null);
+
+  // Admin Caregiver Password Setter Modal
+  const [showAdminPasswordModal, setShowAdminPasswordModal] = useState(false);
+  const [targetPasswordUser, setTargetPasswordUser] = useState<any>(null);
+  const [adminNewPasswordInput, setAdminNewPasswordInput] = useState('');
+  const [isAdminSettingPassword, setIsAdminSettingPassword] = useState(false);
+  const [adminPasswordError, setAdminPasswordError] = useState<string | null>(null);
+
+  const fetchBusinessStats = async () => {
+    setIsLoadingBusinessStats(true);
+    setBusinessStatsError(null);
+    try {
+      const res = await fetch('/api/admin/business-stats');
+      const data = await res.json();
+      if (res.ok) {
+        setBusinessStats(data);
+      } else {
+        setBusinessStatsError(data.error || 'Failed to fetch business stats.');
+      }
+    } catch (err) {
+      console.error('Failed to fetch business stats:', err);
+      setBusinessStatsError('Network error loading Business Hub analytics.');
+    } finally {
+      setIsLoadingBusinessStats(false);
+    }
+  };
+
+  const handleAdminSetCaregiverPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!targetPasswordUser || !adminNewPasswordInput) return;
+    setIsAdminSettingPassword(true);
+    setAdminPasswordError(null);
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: targetPasswordUser.id,
+          newPassword: adminNewPasswordInput,
+          mustChangePassword: true,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showNotification(data.message || `Password set for ${targetPasswordUser.name}`);
+        setShowAdminPasswordModal(false);
+        setTargetPasswordUser(null);
+        setAdminNewPasswordInput('');
+      } else {
+        setAdminPasswordError(data.error || 'Failed to set password.');
+      }
+    } catch (err) {
+      console.error(err);
+      setAdminPasswordError('Network error setting password.');
+    } finally {
+      setIsAdminSettingPassword(false);
+    }
+  };
+
+  const handleDownloadBusinessReportPdf = () => {
+    window.print();
+  };
+
   // Password Eye Visibility Toggles
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showSignupPassword, setShowSignupPassword] = useState(false);
@@ -486,8 +553,17 @@ export default function Home() {
       setLoginPassword('');
     } else if (user) {
       setViewState('dashboard');
+      if (user.role === 'CAREGIVER' && currentView !== 'dashboard' && currentView !== 'profile' && currentView !== 'messages') {
+        setCurrentView('dashboard');
+      }
     }
-  }, [user, authLoading]);
+  }, [user, authLoading, currentView]);
+
+  useEffect(() => {
+    if (currentView === 'business' && user?.role === 'ADMIN' && (user.email === 'info@akirapahomecareus.com' || user.email === 'cathy@akirapahomecareus.com')) {
+      fetchBusinessStats();
+    }
+  }, [currentView, user]);
 
   useEffect(() => {
     if (viewState === 'splash' && isInitializing) {
@@ -2323,42 +2399,13 @@ export default function Home() {
   // ============================================================
 
   const renderSplashScreen = () => {
-    const handlePortalSelect = (role: 'CAREGIVER' | 'CLIENT' | 'ADMIN' | null) => {
-      setSelectedPortalRole(role);
-      if (role === 'CAREGIVER') {
-        setSignupRole('CAREGIVER');
-      } else if (role === 'CLIENT') {
-        setSignupRole('CLIENT');
-      }
-      setLoginEmail('');
-      setLoginPassword('');
-      setSplashProgress(0);
-      setIsInitializing(true);
-    };
-
-    const statusSteps = [
-      'Configuring Account Cryptographic Vault...',
-      'Syncing Haversine Geofence Engine...',
-      'Connecting Caregiver Pod Network...',
-      'Verifying Clinical Red Flag Monitors...',
-      'System Environment Ready — Redirecting...'
-    ];
-    const currentStepIndex = Math.min(Math.floor((splashProgress / 100) * statusSteps.length), statusSteps.length - 1);
-    const activeStatusText = isInitializing 
-      ? statusSteps[currentStepIndex] 
-      : 'Select an Account Portal below to log in...';
-
     return (
       <div className="relative min-h-screen bg-purple-50/40 text-slate-800 flex items-center justify-center p-6 overflow-hidden selection:bg-purple-500 selection:text-white">
-        {/* Animated Ambient Light Blobs */}
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-300/30 rounded-full blur-3xl pointer-events-none animate-blob-1" />
         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-cyan-300/30 rounded-full blur-3xl pointer-events-none animate-blob-2" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-purple-400/15 rounded-full blur-3xl pointer-events-none" />
 
-        {/* Bright Modern Glassmorphic Central Card */}
         <div className="relative max-w-lg w-full glass-card-light rounded-3xl p-8 md:p-10 text-center shadow-2xl z-10 animate-fade-in">
-          
-          {/* System Logo */}
           <div className="mx-auto flex justify-center mb-4 md:mb-6">
             <img 
               src="/System logo.png" 
@@ -2367,67 +2414,17 @@ export default function Home() {
             />
           </div>
 
-          {/* Account Portal Selection Section */}
-          <div className="space-y-4 mb-6">
-            <div className="text-center mb-2 mt-2">
-              <span className="text-lg font-extrabold text-[#77248c] tracking-[-0.026em] inline-block">
-                Log In As
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-              {/* Caregiver Account Entry */}
-              <button
-                type="button"
-                disabled={isInitializing}
-                onClick={() => handlePortalSelect('CAREGIVER')}
-                className="p-3.5 bg-white/90 hover:bg-purple-50/90 border border-purple-200/80 hover:border-purple-500 rounded-2xl transition-all transform hover:-translate-y-0.5 active:scale-95 shadow-sm text-center group cursor-pointer disabled:opacity-50"
-              >
-                <div className="w-9 h-9 mx-auto mb-1.5 bg-[#77248c] text-white rounded-xl flex items-center justify-center text-base group-hover:scale-110 transition-transform shadow-sm">
-                  <i className="fa-solid fa-stethoscope text-base text-white"></i>
-                </div>
-                <div className="text-xs font-extrabold text-slate-900">Caregiver</div>
-                <div className="text-[10px] text-slate-500 font-semibold mt-0.5">Shifts & Tasks</div>
-              </button>
-
-              {/* Family Account Entry */}
-              <button
-                type="button"
-                disabled={isInitializing}
-                onClick={() => handlePortalSelect('CLIENT')}
-                className="p-3.5 bg-white/90 hover:bg-cyan-50/90 border border-cyan-200/80 hover:border-cyan-500 rounded-2xl transition-all transform hover:-translate-y-0.5 active:scale-95 shadow-sm text-center group cursor-pointer disabled:opacity-50"
-              >
-                <div className="w-9 h-9 mx-auto mb-1.5 bg-[#4cdbd5] text-white rounded-xl flex items-center justify-center text-base group-hover:scale-110 transition-transform shadow-sm">
-                  <i className="fa-solid fa-house text-base text-white"></i>
-                </div>
-                <div className="text-xs font-extrabold text-slate-900">Family</div>
-                <div className="text-[10px] text-slate-500 font-semibold mt-0.5">Care Feed & Plan</div>
-              </button>
-
-              {/* Admin Account Entry */}
-              <button
-                type="button"
-                disabled={isInitializing}
-                onClick={() => handlePortalSelect('ADMIN')}
-                className="p-3.5 bg-white/90 hover:bg-purple-50/90 border border-purple-200/80 hover:border-purple-500 rounded-2xl transition-all transform hover:-translate-y-0.5 active:scale-95 shadow-sm text-center group cursor-pointer disabled:opacity-50"
-              >
-                <div className="w-9 h-9 mx-auto mb-1.5 bg-[#77248c] text-white rounded-xl flex items-center justify-center text-base group-hover:scale-110 transition-transform shadow-sm">
-                  <i className="fa-solid fa-user-shield text-base text-white"></i>
-                </div>
-                <div className="text-xs font-extrabold text-slate-900">Admin</div>
-                <div className="text-[10px] text-slate-500 font-semibold mt-0.5">Ops & Control</div>
-              </button>
-            </div>
+          <div className="mb-6">
+            <h1 className="text-xl font-extrabold text-[#77248c] tracking-tight">Akirapa Home Care System</h1>
+            <p className="text-xs text-slate-500 font-semibold mt-1">Unified Portal Access for Clients, Caregivers & Administration</p>
           </div>
 
-          {/* Quick Direct Login Button */}
           <button
             type="button"
-            disabled={isInitializing}
-            onClick={() => handlePortalSelect(null)}
-            className="w-full py-3.5 bg-[#77248c] hover:bg-[#5a1a6b] text-white font-extrabold text-sm rounded-2xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 active:scale-98"
+            onClick={() => { setViewState('login'); setLoginError(null); }}
+            className="w-full py-3.5 bg-[#77248c] hover:bg-[#5a1a6b] text-white font-extrabold text-sm rounded-2xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
           >
-            <span>Standard Account Login</span>
+            <span>Proceed to Login</span>
             <i className="fa-solid fa-arrow-right text-xs text-white"></i>
           </button>
         </div>
@@ -2438,12 +2435,10 @@ export default function Home() {
   const renderLoginScreen = () => (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
       <div className="max-w-md w-full bg-white rounded-3xl shadow-xl p-8">
-        
-        {/* Back to Splash Screen Button (Centered Theme Purple Button) */}
         <div className="flex justify-center mb-6">
           <button 
             type="button"
-            onClick={() => { setViewState('splash'); setSelectedPortalRole(null); setLoginError(null); }} 
+            onClick={() => { setViewState('splash'); setLoginError(null); }} 
             className="px-6 py-2.5 bg-[#77248c] hover:bg-[#5a1a6b] text-white font-extrabold text-xs rounded-full shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
           >
             <i className="fa-solid fa-arrow-left text-xs text-white"></i>
@@ -2451,12 +2446,10 @@ export default function Home() {
           </button>
         </div>
 
-
-
         <div className="text-center mb-8">
           <img src="/System logo.png" alt="Akirapa Logo" className="h-[72px] mx-auto object-contain mb-2" />
           <h2 className="text-2xl font-bold text-gray-800">Welcome Back</h2>
-          <p className="text-sm text-gray-500">Sign in to your Akirapa account</p>
+          <p className="text-sm text-gray-500">Sign in to your Akirapa account. The system will automatically route you to your portal.</p>
         </div>
 
         <button onClick={() => { setLoginError(null); window.location.href = '/api/auth/google'; }} className="w-full py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition-all flex items-center justify-center gap-2.5 text-sm font-semibold text-gray-700 shadow-2xs cursor-pointer">
@@ -3071,6 +3064,71 @@ export default function Home() {
                 <i className="fa-solid fa-user-plus text-xs text-cyan-300"></i> Provision Staff Account
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Admin Set First-Time Caregiver Password Modal */}
+      {showAdminPasswordModal && targetPasswordUser && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl p-8 animate-fade-up">
+            <div className="flex justify-between items-center border-b border-gray-100 pb-4 mb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 bg-purple-100 rounded-xl flex items-center justify-center text-purple-700 font-bold">
+                  <i className="fa-solid fa-key"></i>
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-800 text-base">Set First-Time Password</h3>
+                  <p className="text-xs text-gray-400">Target Caregiver: {targetPasswordUser.name}</p>
+                </div>
+              </div>
+              <button onClick={() => { setShowAdminPasswordModal(false); setTargetPasswordUser(null); }} className="text-gray-400 hover:text-gray-600 font-bold">
+                <i className="fa-solid fa-xmark text-lg"></i>
+              </button>
+            </div>
+
+            <form onSubmit={handleAdminSetCaregiverPassword} className="space-y-4 text-xs">
+              <div className="bg-purple-50 border border-purple-100 rounded-xl p-3 text-purple-900">
+                <div className="font-bold text-xs mb-1"><i className="fa-solid fa-envelope mr-1"></i> Caregiver Email:</div>
+                <div className="font-mono text-xs font-bold">{targetPasswordUser.email}</div>
+                <div className="text-[11px] text-purple-700 mt-1">This email will be automatically addressed by the database and restricted to the Caregiver Portal.</div>
+              </div>
+
+              <div>
+                <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">First-Time Password</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. CaregiverTemp2026!"
+                  value={adminNewPasswordInput}
+                  onChange={(e) => setAdminNewPasswordInput(e.target.value)}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
+                />
+              </div>
+
+              {adminPasswordError && (
+                <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-xl text-xs flex items-center gap-2 font-semibold">
+                  <i className="fa-solid fa-triangle-exclamation"></i> {adminPasswordError}
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => { setShowAdminPasswordModal(false); setTargetPasswordUser(null); }}
+                  className="px-4 py-2.5 border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 font-semibold cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isAdminSettingPassword || !adminNewPasswordInput}
+                  className="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold transition-all disabled:opacity-50 cursor-pointer flex items-center gap-2"
+                >
+                  {isAdminSettingPassword ? <><i className="fa-solid fa-spinner animate-spin"></i> Saving...</> : <><i className="fa-solid fa-check"></i> Assign Password</>}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
@@ -5752,111 +5810,302 @@ export default function Home() {
               )}
 
               {/* ===== BUSINESS HUB VIEW ===== */}
-              {currentView === 'business' && (user.role === 'ADMIN' || user.role === 'CARE_COORDINATOR') && (
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-                  <h3 className="font-semibold text-gray-800 mb-4">Business Hub</h3>
-                  {(() => {
-                    const assignedClientIds = new Set(shifts.filter(s => s.status !== 'DROPPED' && s.status !== 'COMPLETED').map(s => s.clientId));
-                    const unassignedClients = clients.filter(c => !assignedClientIds.has(c.id));
-                    return (
-                      <>
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                          <div className="bg-purple-50 rounded-xl p-4 text-center"><div className="text-2xl font-bold text-purple-600">{clients.length}</div><div className="text-sm text-gray-600">Total Clients</div></div>
-                          <div className="bg-green-50 rounded-xl p-4 text-center"><div className="text-2xl font-bold text-green-600">{caregivers.length}</div><div className="text-sm text-gray-600">Active Caregivers</div></div>
-                          <div className="bg-amber-50 rounded-xl p-4 text-center"><div className="text-2xl font-bold text-amber-600">{shifts.length}</div><div className="text-sm text-gray-600">Total Shifts</div></div>
-                          <div className="bg-orange-50 rounded-xl p-4 text-center"><div className="text-2xl font-bold text-orange-600">{unassignedClients.length}</div><div className="text-sm text-gray-600">Unassigned Clients</div></div>
-                        </div>
-                        {unassignedClients.length > 0 && (
-                          <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-6">
-                            <div className="flex items-center gap-2 mb-3">
-                              <i className="fa-solid fa-user-xmark text-orange-600"></i>
-                              <span className="font-bold text-orange-700 text-sm">Clients Without Active Caregiver Assignment</span>
-                            </div>
-                            <div className="space-y-2">
-                              {unassignedClients.map(c => (
-                                <div key={c.id} className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-orange-100 text-sm">
-                                  <div>
-                                    <span className="font-semibold text-gray-800">{c.name}</span>
-                                    <span className="text-gray-400 text-xs ml-2">{c.address}</span>
-                                  </div>
-                                  <button
-                                    onClick={() => { setNewShiftClientId(c.id); setCurrentView('create'); }}
-                                    className="text-xs px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg cursor-pointer"
-                                  >
-                                    Assign Caregiver
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </>
-                    );
-                  })()}
-                  
-                  {/* Pod Management */}
-                  <div className="border-t border-gray-100 pt-6 mt-4">
-                    <h4 className="font-medium text-gray-700 mb-4">Caregiver Pod Management</h4>
-                    <form onSubmit={handleUpdatePod} className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <select value={selectedPodClient} onChange={(e) => setSelectedPodClient(e.target.value)} className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
-                        {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                      </select>
-                      <select value={selectedPodRole} onChange={(e) => setSelectedPodRole(e.target.value as any)} className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
-                        <option value="PRIMARY">Primary</option><option value="SECONDARY_1">Secondary 1</option><option value="SECONDARY_2">Secondary 2</option>
-                      </select>
-                      <div className="flex gap-2">
-                        <select value={selectedPodCaregiver} onChange={(e) => setSelectedPodCaregiver(e.target.value)} className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
-                          {caregivers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                        </select>
-                        <button type="submit" className="px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold rounded-xl transition-all">Update</button>
+              {currentView === 'business' && user?.role === 'ADMIN' && (
+                <div className="space-y-6">
+                  {/* Access Gating check */}
+                  {!(user.email === 'info@akirapahomecareus.com' || user.email === 'cathy@akirapahomecareus.com') ? (
+                    <div className="bg-amber-50 border-2 border-amber-200 rounded-3xl p-8 text-center max-w-2xl mx-auto my-8 animate-fade-up">
+                      <div className="w-16 h-16 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl shadow-xs">
+                        <i className="fa-solid fa-lock"></i>
                       </div>
-                    </form>
-                  </div>
-
-                  {/* Client Geofence & Profile Management List */}
-                  <div className="border-t border-gray-100 pt-6 mt-6">
-                    <h4 className="font-medium text-gray-700 mb-4">Patient Geofence Radius & Clinical Profile Settings</h4>
-                    <div className="space-y-2">
-                      {clients.map(client => (
-                        <div key={client.id} className="flex justify-between items-center p-3 bg-gray-50 border border-gray-100 rounded-xl text-xs">
-                          <div>
-                            <span className="font-bold text-gray-800 text-sm">{client.name}</span>
-                            <span className="text-gray-400 font-mono ml-2">Geofence: {client.geofenceRadiusMeter || 150}m</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => handleOpenCarePlanBuilder(client)}
-                              className="px-3 py-1.5 bg-white hover:bg-purple-50 text-purple-600 font-semibold text-xs rounded-lg border border-gray-200 hover:border-purple-300 shadow-2xs transition-all flex items-center gap-1 cursor-pointer"
-                            >
-                              <i className="fa-solid fa-list-check text-purple-500"></i> Care Plan Builder
-                            </button>
-
-                            <button
-                              onClick={() => handleOpenFamilyLinker(client)}
-                              className="px-3 py-1.5 bg-white hover:bg-emerald-50 text-emerald-600 font-semibold text-xs rounded-lg border border-gray-200 hover:border-emerald-300 shadow-2xs transition-all flex items-center gap-1 cursor-pointer"
-                            >
-                              <i className="fa-solid fa-users-line text-emerald-500"></i> Family Linker
-                            </button>
-
-                            <button
-                              onClick={() => handleOpenClientProfileEditor(client)}
-                              className="px-3 py-1.5 bg-white hover:bg-gray-100 text-gray-700 font-semibold text-xs rounded-lg border border-gray-200 shadow-2xs transition-all flex items-center gap-1 cursor-pointer"
-                            >
-                              <i className="fa-solid fa-sliders text-gray-500"></i> Geofence & Profile
-                            </button>
-                          </div>
-                        </div>
-                      ))}
+                      <h3 className="text-xl font-extrabold text-amber-900 mb-2">Restricted Access — Senior Business Admins Only</h3>
+                      <p className="text-sm text-amber-800 leading-relaxed max-w-md mx-auto">
+                        The Business Hub contains sensitive corporate financial stats, monthly payroll metrics, and proprietary system data logs. Access is limited strictly to authorized senior business administrators logging in with:
+                      </p>
+                      <div className="mt-4 flex flex-col sm:flex-row justify-center gap-2 font-mono text-xs font-bold text-purple-900">
+                        <span className="bg-white px-3 py-1.5 rounded-lg border border-amber-200">info@akirapahomecareus.com</span>
+                        <span className="bg-white px-3 py-1.5 rounded-lg border border-amber-200">cathy@akirapahomecareus.com</span>
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8 business-hub-print-area">
+                      {/* Business Hub Top Bar */}
+                      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-6 border-b border-gray-100 mb-6">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-2xl font-extrabold text-gray-900 tracking-tight">Business Intelligence Hub</h3>
+                            <span className="bg-emerald-100 text-emerald-800 text-xs font-extrabold px-2.5 py-0.5 rounded-full border border-emerald-200">
+                              <i className="fa-solid fa-shield-check mr-1"></i> Authorized Senior Access
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-500 mt-1">
+                            Monthly analytics breakdown, corporate logs, shift volume, and financial graphics for {businessStats?.monthName || 'Current Month'}
+                          </p>
+                        </div>
 
-                  {/* Escalation */}
-                  <div className="border-t border-gray-100 pt-6 mt-6">
-                    <button onClick={handleEscalationCheck} className="px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white font-semibold text-sm rounded-xl transition-all">
-                      <i className="fa-solid fa-arrows-rotate mr-2"></i> Run Escalation Check
-                    </button>
-                    <p className="text-xs text-gray-400 mt-2">Check for unconfirmed shifts past deadline and auto-escalate to backups</p>
-                  </div>
+                        <div className="flex items-center gap-3 no-print">
+                          <button
+                            onClick={fetchBusinessStats}
+                            disabled={isLoadingBusinessStats}
+                            className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs rounded-xl transition-all flex items-center gap-2 cursor-pointer"
+                          >
+                            <i className={`fa-solid fa-arrows-rotate text-xs ${isLoadingBusinessStats ? 'animate-spin' : ''}`}></i>
+                            <span>Refresh Stats</span>
+                          </button>
+
+                          <button
+                            onClick={handleDownloadBusinessReportPdf}
+                            className="px-5 py-2.5 bg-[#77248c] hover:bg-[#5a1a6b] text-white font-extrabold text-xs rounded-xl shadow-md hover:shadow-lg transition-all flex items-center gap-2 cursor-pointer active:scale-95"
+                          >
+                            <i className="fa-solid fa-file-pdf text-sm"></i>
+                            <span>Download Business Report (PDF)</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {isLoadingBusinessStats ? (
+                        <div className="py-12 text-center text-gray-400">
+                          <div className="spinner mx-auto mb-3"></div>
+                          <p className="text-xs font-semibold">Generating monthly business stats & financial graphics...</p>
+                        </div>
+                      ) : businessStatsError ? (
+                        <div className="bg-red-50 text-red-700 p-4 rounded-xl text-sm font-semibold mb-6 flex items-center gap-2">
+                          <i className="fa-solid fa-triangle-exclamation"></i> {businessStatsError}
+                        </div>
+                      ) : (
+                        <>
+                          {/* MONTHLY BUSINESS KPI METRICS GRID */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                            <div className="bg-purple-50/80 border border-purple-100 rounded-2xl p-5 hover-lift">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-xs font-extrabold text-purple-700 uppercase tracking-wider">Gross Monthly Revenue</span>
+                                <div className="w-8 h-8 bg-purple-600 text-white rounded-xl flex items-center justify-center text-sm shadow-xs">
+                                  <i className="fa-solid fa-dollar-sign"></i>
+                                </div>
+                              </div>
+                              <div className="text-2xl font-black text-purple-900">${businessStats?.summary?.totalRevenue?.toLocaleString() || '0'}</div>
+                              <div className="text-[11px] text-purple-600 font-semibold mt-1">Calculated from client billing rates</div>
+                            </div>
+
+                            <div className="bg-teal-50/80 border border-teal-100 rounded-2xl p-5 hover-lift">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-xs font-extrabold text-teal-700 uppercase tracking-wider">Caregiver Payroll</span>
+                                <div className="w-8 h-8 bg-teal-600 text-white rounded-xl flex items-center justify-center text-sm shadow-xs">
+                                  <i className="fa-solid fa-wallet"></i>
+                                </div>
+                              </div>
+                              <div className="text-2xl font-black text-teal-900">${businessStats?.summary?.totalPayroll?.toLocaleString() || '0'}</div>
+                              <div className="text-[11px] text-teal-600 font-semibold mt-1">Staff wages & overtime compensation</div>
+                            </div>
+
+                            <div className="bg-emerald-50/80 border border-emerald-100 rounded-2xl p-5 hover-lift">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-xs font-extrabold text-emerald-700 uppercase tracking-wider">Net Operating Profit</span>
+                                <div className="w-8 h-8 bg-emerald-600 text-white rounded-xl flex items-center justify-center text-sm shadow-xs">
+                                  <i className="fa-solid fa-chart-line"></i>
+                                </div>
+                              </div>
+                              <div className="text-2xl font-black text-emerald-900">${businessStats?.summary?.netProfit?.toLocaleString() || '0'}</div>
+                              <div className="text-[11px] text-emerald-700 font-extrabold mt-1">
+                                Margin: <span className="bg-emerald-200 px-1.5 py-0.5 rounded text-emerald-900">{businessStats?.summary?.profitMarginPercent || 0}%</span>
+                              </div>
+                            </div>
+
+                            <div className="bg-amber-50/80 border border-amber-100 rounded-2xl p-5 hover-lift">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-xs font-extrabold text-amber-700 uppercase tracking-wider">Care Hours Delivered</span>
+                                <div className="w-8 h-8 bg-amber-500 text-white rounded-xl flex items-center justify-center text-sm shadow-xs">
+                                  <i className="fa-solid fa-clock"></i>
+                                </div>
+                              </div>
+                              <div className="text-2xl font-black text-amber-900">{businessStats?.summary?.totalCareHours || 0} hrs</div>
+                              <div className="text-[11px] text-amber-700 font-semibold mt-1">Avg shift: {businessStats?.summary?.avgShiftDuration || 0} hrs</div>
+                            </div>
+                          </div>
+
+                          {/* MONTHLY FINANCIAL TREND GRAPHICS & SHIFT STATUS DISTRIBUTION */}
+                          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 print-page-break">
+                            {/* Graphic 1: Weekly Financial Breakdown */}
+                            <div className="lg:col-span-2 bg-slate-900 text-white rounded-2xl p-6 shadow-md border border-slate-800">
+                              <div className="flex items-center justify-between mb-6">
+                                <div>
+                                  <h4 className="font-extrabold text-base text-white flex items-center gap-2">
+                                    <i className="fa-solid fa-chart-column text-cyan-400"></i> Monthly Financial Trends & Weekly Breakdown
+                                  </h4>
+                                  <p className="text-xs text-slate-400 mt-0.5">Comparison of Gross Revenue vs Caregiver Payroll across weeks</p>
+                                </div>
+                                <div className="flex items-center gap-3 text-[11px] font-bold">
+                                  <div className="flex items-center gap-1.5"><span className="w-3 h-3 bg-purple-500 rounded-sm"></span><span>Revenue</span></div>
+                                  <div className="flex items-center gap-1.5"><span className="w-3 h-3 bg-teal-400 rounded-sm"></span><span>Payroll</span></div>
+                                </div>
+                              </div>
+
+                              <div className="space-y-4">
+                                {(businessStats?.weeklyData || []).map((w: any, idx: number) => {
+                                  const maxVal = Math.max(100, ...businessStats.weeklyData.map((item: any) => Math.max(item.revenue, item.payroll)));
+                                  const revPct = Math.min(100, Math.round((w.revenue / maxVal) * 100));
+                                  const payPct = Math.min(100, Math.round((w.payroll / maxVal) * 100));
+
+                                  return (
+                                    <div key={idx} className="bg-slate-800/80 rounded-xl p-3 border border-slate-700/50">
+                                      <div className="flex justify-between items-center text-xs font-extrabold mb-2">
+                                        <span className="text-slate-300">{w.weekLabel}</span>
+                                        <span className="text-slate-400 font-mono">{w.shifts} completed shifts ({w.hours} care hrs)</span>
+                                      </div>
+                                      <div className="space-y-2">
+                                        {/* Revenue Bar */}
+                                        <div className="flex items-center gap-3 text-xs">
+                                          <span className="w-14 text-[10px] font-bold text-purple-400 uppercase">Revenue</span>
+                                          <div className="flex-1 bg-slate-700 rounded-full h-3 overflow-hidden">
+                                            <div className="bg-gradient-to-r from-purple-600 to-purple-400 h-full rounded-full transition-all duration-500" style={{ width: `${Math.max(5, revPct)}%` }}></div>
+                                          </div>
+                                          <span className="w-16 text-right font-mono font-bold text-purple-300">${w.revenue.toLocaleString()}</span>
+                                        </div>
+                                        {/* Payroll Bar */}
+                                        <div className="flex items-center gap-3 text-xs">
+                                          <span className="w-14 text-[10px] font-bold text-teal-400 uppercase">Payroll</span>
+                                          <div className="flex-1 bg-slate-700 rounded-full h-3 overflow-hidden">
+                                            <div className="bg-gradient-to-r from-teal-500 to-teal-300 h-full rounded-full transition-all duration-500" style={{ width: `${Math.max(5, payPct)}%` }}></div>
+                                          </div>
+                                          <span className="w-16 text-right font-mono font-bold text-teal-300">${w.payroll.toLocaleString()}</span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+
+                            {/* Graphic 2: Shift Volume & Status Distribution */}
+                            <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm flex flex-col justify-between">
+                              <div>
+                                <h4 className="font-extrabold text-base text-gray-800 mb-1 flex items-center gap-2">
+                                  <i className="fa-solid fa-pie-chart text-purple-600"></i> Monthly Care Operations
+                                </h4>
+                                <p className="text-xs text-gray-500 mb-6">Breakdown of shift fulfillment for {businessStats?.monthName}</p>
+
+                                <div className="space-y-4 text-xs">
+                                  <div>
+                                    <div className="flex justify-between font-bold mb-1">
+                                      <span className="text-gray-700">Completed Shifts</span>
+                                      <span className="text-emerald-600 font-mono">{businessStats?.statusCounts?.COMPLETED || 0}</span>
+                                    </div>
+                                    <div className="w-full bg-gray-100 rounded-full h-2.5">
+                                      <div className="bg-emerald-500 h-2.5 rounded-full" style={{ width: `${Math.min(100, Math.round(((businessStats?.statusCounts?.COMPLETED || 0) / Math.max(1, businessStats?.summary?.totalShiftsInMonth || 1)) * 100))}%` }}></div>
+                                    </div>
+                                  </div>
+
+                                  <div>
+                                    <div className="flex justify-between font-bold mb-1">
+                                      <span className="text-gray-700">Confirmed & Scheduled</span>
+                                      <span className="text-cyan-600 font-mono">{businessStats?.statusCounts?.CONFIRMED || 0}</span>
+                                    </div>
+                                    <div className="w-full bg-gray-100 rounded-full h-2.5">
+                                      <div className="bg-cyan-500 h-2.5 rounded-full" style={{ width: `${Math.min(100, Math.round(((businessStats?.statusCounts?.CONFIRMED || 0) / Math.max(1, businessStats?.summary?.totalShiftsInMonth || 1)) * 100))}%` }}></div>
+                                    </div>
+                                  </div>
+
+                                  <div>
+                                    <div className="flex justify-between font-bold mb-1">
+                                      <span className="text-gray-700">Unconfirmed / Pending</span>
+                                      <span className="text-amber-600 font-mono">{businessStats?.statusCounts?.UNCONFIRMED || 0}</span>
+                                    </div>
+                                    <div className="w-full bg-gray-100 rounded-full h-2.5">
+                                      <div className="bg-amber-500 h-2.5 rounded-full" style={{ width: `${Math.min(100, Math.round(((businessStats?.statusCounts?.UNCONFIRMED || 0) / Math.max(1, businessStats?.summary?.totalShiftsInMonth || 1)) * 100))}%` }}></div>
+                                    </div>
+                                  </div>
+
+                                  <div>
+                                    <div className="flex justify-between font-bold mb-1">
+                                      <span className="text-gray-700">Dropped / Re-routed</span>
+                                      <span className="text-red-600 font-mono">{businessStats?.statusCounts?.DROPPED || 0}</span>
+                                    </div>
+                                    <div className="w-full bg-gray-100 rounded-full h-2.5">
+                                      <div className="bg-red-500 h-2.5 rounded-full" style={{ width: `${Math.min(100, Math.round(((businessStats?.statusCounts?.DROPPED || 0) / Math.max(1, businessStats?.summary?.totalShiftsInMonth || 1)) * 100))}%` }}></div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="mt-6 pt-4 border-t border-gray-100 bg-purple-50/50 rounded-xl p-3 text-center">
+                                <div className="text-xs font-bold text-purple-900">Caregiver Utilization Rate</div>
+                                <div className="text-xl font-black text-purple-700 mt-0.5">{businessStats?.summary?.caregiverUtilization || 0}%</div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* EXECUTIVE ANALYZED DATA SUMMARY LOG */}
+                          <div className="bg-gray-50 border border-gray-200 rounded-2xl p-6 mb-8 print-page-break">
+                            <h4 className="font-extrabold text-base text-gray-800 mb-3 flex items-center gap-2">
+                              <i className="fa-solid fa-clipboard-check text-purple-600"></i> Executive Data Analysis & Performance Log
+                            </h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-gray-600 leading-relaxed">
+                              <div className="bg-white p-4 rounded-xl border border-gray-200">
+                                <span className="font-bold text-gray-900 block mb-1">Care Volume & Service Delivery</span>
+                                Delivered <strong>{businessStats?.summary?.totalCareHours || 0} hours</strong> of home care service across <strong>{businessStats?.summary?.completedShiftsCount || 0} completed shifts</strong> in {businessStats?.monthName}. The active care roster currently supports <strong>{businessStats?.summary?.totalClients || 0} clients</strong> managed by <strong>{businessStats?.summary?.totalCaregivers || 0} active caregivers</strong>.
+                              </div>
+                              <div className="bg-white p-4 rounded-xl border border-gray-200">
+                                <span className="font-bold text-gray-900 block mb-1">Financial Health & Profit Margin</span>
+                                Total gross revenue generated stands at <strong>${businessStats?.summary?.totalRevenue?.toLocaleString() || '0'}</strong> against caregiver payroll disbursements of <strong>${businessStats?.summary?.totalPayroll?.toLocaleString() || '0'}</strong>, yielding a net operating profit of <strong>${businessStats?.summary?.netProfit?.toLocaleString() || '0'}</strong> ({businessStats?.summary?.profitMarginPercent || 0}% net profit margin).
+                              </div>
+                            </div>
+                          </div>
+                        </>
+                      )}
+
+                      {/* Caregiver Pod Management */}
+                      <div className="border-t border-gray-100 pt-6 mt-4">
+                        <h4 className="font-bold text-gray-800 text-sm mb-4">Caregiver Pod Management</h4>
+                        <form onSubmit={handleUpdatePod} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <select value={selectedPodClient} onChange={(e) => setSelectedPodClient(e.target.value)} className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                            {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                          </select>
+                          <select value={selectedPodRole} onChange={(e) => setSelectedPodRole(e.target.value as any)} className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                            <option value="PRIMARY">Primary</option><option value="SECONDARY_1">Secondary 1</option><option value="SECONDARY_2">Secondary 2</option>
+                          </select>
+                          <div className="flex gap-2">
+                            <select value={selectedPodCaregiver} onChange={(e) => setSelectedPodCaregiver(e.target.value)} className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                              {caregivers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                            </select>
+                            <button type="submit" className="px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold rounded-xl transition-all">Update</button>
+                          </div>
+                        </form>
+                      </div>
+
+                      {/* Caregiver Directory & First-Time Password Management */}
+                      <div className="border-t border-gray-100 pt-6 mt-6">
+                        <div className="flex justify-between items-center mb-4">
+                          <h4 className="font-bold text-gray-800 text-sm">Caregiver Directory & Credential Management</h4>
+                          <span className="text-xs text-gray-400 font-semibold">{caregivers.length} Active Caregivers</span>
+                        </div>
+                        <div className="space-y-2">
+                          {caregivers.map(cg => (
+                            <div key={cg.id} className="flex justify-between items-center p-3 bg-gray-50 border border-gray-100 rounded-xl text-xs">
+                              <div>
+                                <span className="font-bold text-gray-800 text-sm">{cg.name}</span>
+                                <span className="text-purple-600 font-mono ml-2">{cg.email}</span>
+                                {cg.payRate && <span className="text-gray-400 ml-2 font-mono">${cg.payRate}/hr</span>}
+                              </div>
+                              <button
+                                onClick={() => { setTargetPasswordUser(cg); setAdminNewPasswordInput(''); setShowAdminPasswordModal(true); }}
+                                className="px-3 py-1.5 bg-white hover:bg-purple-50 text-purple-700 font-bold text-xs rounded-lg border border-purple-200 shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer hover:border-purple-400"
+                              >
+                                <i className="fa-solid fa-key text-purple-600"></i> Set First-Time Password
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Escalation Check Button */}
+                      <div className="border-t border-gray-100 pt-6 mt-6 no-print">
+                        <button onClick={handleEscalationCheck} className="px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white font-semibold text-sm rounded-xl transition-all">
+                          <i className="fa-solid fa-arrows-rotate mr-2"></i> Run Escalation Check
+                        </button>
+                        <p className="text-xs text-gray-400 mt-2">Check for unconfirmed shifts past deadline and auto-escalate to backups</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 

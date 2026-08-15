@@ -888,3 +888,36 @@ div[class*="nextjs-portal"],
 div[class*="next-badge"] {
   display: none !important;
 }
+
+/* ============================================================
+   PRINT STYLES FOR PDF EXPORT
+   ============================================================ */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  /* Hide navigation UI, sidebars, buttons */
+  aside,
+  header,
+  nav,
+  .no-print,
+  button,
+  .notification-dropdown {
+    display: none !important;
+  }
+
+  .business-hub-print-area {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  .print-page-break {
+    page-break-inside: avoid;
+  }
+}
