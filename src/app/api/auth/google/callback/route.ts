@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { logAudit } from '@/lib/audit';
 import { hashPassword } from '@/lib/password';
 import { createSessionCookie, sessionCookieOptions } from '@/lib/session';
-import { isAdminEmailAllowed, isCompanyDomainEmail, OFFICIAL_DOMAIN } from '@/lib/adminAllowlist';
+import { isAdminEmailAllowed, isCompanyDomainEmail } from '@/lib/adminAllowlist';
 import crypto from 'crypto';
 
 export async function GET(request: Request) {
@@ -24,6 +24,11 @@ export async function GET(request: Request) {
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
   const redirectUri = process.env.GOOGLE_REDIRECT_URI || `${requestUrl.origin}/api/auth/google/callback`;
 
+  if (!clientId || !clientSecret) {
+    console.error('Google OAuth credentials not configured');
+    return NextResponse.redirect(new URL('/?error=google_not_configured', requestUrl.origin));
+  }
+
   try {
     // Exchange Auth Code for Tokens
     const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
@@ -31,8 +36,8 @@ export async function GET(request: Request) {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
         code,
-        client_id: clientId ?? '',
-        client_secret: clientSecret ?? '',
+        client_id: clientId,
+        client_secret: clientSecret,
         redirect_uri: redirectUri,
         grant_type: 'authorization_code',
       }),
@@ -41,32 +46,25 @@ export async function GET(request: Request) {
     if (!tokenRes.ok) {
       const errBody = await tokenRes.text();
       console.error('Failed to exchange Google OAuth code:', errBody);
-
-      // Runtime logs are not retained on this plan, so surface Google's own
-      // error code in the redirect - it is the only way to tell a bad client
-      // secret (invalid_client) from a reused or expired code (invalid_grant).
       let reason = 'token_exchange_failed';
       try {
         const googleError = JSON.parse(errBody)?.error;
         if (typeof googleError === 'string' && googleError) {
           reason = `token_exchange_failed_${googleError}`;
         }
-      } catch {
-        // Non-JSON body - fall back to the generic reason
-      }
-
+      } catch { /* non-JSON body */ }
       return NextResponse.redirect(new URL(`/?error=${encodeURIComponent(reason)}`, requestUrl.origin));
     }
 
     const { access_token } = await tokenRes.json();
 
-    // Fetch User Profile Info
+    // Fetch User Profile from Google
     const userRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
       headers: { Authorization: `Bearer ${access_token}` },
     });
 
     if (!userRes.ok) {
-      console.error('Failed to fetch Google user profile details');
+      console.error('Failed to fetch Google user profile');
       return NextResponse.redirect(new URL('/?error=profile_fetch_failed', requestUrl.origin));
     }
 
@@ -78,39 +76,32 @@ export async function GET(request: Request) {
       return NextResponse.redirect(new URL('/?error=email_not_provided', requestUrl.origin));
     }
 
-    // 1. Strict domain check: Must be @akirapahomecareus.com
-    if (!isCompanyDomainEmail(email)) {
-      console.warn(`[OAUTH_DENIED] Google OAuth login attempt from non-company domain: ${email}`);
-      return NextResponse.redirect(new URL(`/?error=${encodeURIComponent(`Only @${OFFICIAL_DOMAIN} accounts can access this system`)}`, requestUrl.origin));
-    }
+    // Look up the user in the database by their Google email
+    let user = await prisma.user.findUnique({ where: { email } });
 
-    // Look up user record
-    let user = await prisma.user.findUnique({
-      where: { email },
-    });
-
-    let isNewUser = false;
     if (!user) {
-      // Check if email is in official Admin allowlist
-      if (isAdminEmailAllowed(email)) {
-        isNewUser = true;
+      // If the email is an authorized admin company email, auto-create the admin account
+      if (isCompanyDomainEmail(email) && isAdminEmailAllowed(email)) {
         user = await prisma.user.create({
           data: {
             email,
             name,
             passwordHash: await hashPassword(crypto.randomBytes(24).toString('hex')),
             role: 'ADMIN',
-            phoneNumber: '+16045550199',
+            phoneNumber: null,
           },
         });
+        console.log(`[OAUTH] Auto-created admin account for: ${email}`);
       } else {
-        // Staff/caregiver accounts must be pre-created by an Admin
-        console.warn(`[OAUTH_DENIED] Unregistered company email attempted Google OAuth: ${email}`);
-        return NextResponse.redirect(new URL('/?error=account_not_precreated', requestUrl.origin));
+        // User doesn't exist in the system — they need to be registered first
+        console.warn(`[OAUTH_DENIED] No account found for Google email: ${email}`);
+        return NextResponse.redirect(
+          new URL(`/?error=${encodeURIComponent('No account found for this Google email. Please contact your administrator.')}`, requestUrl.origin)
+        );
       }
     }
 
-    // Admin access via Google is restricted to explicitly authorized emails
+    // Additional check: ADMIN role must be in the company allowlist
     if (user.role === 'ADMIN' && !isAdminEmailAllowed(email)) {
       await logAudit({
         userId: user.id,
@@ -121,25 +112,23 @@ export async function GET(request: Request) {
       return NextResponse.redirect(new URL('/?error=admin_not_authorized', requestUrl.origin));
     }
 
-    // Log OAuth login success auditing
-    await logAudit({
+    // Log success
+    logAudit({
       userId: user.id,
-      action: isNewUser ? 'OAUTH_REGISTRATION_SUCCESS' : 'OAUTH_LOGIN_SUCCESS',
-      details: `Google Authenticated user: ${email} as ${user.role}`,
+      action: 'OAUTH_LOGIN_SUCCESS',
+      details: `Google OAuth login: ${email} as ${user.role}`,
       outcome: 'SUCCESS',
-    });
+    }).catch(console.error);
 
-    // Construct Response & Redirect
+    // Create session and redirect to dashboard
     const response = NextResponse.redirect(new URL('/', requestUrl.origin));
-
-    // Set signed, httpOnly session cookie
     const session = createSessionCookie(user.id);
     response.cookies.set(session.name, session.value, sessionCookieOptions(session.maxAge));
 
     return response;
 
   } catch (err) {
-    console.error('Google OAuth callback handler execution error:', err);
+    console.error('Google OAuth callback error:', err);
     return NextResponse.redirect(new URL('/?error=oauth_internal_error', requestUrl.origin));
   }
 }
