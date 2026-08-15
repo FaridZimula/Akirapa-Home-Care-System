@@ -2399,52 +2399,12 @@ export default function Home() {
   // ============================================================
 
   const renderSplashScreen = () => {
-    return (
-      <div className="relative min-h-screen bg-purple-50/40 text-slate-800 flex items-center justify-center p-6 overflow-hidden selection:bg-purple-500 selection:text-white">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-300/30 rounded-full blur-3xl pointer-events-none animate-blob-1" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-cyan-300/30 rounded-full blur-3xl pointer-events-none animate-blob-2" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-purple-400/15 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="relative max-w-lg w-full glass-card-light rounded-3xl p-8 md:p-10 text-center shadow-2xl z-10 animate-fade-in">
-          <div className="mx-auto flex justify-center mb-4 md:mb-6">
-            <img 
-              src="/System logo.png" 
-              alt="Akirapa In-Home Care Systems Platform" 
-              className="h-36 md:h-40 object-contain drop-shadow-md"
-            />
-          </div>
-
-          <div className="mb-6">
-            <h1 className="text-xl font-extrabold text-[#77248c] tracking-tight">Akirapa Home Care System</h1>
-            <p className="text-xs text-slate-500 font-semibold mt-1">Unified Portal Access for Clients, Caregivers & Administration</p>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => { setViewState('login'); setLoginError(null); }}
-            className="w-full py-3.5 bg-[#77248c] hover:bg-[#5a1a6b] text-white font-extrabold text-sm rounded-2xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
-          >
-            <span>Proceed to Login</span>
-            <i className="fa-solid fa-arrow-right text-xs text-white"></i>
-          </button>
-        </div>
-      </div>
-    );
+    return renderLoginScreen();
   };
 
   const renderLoginScreen = () => (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
       <div className="max-w-md w-full bg-white rounded-3xl shadow-xl p-8">
-        <div className="flex justify-center mb-6">
-          <button 
-            type="button"
-            onClick={() => { setViewState('splash'); setLoginError(null); }} 
-            className="px-6 py-2.5 bg-[#77248c] hover:bg-[#5a1a6b] text-white font-extrabold text-xs rounded-full shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
-          >
-            <i className="fa-solid fa-arrow-left text-xs text-white"></i>
-            <span>Back</span>
-          </button>
-        </div>
 
         <div className="text-center mb-8">
           <img src="/System logo.png" alt="Akirapa Logo" className="h-[72px] mx-auto object-contain mb-2" />
