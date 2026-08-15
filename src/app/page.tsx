@@ -5017,9 +5017,9 @@ export default function Home() {
                                             setAdminNewPasswordInput('');
                                             setShowAdminPasswordModal(true);
                                           }}
-                                          className="px-3 py-1.5 bg-purple-100 hover:bg-purple-200 text-purple-800 font-bold text-[11px] rounded-lg transition-all flex items-center gap-1.5 ml-auto cursor-pointer"
+                                          className="px-3 py-2 bg-[#77248c] hover:bg-[#5a1a6b] text-white font-bold text-xs rounded-xl shadow-sm hover:shadow-md transition-all flex items-center gap-1.5 ml-auto cursor-pointer active:scale-95"
                                         >
-                                          <i className="fa-solid fa-key text-purple-600"></i> Set / Reset Password
+                                          <i className="fa-solid fa-key text-white text-xs"></i> Set / Reset Password
                                         </button>
                                       )}
                                     </td>
@@ -6194,9 +6194,9 @@ export default function Home() {
                                       setAdminNewPasswordInput('');
                                       setShowAdminPasswordModal(true);
                                     }}
-                                    className="px-3 py-1.5 bg-purple-100 hover:bg-purple-200 text-purple-800 font-bold text-[11px] rounded-lg transition-all flex items-center gap-1.5 ml-auto cursor-pointer"
+                                    className="px-3.5 py-2 bg-[#77248c] hover:bg-[#5a1a6b] text-white font-bold text-xs rounded-xl shadow-sm hover:shadow-md transition-all flex items-center gap-1.5 ml-auto cursor-pointer active:scale-95"
                                   >
-                                    <i className="fa-solid fa-key text-purple-600"></i> Set / Reset Password
+                                    <i className="fa-solid fa-key text-white text-xs"></i> Set / Reset Password
                                   </button>
                                 </td>
                               </tr>
