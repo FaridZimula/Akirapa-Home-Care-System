@@ -5024,7 +5024,6 @@ export default function Home() {
                                           onClick={() => {
                                             setTargetPasswordUser(cg);
                                             setAdminNewPasswordInput('');
-                                            setAdminMustChangePasswordInput(false);
                                             setShowAdminPasswordModal(true);
                                           }}
                                           className="px-3 py-1.5 bg-purple-100 hover:bg-purple-200 text-purple-800 font-bold text-[11px] rounded-lg transition-all flex items-center gap-1.5 ml-auto cursor-pointer"
@@ -5118,7 +5117,7 @@ export default function Home() {
                                     <div className="text-xs text-orange-700"><i className="fa-solid fa-location-dot"></i> {c.address}</div>
                                   </div>
                                   <button
-                                    onClick={() => setCurrentView('create_shift')}
+                                    onClick={() => setCurrentView('create')}
                                     className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs rounded-xl transition-all cursor-pointer"
                                   >
                                     <i className="fa-solid fa-calendar-plus mr-1"></i> Schedule Shift
