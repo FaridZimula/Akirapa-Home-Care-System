@@ -62,7 +62,7 @@ export default function Home() {
   const [currentView, setCurrentView] = useState<'dashboard' | 'profile' | 'listings' | 'create' | 'purchases' | 'business' | 'interested' | 'settings' | 'audit' | 'financials' | 'billing' | 'messages' | 'caregiverReviews' | 'messageOversight'>('dashboard');
   
   // Auth flow states
-  const [viewState, setViewState] = useState<'splash' | 'login' | 'signup' | 'forgot_password' | 'dashboard'>('splash');
+  const [viewState, setViewState] = useState<'splash' | 'login' | 'signup' | 'forgot_password' | 'dashboard'>('login');
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [loginError, setLoginError] = useState<string | null>(null);
@@ -547,7 +547,7 @@ export default function Home() {
       } else if (params.get('reason') === 'timeout' || params.get('logout') === 'true') {
         setViewState('login');
       } else {
-        setViewState('splash');
+        setViewState('login');
       }
       setLoginEmail('');
       setLoginPassword('');
