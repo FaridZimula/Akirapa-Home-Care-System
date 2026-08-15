@@ -6562,8 +6562,11 @@ export default function Home() {
                                   <td className="py-3.5 px-2 text-right">
                                     <button
                                       onClick={() => {
-                                        const userToReset = linkedFamilyUser || { id: cl.id, name: cl.name, email: cl.name ? `${cl.name.toLowerCase().replace(/\s+/g, '')}@family.akirapa.com` : 'client@family.akirapa.com' };
-                                        setTargetPasswordUser(userToReset);
+                                        if (!linkedFamilyUser) {
+                                          showNotification(`No linked family account found for client ${cl.name}.`);
+                                          return;
+                                        }
+                                        setTargetPasswordUser(linkedFamilyUser);
                                         setAdminNewPasswordInput('');
                                         setShowAdminPasswordModal(true);
                                       }}

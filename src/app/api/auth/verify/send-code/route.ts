@@ -13,21 +13,18 @@ export async function POST(request: Request) {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    if (!isCompanyDomainEmail(normalizedEmail)) {
-      return NextResponse.json({ error: `Verification codes can only be sent to official @${OFFICIAL_DOMAIN} email addresses.` }, { status: 403 });
-    }
-
-    if (purpose !== 'SIGNUP' && purpose !== 'PASSWORD_RESET') {
-      return NextResponse.json({ error: 'Invalid verification purpose' }, { status: 400 });
-    }
-
     // Check user existence
     const user = await prisma.user.findUnique({
       where: { email: normalizedEmail },
     });
 
-    if (purpose === 'SIGNUP' && user) {
-      return NextResponse.json({ error: 'An account with this email already exists' }, { status: 400 });
+    if (purpose === 'SIGNUP') {
+      if (!isCompanyDomainEmail(normalizedEmail)) {
+        return NextResponse.json({ error: `Verification codes can only be sent to official @${OFFICIAL_DOMAIN} email addresses.` }, { status: 403 });
+      }
+      if (user) {
+        return NextResponse.json({ error: 'An account with this email already exists' }, { status: 400 });
+      }
     }
 
     if (purpose === 'PASSWORD_RESET' && !user) {

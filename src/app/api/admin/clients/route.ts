@@ -96,11 +96,18 @@ export async function POST(request: Request) {
     });
 
     // Link Family User to Client
-    await prisma.linkedFamilyMember.create({
-      data: {
-        userId: user.id,
-        clientId: client.id,
+    await prisma.linkedFamilyMember.upsert({
+      where: {
+        clientId_userId: {
+          clientId: client.id,
+          userId: user.id,
+        },
       },
+      create: {
+        clientId: client.id,
+        userId: user.id,
+      },
+      update: {},
     });
 
     await logAudit({

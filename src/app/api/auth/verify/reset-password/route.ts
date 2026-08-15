@@ -13,9 +13,6 @@ export async function POST(request: Request) {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    if (!isCompanyDomainEmail(normalizedEmail)) {
-      return NextResponse.json({ error: `Password resets are restricted to official @${OFFICIAL_DOMAIN} email addresses.` }, { status: 403 });
-    }
 
     // Find and validate verification token
     const verificationToken = await prisma.verificationToken.findFirst({
