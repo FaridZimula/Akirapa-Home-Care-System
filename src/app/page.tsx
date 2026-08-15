@@ -60,7 +60,7 @@ export default function Home() {
   const { user, loading: authLoading, login, logout } = useAuth();
   
   // Navigation state
-  const [currentView, setCurrentView] = useState<'dashboard' | 'profile' | 'listings' | 'create' | 'add_caregiver' | 'purchases' | 'business' | 'interested' | 'settings' | 'audit' | 'financials' | 'billing' | 'messages' | 'caregiverReviews' | 'messageOversight'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'profile' | 'listings' | 'create' | 'add_caregiver' | 'add_client' | 'purchases' | 'business' | 'interested' | 'settings' | 'audit' | 'financials' | 'billing' | 'messages' | 'caregiverReviews' | 'messageOversight'>('dashboard');
   
   // Auth flow states
   const [viewState, setViewState] = useState<'splash' | 'login' | 'signup' | 'forgot_password' | 'dashboard'>('login');
@@ -198,6 +198,39 @@ export default function Home() {
   // Interactive Live Shift Task Checklist
   const [activeShiftTasksMap, setActiveShiftTasksMap] = useState<{ [shiftId: string]: any[] }>({});
   const [newShiftTaskInput, setNewShiftTaskInput] = useState<string>('');
+
+  // Add Client Provisioning State
+  const [newClientName, setNewClientName] = useState('');
+  const [newClientEmail, setNewClientEmail] = useState('');
+  const [newClientPassword, setNewClientPassword] = useState('');
+  const [newClientAddress, setNewClientAddress] = useState('');
+  const [newClientCity, setNewClientCity] = useState('');
+  const [newClientState, setNewClientState] = useState('');
+  const [newClientZip, setNewClientZip] = useState('');
+  const [newClientPhone, setNewClientPhone] = useState('');
+  const [newClientCareTier, setNewClientCareTier] = useState('Standard');
+  const [newClientBillingRate, setNewClientBillingRate] = useState('45.00');
+  const [newClientEmergencyName, setNewClientEmergencyName] = useState('');
+  const [newClientEmergencyPhone, setNewClientEmergencyPhone] = useState('');
+  const [newClientEmergencyRelationship, setNewClientEmergencyRelationship] = useState('Family Contact');
+  const [isProvisioningClient, setIsProvisioningClient] = useState(false);
+  const [addClientError, setAddClientError] = useState<string | null>(null);
+
+  // In-Portal Self Password Change Modal State
+  const [showSelfPasswordModal, setShowSelfPasswordModal] = useState(false);
+  const [currentPasswordInput, setCurrentPasswordInput] = useState('');
+  const [newSelfPasswordInput, setNewSelfPasswordInput] = useState('');
+  const [confirmSelfPasswordInput, setConfirmSelfPasswordInput] = useState('');
+  const [isChangingSelfPassword, setIsChangingSelfPassword] = useState(false);
+  const [selfPasswordError, setSelfPasswordError] = useState<string | null>(null);
+
+  // Mandatory Profile Onboarding Modal State
+  const [showMandatoryOnboardingModal, setShowMandatoryOnboardingModal] = useState(false);
+  const [onboardingPhone, setOnboardingPhone] = useState('');
+  const [onboardingAddress, setOnboardingAddress] = useState('');
+  const [onboardingEmergencyName, setOnboardingEmergencyName] = useState('');
+  const [onboardingEmergencyPhone, setOnboardingEmergencyPhone] = useState('');
+  const [isSubmittingOnboarding, setIsSubmittingOnboarding] = useState(false);
 
   // System Audit Logs & Security Viewer
   const [showAuditLogsModal, setShowAuditLogsModal] = useState(false);
@@ -492,6 +525,83 @@ export default function Home() {
       setAdminPasswordError('Network error setting password.');
     } finally {
       setIsAdminSettingPassword(false);
+    }
+  };
+
+  const handleProvisionClient = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newClientName || !newClientEmail || !newClientPassword) {
+      setAddClientError('Client name, login email, and first-time password are required.');
+      return;
+    }
+    setIsProvisioningClient(true);
+    setAddClientError(null);
+    try {
+      const res = await fetch('/api/admin/clients', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newClientName,
+          email: newClientEmail,
+          password: newClientPassword,
+          address: newClientAddress,
+          city: newClientCity,
+          state: newClientState,
+          zip: newClientZip,
+          phoneNumber: newClientPhone,
+          careTier: newClientCareTier,
+          billingRatePerHour: parseFloat(newClientBillingRate) || 45.0,
+          emergencyContactName: newClientEmergencyName,
+          emergencyContactPhone: newClientEmergencyPhone,
+          emergencyContactRelationship: newClientEmergencyRelationship,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to provision client.');
+      showNotification(data.message || `Client ${newClientName} provisioned successfully!`);
+      setNewClientName(''); setNewClientEmail(''); setNewClientPassword('');
+      setNewClientAddress(''); setNewClientCity(''); setNewClientState('');
+      setNewClientZip(''); setNewClientPhone('');
+      setNewClientEmergencyName(''); setNewClientEmergencyPhone('');
+      await loadData();
+    } catch (err: any) {
+      setAddClientError(err.message || 'An unexpected error occurred.');
+    } finally {
+      setIsProvisioningClient(false);
+    }
+  };
+
+  const handleChangeSelfPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentPasswordInput || !newSelfPasswordInput) {
+      setSelfPasswordError('Please enter both current and new password.');
+      return;
+    }
+    if (newSelfPasswordInput.length < 8) {
+      setSelfPasswordError('New password must be at least 8 characters.');
+      return;
+    }
+    if (newSelfPasswordInput !== confirmSelfPasswordInput) {
+      setSelfPasswordError('New password and confirm password do not match.');
+      return;
+    }
+    setIsChangingSelfPassword(true);
+    setSelfPasswordError(null);
+    try {
+      const res = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentPassword: currentPasswordInput, newPassword: newSelfPasswordInput }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to change password.');
+      showNotification('Password updated successfully!');
+      setShowSelfPasswordModal(false);
+      setCurrentPasswordInput(''); setNewSelfPasswordInput(''); setConfirmSelfPasswordInput('');
+    } catch (err: any) {
+      setSelfPasswordError(err.message || 'An unexpected error occurred.');
+    } finally {
+      setIsChangingSelfPassword(false);
     }
   };
 
@@ -995,6 +1105,15 @@ export default function Home() {
     setFamilyAboutMePreferredCaregiverType(meta.preferredCaregiverType || '');
     setFamilyAboutMeObservations(meta.additionalObservations || '');
   }, [selectedFeedClientId, clients, user]);
+
+  // Trigger mandatory first-time onboarding for non-admin users missing phone number
+  useEffect(() => {
+    if (!user) return;
+    if (user.role === 'ADMIN' || user.role === 'CARE_COORDINATOR') return;
+    if (!user.phoneNumber && !showMandatoryOnboardingModal) {
+      setShowMandatoryOnboardingModal(true);
+    }
+  }, [user]);
 
   const loadWeeklyReviewData = async (clientId: string) => {
     if (!clientId) return;
@@ -4578,6 +4697,11 @@ export default function Home() {
                   <i className="fa-solid fa-user-plus w-5 text-center"></i> Add Caregiver
                 </button>
               )}
+              {user && isCaregiverProvisioningAuthorized(user.email) && (
+                <button onClick={() => { setCurrentView('add_client'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'add_client' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
+                  <i className="fa-solid fa-user-gear w-5 text-center"></i> Add Client
+                </button>
+              )}
               {user && isBusinessHubAuthorized(user.email) && (
                 <button onClick={() => { setCurrentView('business'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'business' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                   <i className="fa-solid fa-briefcase w-5 text-center"></i> Business Hub
@@ -4672,6 +4796,7 @@ export default function Home() {
               {currentView === 'listings' && (user.role === 'ADMIN' || user.role === 'CARE_COORDINATOR' ? 'Shift Management' : user.role === 'CAREGIVER' ? 'My Shifts' : 'Care Feed')}
               {currentView === 'create' && 'Create Shift'}
               {currentView === 'add_caregiver' && 'Add & Provision Caregiver'}
+              {currentView === 'add_client' && 'Add & Provision Client'}
               {currentView === 'purchases' && (user.role === 'FAMILY_MEMBER' ? 'Documents' : 'Purchases & Sales')}
               {currentView === 'business' && 'Business Hub'}
               {currentView === 'interested' && 'Alerts & Notifications'}
@@ -5436,6 +5561,26 @@ export default function Home() {
                       </div>
                     </div>
                   </div>
+
+                  {/* Change Password Card (Caregiver & Family) */}
+                  {(user.role === 'CAREGIVER' || user.role === 'FAMILY_MEMBER') && (
+                    <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+                      <div className="flex flex-wrap justify-between items-center gap-3">
+                        <div>
+                          <h3 className="font-bold text-gray-800 text-base flex items-center gap-2">
+                            <i className="fa-solid fa-shield-halved text-[#77248c]"></i> Account Security
+                          </h3>
+                          <p className="text-xs text-gray-500 mt-1">Update your login password anytime from here.</p>
+                        </div>
+                        <button
+                          onClick={() => { setShowSelfPasswordModal(true); setSelfPasswordError(null); setCurrentPasswordInput(''); setNewSelfPasswordInput(''); setConfirmSelfPasswordInput(''); }}
+                          className="px-5 py-2.5 bg-[#77248c] hover:bg-[#5a1a6b] text-white font-bold text-xs rounded-xl shadow-sm transition-all flex items-center gap-2 cursor-pointer"
+                        >
+                          <i className="fa-solid fa-key"></i> Change My Password
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -6210,6 +6355,159 @@ export default function Home() {
                         </table>
                       )}
                     </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ===== ADD CLIENT & PROVISION VIEW ===== */}
+              {currentView === 'add_client' && user && isCaregiverProvisioningAuthorized(user.email) && (
+                <div className="space-y-6 max-w-4xl mx-auto">
+                  {/* Access Rules Banner */}
+                  <div className="bg-[#77248c] border border-[#77248c] rounded-3xl p-6 text-white shadow-xl flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center text-xl flex-shrink-0">
+                      <i className="fa-solid fa-shield-halved text-white"></i>
+                    </div>
+                    <div className="space-y-1">
+                      <h3 className="font-extrabold text-lg text-white">Database Access & Client Account Rules</h3>
+                      <p className="text-xs text-white/90 leading-relaxed">
+                        Clients & Family Members use personal email addresses (e.g. Gmail, Yahoo, Outlook). Accounts created here are automatically assigned the <span className="font-mono bg-white/20 px-1.5 py-0.5 rounded font-bold">FAMILY_MEMBER</span> role, linked to their client care profile, and granted access exclusively to the Family Portal. The client will be prompted to change their temporary password on first sign-in.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Provision Form */}
+                  <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 md:p-8 space-y-6">
+                    <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
+                      <div className="w-10 h-10 rounded-2xl bg-purple-50 text-[#77248c] flex items-center justify-center font-bold text-base">
+                        <i className="fa-solid fa-user-gear"></i>
+                      </div>
+                      <div>
+                        <h3 className="font-extrabold text-lg text-gray-900">Provision New Client & Family Account</h3>
+                        <p className="text-xs text-gray-500">Create client profile and set initial login password for family portal access.</p>
+                      </div>
+                    </div>
+
+                    <form onSubmit={handleProvisionClient} className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Client Full Name *</label>
+                          <input type="text" placeholder="e.g. Robert Smith" value={newClientName} onChange={(e) => setNewClientName(e.target.value)} required className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1" />
+                        </div>
+                        <div>
+                          <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Family Login Email (Personal Email) *</label>
+                          <input type="email" placeholder="e.g. robert.smith@gmail.com" value={newClientEmail} onChange={(e) => setNewClientEmail(e.target.value)} required className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1 font-mono" />
+                        </div>
+                        <div>
+                          <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">First-Time Temporary Password *</label>
+                          <input type="text" placeholder="Temporary password..." value={newClientPassword} onChange={(e) => setNewClientPassword(e.target.value)} required className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1 font-mono" />
+                        </div>
+                        <div>
+                          <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Phone Number</label>
+                          <input type="text" placeholder="+1 (604) 555-0188" value={newClientPhone} onChange={(e) => setNewClientPhone(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1" />
+                        </div>
+                        <div className="md:col-span-2">
+                          <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Street Address</label>
+                          <input type="text" placeholder="1234 West 4th Ave" value={newClientAddress} onChange={(e) => setNewClientAddress(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1" />
+                        </div>
+                        <div>
+                          <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Care Tier</label>
+                          <select value={newClientCareTier} onChange={(e) => setNewClientCareTier(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1">
+                            <option value="Standard">Standard Care</option>
+                            <option value="Premium">Premium Care</option>
+                            <option value="Specialized">Specialized Care</option>
+                            <option value="Hospice">Hospice Care</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Hourly Billing Rate ($/hr)</label>
+                          <input type="number" step="1.00" value={newClientBillingRate} onChange={(e) => setNewClientBillingRate(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1" />
+                        </div>
+                        <div>
+                          <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Emergency Contact Name</label>
+                          <input type="text" placeholder="e.g. Mary Smith" value={newClientEmergencyName} onChange={(e) => setNewClientEmergencyName(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1" />
+                        </div>
+                        <div>
+                          <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Emergency Contact Phone</label>
+                          <input type="text" placeholder="+1 (604) 555-9988" value={newClientEmergencyPhone} onChange={(e) => setNewClientEmergencyPhone(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1" />
+                        </div>
+                      </div>
+
+                      {addClientError && (
+                        <div className="bg-red-50 text-red-600 p-3.5 rounded-xl text-xs font-semibold flex items-center gap-2">
+                          <i className="fa-solid fa-triangle-exclamation"></i> {addClientError}
+                        </div>
+                      )}
+
+                      <button type="submit" disabled={isProvisioningClient || !newClientName || !newClientEmail || !newClientPassword} className="w-full py-4 bg-[#77248c] hover:bg-[#5a1a6b] text-white font-bold text-sm rounded-xl transition-all disabled:opacity-50 shadow-md cursor-pointer flex items-center justify-center gap-2 mt-2">
+                        {isProvisioningClient ? (
+                          <><i className="fa-solid fa-circle-notch animate-spin"></i> Provisioning Client & Family Account...</>
+                        ) : (
+                          <><i className="fa-solid fa-user-plus"></i> Add Client & Issue Password</>
+                        )}
+                      </button>
+                    </form>
+                  </div>
+
+                  {/* Client Directory & Password Reset */}
+                  <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 space-y-4">
+                    <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+                      <div>
+                        <h4 className="font-extrabold text-base text-gray-800">Client Roster & Credential Management</h4>
+                        <p className="text-xs text-gray-500">Manage client profiles and family member login credentials.</p>
+                      </div>
+                      <span className="text-xs font-extrabold bg-purple-50 text-[#77248c] px-3 py-1 rounded-full border border-purple-200">{clients.length} Clients</span>
+                    </div>
+                    {clients.length === 0 ? (
+                      <div className="text-center py-8 text-xs text-gray-400">No clients registered in the system yet.</div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs">
+                          <thead>
+                            <tr className="border-b border-gray-100 text-gray-400 font-bold uppercase tracking-wider text-[10px]">
+                              <th className="pb-3 px-2">Client Name</th>
+                              <th className="pb-3 px-2">Address</th>
+                              <th className="pb-3 px-2">Care Tier</th>
+                              <th className="pb-3 px-2">Billing Rate</th>
+                              <th className="pb-3 px-2 text-right">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-50">
+                            {clients.map((cl: any) => {
+                              const linkedFamilyUser = users.find((u: any) => u.role === 'FAMILY_MEMBER' && u.name?.toLowerCase().includes(cl.name?.toLowerCase()));
+                              return (
+                                <tr key={cl.id} className="hover:bg-purple-50/40 transition-colors">
+                                  <td className="py-3.5 px-2 font-bold text-gray-800">
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-7 h-7 rounded-full bg-purple-600 text-white font-bold flex items-center justify-center text-xs">{cl.name?.charAt(0)?.toUpperCase() || 'C'}</div>
+                                      <div>
+                                        <div>{cl.name}</div>
+                                        {linkedFamilyUser && <div className="text-[10px] text-purple-600 font-mono font-normal">{linkedFamilyUser.email}</div>}
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="py-3.5 px-2 text-gray-600">{cl.address || '—'}</td>
+                                  <td className="py-3.5 px-2 font-semibold text-purple-700">{cl.careTier || 'Standard'}</td>
+                                  <td className="py-3.5 px-2 font-semibold text-emerald-600">${cl.billingRatePerHour ? cl.billingRatePerHour.toFixed(2) : '45.00'}/hr</td>
+                                  <td className="py-3.5 px-2 text-right">
+                                    <button
+                                      onClick={() => {
+                                        const userToReset = linkedFamilyUser || { id: cl.id, name: cl.name, email: cl.address || '' };
+                                        setTargetPasswordUser(userToReset);
+                                        setAdminNewPasswordInput('');
+                                        setShowAdminPasswordModal(true);
+                                      }}
+                                      className="px-3.5 py-2 bg-[#77248c] hover:bg-[#5a1a6b] text-white font-bold text-xs rounded-xl shadow-sm hover:shadow-md transition-all flex items-center gap-1.5 ml-auto cursor-pointer active:scale-95"
+                                    >
+                                      <i className="fa-solid fa-key text-white text-xs"></i> Set / Reset Password
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -7344,6 +7642,143 @@ export default function Home() {
           &copy; {new Date().getFullYear()} Akirapa. All rights reserved.
         </footer>
       </main>
+
+      {/* Self Password Change Modal (for Caregiver & Family Member) */}
+      {showSelfPasswordModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 animate-fade-up">
+            <div className="flex justify-between items-center mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-purple-50 text-[#77248c] flex items-center justify-center">
+                  <i className="fa-solid fa-shield-halved"></i>
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-gray-900 text-base">Change Your Password</h3>
+                  <p className="text-xs text-gray-500">Enter your current password and choose a new one.</p>
+                </div>
+              </div>
+              <button onClick={() => setShowSelfPasswordModal(false)} className="text-gray-400 hover:text-gray-600 text-lg cursor-pointer"><i className="fa-solid fa-xmark"></i></button>
+            </div>
+            <form onSubmit={handleChangeSelfPassword} className="space-y-4">
+              <div>
+                <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px] block mb-1">Current Password</label>
+                <input type="password" value={currentPasswordInput} onChange={(e) => setCurrentPasswordInput(e.target.value)} required placeholder="Your current password" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+              </div>
+              <div>
+                <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px] block mb-1">New Password</label>
+                <input type="password" value={newSelfPasswordInput} onChange={(e) => setNewSelfPasswordInput(e.target.value)} required placeholder="At least 8 characters" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+              </div>
+              <div>
+                <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px] block mb-1">Confirm New Password</label>
+                <input type="password" value={confirmSelfPasswordInput} onChange={(e) => setConfirmSelfPasswordInput(e.target.value)} required placeholder="Repeat new password" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+              </div>
+              {selfPasswordError && (
+                <div className="bg-red-50 text-red-600 p-3 rounded-xl text-xs font-semibold flex items-center gap-2">
+                  <i className="fa-solid fa-triangle-exclamation"></i> {selfPasswordError}
+                </div>
+              )}
+              <button type="submit" disabled={isChangingSelfPassword} className="w-full py-3.5 bg-[#77248c] hover:bg-[#5a1a6b] text-white font-bold text-sm rounded-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer">
+                {isChangingSelfPassword ? <><i className="fa-solid fa-circle-notch animate-spin"></i> Updating...</> : <><i className="fa-solid fa-check"></i> Update Password</>}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Mandatory Onboarding Modal (first-time Caregiver & Family Member) */}
+      {showMandatoryOnboardingModal && user && user.role !== 'ADMIN' && user.role !== 'CARE_COORDINATOR' && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-8 animate-fade-up">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 rounded-full bg-[#77248c] text-white flex items-center justify-center mx-auto mb-4 text-2xl shadow-lg">
+                <i className="fa-solid fa-user-check"></i>
+              </div>
+              <h3 className="font-extrabold text-xl text-gray-900 mb-1">Welcome to Akirapa! 👋</h3>
+              <p className="text-sm text-gray-500 leading-relaxed">
+                Before you get started, we need a few details to set up your {user.role === 'CAREGIVER' ? 'caregiver' : 'family'} profile.
+              </p>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px] block mb-1">Phone Number *</label>
+                <input
+                  type="tel"
+                  placeholder="+1 (604) 555-0199"
+                  value={onboardingPhone}
+                  onChange={(e) => setOnboardingPhone(e.target.value)}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+              <div>
+                <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px] block mb-1">{user.role === 'CAREGIVER' ? 'Home Address' : 'Your Address'}</label>
+                <input
+                  type="text"
+                  placeholder="123 Main St, City, State"
+                  value={onboardingAddress}
+                  onChange={(e) => setOnboardingAddress(e.target.value)}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+              <div>
+                <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px] block mb-1">Emergency Contact Name</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Jane Doe"
+                  value={onboardingEmergencyName}
+                  onChange={(e) => setOnboardingEmergencyName(e.target.value)}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+              <div>
+                <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px] block mb-1">Emergency Contact Phone</label>
+                <input
+                  type="tel"
+                  placeholder="+1 (604) 555-9911"
+                  value={onboardingEmergencyPhone}
+                  onChange={(e) => setOnboardingEmergencyPhone(e.target.value)}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+              <button
+                disabled={isSubmittingOnboarding || !onboardingPhone}
+                onClick={async () => {
+                  if (!onboardingPhone) return;
+                  setIsSubmittingOnboarding(true);
+                  try {
+                    const res = await fetch('/api/user/profile', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        userId: user.id,
+                        phoneNumber: onboardingPhone,
+                        profileMetadata: JSON.stringify({
+                          address: onboardingAddress,
+                          emergencyContact: { name: onboardingEmergencyName, phone: onboardingEmergencyPhone },
+                        }),
+                      }),
+                    });
+                    if (res.ok) {
+                      setShowMandatoryOnboardingModal(false);
+                      showNotification('Profile details saved! Welcome aboard.');
+                      await loadData();
+                    } else {
+                      const d = await res.json();
+                      showNotification(d.error || 'Failed to save profile details.');
+                    }
+                  } catch (err) {
+                    showNotification('Network error saving profile.');
+                  } finally {
+                    setIsSubmittingOnboarding(false);
+                  }
+                }}
+                className="w-full py-3.5 bg-[#77248c] hover:bg-[#5a1a6b] text-white font-bold text-sm rounded-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+              >
+                {isSubmittingOnboarding ? <><i className="fa-solid fa-circle-notch animate-spin"></i> Saving...</> : <><i className="fa-solid fa-rocket"></i> Save My Details & Get Started</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Generate Invoice Modal */}
       {showGenerateInvoiceModal && (
