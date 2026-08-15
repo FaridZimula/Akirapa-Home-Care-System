@@ -4827,9 +4827,6 @@ export default function Home() {
                                 {dashboardCardFilter === 'CLIENTS' && <span className="w-2 h-2 rounded-full bg-purple-600 animate-pulse" />}
                               </div>
                               <div className="text-2xl font-bold text-gray-800">{clients.length}</div>
-                              <div className="text-[10px] text-purple-600 font-semibold mt-1">
-                                {dashboardCardFilter === 'CLIENTS' ? '▼ Viewing details below' : 'Click to inspect list'}
-                              </div>
                             </div>
                             <div className="w-12 h-12 bg-[#77248c] rounded-2xl flex items-center justify-center text-white shadow-xs">
                               <i className="fa-solid fa-users text-xl text-white"></i>
@@ -4854,9 +4851,6 @@ export default function Home() {
                                 {dashboardCardFilter === 'CAREGIVERS' && <span className="w-2 h-2 rounded-full bg-teal-500 animate-pulse" />}
                               </div>
                               <div className="text-2xl font-bold text-gray-800">{caregivers.length}</div>
-                              <div className="text-[10px] text-teal-600 font-semibold mt-1">
-                                {dashboardCardFilter === 'CAREGIVERS' ? '▼ Viewing directory & passwords' : 'Click for staff & passwords'}
-                              </div>
                             </div>
                             <div className="w-12 h-12 bg-[#4cdbd5] rounded-2xl flex items-center justify-center text-white shadow-xs">
                               <i className="fa-solid fa-user-md text-xl text-white"></i>
@@ -4881,9 +4875,6 @@ export default function Home() {
                                 {dashboardCardFilter === 'ACTIVE_SHIFTS' && <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />}
                               </div>
                               <div className="text-2xl font-bold text-gray-800">{shifts.filter(s => s.status === 'IN_PROGRESS').length}</div>
-                              <div className="text-[10px] text-amber-600 font-semibold mt-1">
-                                {dashboardCardFilter === 'ACTIVE_SHIFTS' ? '▼ Viewing live active shifts' : 'Click to inspect active shifts'}
-                              </div>
                             </div>
                             <div className="w-12 h-12 bg-amber-500 rounded-2xl flex items-center justify-center text-white shadow-xs">
                               <i className="fa-solid fa-clock text-xl text-white"></i>
@@ -4908,9 +4899,6 @@ export default function Home() {
                                 {dashboardCardFilter === 'COMPLETED_SHIFTS' && <span className="w-2 h-2 rounded-full bg-teal-600 animate-pulse" />}
                               </div>
                               <div className="text-2xl font-bold text-gray-800">{shifts.filter(s => s.status === 'COMPLETED').length}</div>
-                              <div className="text-[10px] text-teal-700 font-semibold mt-1">
-                                {dashboardCardFilter === 'COMPLETED_SHIFTS' ? '▼ Viewing completed log' : 'Click to inspect completed shifts'}
-                              </div>
                             </div>
                             <div className="w-12 h-12 bg-[#4cdbd5] rounded-2xl flex items-center justify-center text-white shadow-xs">
                               <i className="fa-solid fa-circle-check text-xl text-white"></i>
@@ -4939,9 +4927,6 @@ export default function Home() {
                                     {dashboardCardFilter === 'UNASSIGNED_CLIENTS' && <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />}
                                   </div>
                                   <div className="text-2xl font-bold text-orange-600">{unassigned.length}</div>
-                                  <div className="text-[10px] text-orange-600 font-semibold mt-1">
-                                    {dashboardCardFilter === 'UNASSIGNED_CLIENTS' ? '▼ Viewing unassigned list' : 'Click to inspect unassigned'}
-                                  </div>
                                 </div>
                                 <div className="w-12 h-12 bg-orange-500 rounded-2xl flex items-center justify-center text-white shadow-xs">
                                   <i className="fa-solid fa-user-xmark text-xl text-white"></i>
