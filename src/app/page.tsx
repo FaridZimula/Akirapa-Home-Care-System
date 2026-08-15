@@ -4699,7 +4699,7 @@ export default function Home() {
               )}
               {user && isCaregiverProvisioningAuthorized(user.email) && (
                 <button onClick={() => { setCurrentView('add_client'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'add_client' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
-                  <i className="fa-solid fa-user-gear w-5 text-center"></i> Add Client
+                  <i className="fa-solid fa-user-plus w-5 text-center"></i> Add Client
                 </button>
               )}
               {user && isBusinessHubAuthorized(user.email) && (
@@ -6359,76 +6359,143 @@ export default function Home() {
                 </div>
               )}
 
-              {/* ===== ADD CLIENT & PROVISION VIEW ===== */}
+              {/* ===== ADD CLIENT VIEW ===== */}
               {currentView === 'add_client' && user && isCaregiverProvisioningAuthorized(user.email) && (
-                <div className="space-y-6 max-w-4xl mx-auto">
-                  {/* Access Rules Banner */}
-                  <div className="bg-[#77248c] border border-[#77248c] rounded-3xl p-6 text-white shadow-xl flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center text-xl flex-shrink-0">
-                      <i className="fa-solid fa-shield-halved text-white"></i>
-                    </div>
-                    <div className="space-y-1">
-                      <h3 className="font-extrabold text-lg text-white">Database Access & Client Account Rules</h3>
-                      <p className="text-xs text-white/90 leading-relaxed">
-                        Clients & Family Members use personal email addresses (e.g. Gmail, Yahoo, Outlook). Accounts created here are automatically assigned the <span className="font-mono bg-white/20 px-1.5 py-0.5 rounded font-bold">FAMILY_MEMBER</span> role, linked to their client care profile, and granted access exclusively to the Family Portal. The client will be prompted to change their temporary password on first sign-in.
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Provision Form */}
-                  <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 md:p-8 space-y-6">
+                <div className="max-w-4xl mx-auto space-y-6">
+                  <div className="bg-white rounded-3xl shadow-sm border border-purple-100 p-8 space-y-6">
                     <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
-                      <div className="w-10 h-10 rounded-2xl bg-purple-50 text-[#77248c] flex items-center justify-center font-bold text-base">
-                        <i className="fa-solid fa-user-gear"></i>
+                      <div className="w-12 h-12 rounded-2xl bg-[#77248c] text-white flex items-center justify-center text-xl font-bold shadow-md">
+                        <i className="fa-solid fa-user-plus text-white"></i>
                       </div>
                       <div>
-                        <h3 className="font-extrabold text-lg text-gray-900">Provision New Client & Family Account</h3>
-                        <p className="text-xs text-gray-500">Create client profile and set initial login password for family portal access.</p>
+                        <h3 className="text-xl font-bold text-gray-900">Add & Provision Client</h3>
+                        <p className="text-xs text-gray-500">Assign first-time credentials for new clients. Access will be automatically restricted to the Family Portal by the database.</p>
                       </div>
                     </div>
 
-                    <form onSubmit={handleProvisionClient} className="space-y-4">
+                    <div className="bg-[#77248c] text-white rounded-2xl p-5 text-xs space-y-2.5 shadow-md">
+                      <div className="font-bold flex items-center gap-2 text-white text-sm">
+                        <i className="fa-solid fa-shield-halved text-white text-base"></i> Database Access & Domain Rules:
+                      </div>
+                      <ul className="list-disc list-inside space-y-1.5 text-white/95 text-xs">
+                        <li>Client & family member accounts <strong>allow normal personal email addresses</strong> (e.g. Gmail, Yahoo, Outlook, personal email).</li>
+                        <li>When an admin sets a password here, the database assigns role <strong>FAMILY_MEMBER</strong> linked directly to the client profile.</li>
+                        <li>Client emails are strictly limited to the Family Portal and cannot access Admin, Business Hub, or Caregiver portals.</li>
+                      </ul>
+                    </div>
+
+                    {/* Provisioning Form */}
+                    <form onSubmit={handleProvisionClient} className="space-y-4 text-xs">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Client Full Name *</label>
-                          <input type="text" placeholder="e.g. Robert Smith" value={newClientName} onChange={(e) => setNewClientName(e.target.value)} required className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1" />
+                          <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Client Full Name <span className="text-red-500">*</span></label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. Robert Smith"
+                            value={newClientName}
+                            onChange={(e) => setNewClientName(e.target.value)}
+                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
+                          />
                         </div>
+
                         <div>
-                          <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Family Login Email (Personal Email) *</label>
-                          <input type="email" placeholder="e.g. robert.smith@gmail.com" value={newClientEmail} onChange={(e) => setNewClientEmail(e.target.value)} required className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1 font-mono" />
+                          <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Client / Family Email (Normal Email) <span className="text-red-500">*</span></label>
+                          <input
+                            type="email"
+                            required
+                            placeholder="robert.smith@gmail.com"
+                            value={newClientEmail}
+                            onChange={(e) => setNewClientEmail(e.target.value)}
+                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1 font-mono"
+                          />
                         </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                          <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">First-Time Temporary Password *</label>
-                          <input type="text" placeholder="Temporary password..." value={newClientPassword} onChange={(e) => setNewClientPassword(e.target.value)} required className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1 font-mono" />
+                          <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">First-Time Temporary Password <span className="text-red-500">*</span></label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. AkirapaClient2026!"
+                            value={newClientPassword}
+                            onChange={(e) => setNewClientPassword(e.target.value)}
+                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1 font-mono"
+                          />
                         </div>
+
                         <div>
                           <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Phone Number</label>
-                          <input type="text" placeholder="+1 (604) 555-0188" value={newClientPhone} onChange={(e) => setNewClientPhone(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1" />
+                          <input
+                            type="text"
+                            placeholder="+1 (604) 555-0188"
+                            value={newClientPhone}
+                            onChange={(e) => setNewClientPhone(e.target.value)}
+                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
+                          />
                         </div>
-                        <div className="md:col-span-2">
-                          <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Street Address</label>
-                          <input type="text" placeholder="1234 West 4th Ave" value={newClientAddress} onChange={(e) => setNewClientAddress(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1" />
-                        </div>
+
                         <div>
+                          <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Hourly Billing Rate ($/hr)</label>
+                          <input
+                            type="number"
+                            step="1.00"
+                            value={newClientBillingRate}
+                            onChange={(e) => setNewClientBillingRate(e.target.value)}
+                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="md:col-span-1">
                           <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Care Tier</label>
-                          <select value={newClientCareTier} onChange={(e) => setNewClientCareTier(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1">
+                          <select
+                            value={newClientCareTier}
+                            onChange={(e) => setNewClientCareTier(e.target.value)}
+                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
+                          >
                             <option value="Standard">Standard Care</option>
                             <option value="Premium">Premium Care</option>
                             <option value="Specialized">Specialized Care</option>
                             <option value="Hospice">Hospice Care</option>
                           </select>
                         </div>
-                        <div>
-                          <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Hourly Billing Rate ($/hr)</label>
-                          <input type="number" step="1.00" value={newClientBillingRate} onChange={(e) => setNewClientBillingRate(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1" />
+
+                        <div className="md:col-span-2">
+                          <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Street Address</label>
+                          <input
+                            type="text"
+                            placeholder="1234 West 4th Ave"
+                            value={newClientAddress}
+                            onChange={(e) => setNewClientAddress(e.target.value)}
+                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
+                          />
                         </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                           <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Emergency Contact Name</label>
-                          <input type="text" placeholder="e.g. Mary Smith" value={newClientEmergencyName} onChange={(e) => setNewClientEmergencyName(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1" />
+                          <input
+                            type="text"
+                            placeholder="e.g. Mary Smith"
+                            value={newClientEmergencyName}
+                            onChange={(e) => setNewClientEmergencyName(e.target.value)}
+                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
+                          />
                         </div>
+
                         <div>
                           <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Emergency Contact Phone</label>
-                          <input type="text" placeholder="+1 (604) 555-9988" value={newClientEmergencyPhone} onChange={(e) => setNewClientEmergencyPhone(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1" />
+                          <input
+                            type="text"
+                            placeholder="+1 (604) 555-9988"
+                            value={newClientEmergencyPhone}
+                            onChange={(e) => setNewClientEmergencyPhone(e.target.value)}
+                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
+                          />
                         </div>
                       </div>
 
@@ -6438,7 +6505,11 @@ export default function Home() {
                         </div>
                       )}
 
-                      <button type="submit" disabled={isProvisioningClient || !newClientName || !newClientEmail || !newClientPassword} className="w-full py-4 bg-[#77248c] hover:bg-[#5a1a6b] text-white font-bold text-sm rounded-xl transition-all disabled:opacity-50 shadow-md cursor-pointer flex items-center justify-center gap-2 mt-2">
+                      <button
+                        type="submit"
+                        disabled={isProvisioningClient || !newClientName || !newClientEmail || !newClientPassword}
+                        className="w-full py-4 bg-[#77248c] hover:bg-[#5a1a6b] text-white font-bold text-sm rounded-xl transition-all disabled:opacity-50 shadow-md cursor-pointer flex items-center justify-center gap-2 mt-2"
+                      >
                         {isProvisioningClient ? (
                           <><i className="fa-solid fa-circle-notch animate-spin"></i> Provisioning Client & Family Account...</>
                         ) : (
@@ -6473,7 +6544,7 @@ export default function Home() {
                           </thead>
                           <tbody className="divide-y divide-gray-50">
                             {clients.map((cl: any) => {
-                              const linkedFamilyUser = users.find((u: any) => u.role === 'FAMILY_MEMBER' && u.name?.toLowerCase().includes(cl.name?.toLowerCase()));
+                              const linkedFamilyUser = cl.familyMembers?.[0]?.user || cl.linkedUser || null;
                               return (
                                 <tr key={cl.id} className="hover:bg-purple-50/40 transition-colors">
                                   <td className="py-3.5 px-2 font-bold text-gray-800">
@@ -6491,7 +6562,7 @@ export default function Home() {
                                   <td className="py-3.5 px-2 text-right">
                                     <button
                                       onClick={() => {
-                                        const userToReset = linkedFamilyUser || { id: cl.id, name: cl.name, email: cl.address || '' };
+                                        const userToReset = linkedFamilyUser || { id: cl.id, name: cl.name, email: cl.name ? `${cl.name.toLowerCase().replace(/\s+/g, '')}@family.akirapa.com` : 'client@family.akirapa.com' };
                                         setTargetPasswordUser(userToReset);
                                         setAdminNewPasswordInput('');
                                         setShowAdminPasswordModal(true);
