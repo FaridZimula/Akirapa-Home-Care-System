@@ -2,19 +2,23 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { logAudit } from '@/lib/audit';
 import { hashPassword } from '@/lib/password';
-import { isCompanyDomainEmail, OFFICIAL_DOMAIN } from '@/lib/adminAllowlist';
+import { isCompanyDomainEmail, isCaregiverProvisioningAuthorized, OFFICIAL_DOMAIN } from '@/lib/adminAllowlist';
 import { getSessionUser } from '@/lib/session';
 import { UserRole } from '@prisma/client';
 
 export async function POST(request: Request) {
   try {
-    // Account provisioning is an administrator action. Without this gate the
-    // endpoint mints caregiver, coordinator and family accounts for anyone
-    // who can reach it.
     const sessionUser = await getSessionUser();
     if (!sessionUser || sessionUser.role !== 'ADMIN') {
       return NextResponse.json(
         { error: 'Account provisioning is restricted to administrators' },
+        { status: 403 }
+      );
+    }
+
+    if (!isCaregiverProvisioningAuthorized(sessionUser.email)) {
+      return NextResponse.json(
+        { error: 'Caregiver provisioning is restricted to authorized administrators (cathy@akirapahomecareus.com and info@akirapahomecareus.com).' },
         { status: 403 }
       );
     }

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { formatDate, formatTime, formatDateTime } from '@/lib/dateFormat';
+import { isCaregiverProvisioningAuthorized } from '@/lib/adminAllowlist';
 
 // Structured client welfare check, asked every shift. Polarity is explicit per
 // question (some are "good = YES", others "bad = YES") so the computed
@@ -4572,7 +4573,7 @@ export default function Home() {
               <button onClick={() => { setCurrentView('create'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'create' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                 <i className="fa-solid fa-plus-circle w-5 text-center"></i> Create Shift
               </button>
-              {user.role === 'ADMIN' && (
+              {user && isCaregiverProvisioningAuthorized(user.email) && (
                 <button onClick={() => { setCurrentView('add_caregiver'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'add_caregiver' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                   <i className="fa-solid fa-user-plus w-5 text-center"></i> Add Caregiver
                 </button>
@@ -5010,7 +5011,7 @@ export default function Home() {
                                     <td className="py-3 px-2 text-gray-500">{cg.phoneNumber || '—'}</td>
                                     <td className="py-3 px-2 font-semibold text-emerald-600">${cg.payRate ? cg.payRate.toFixed(2) : '28.00'}/hr</td>
                                     <td className="py-3 px-2 text-right">
-                                      {user?.role === 'ADMIN' && (
+                                      {user && isCaregiverProvisioningAuthorized(user.email) && (
                                         <button
                                           onClick={() => {
                                             setTargetPasswordUser(cg);
@@ -6044,7 +6045,7 @@ export default function Home() {
               )}
 
               {/* ===== ADD CAREGIVER VIEW ===== */}
-              {currentView === 'add_caregiver' && user?.role === 'ADMIN' && (
+              {currentView === 'add_caregiver' && user && isCaregiverProvisioningAuthorized(user.email) && (
                 <div className="max-w-4xl mx-auto space-y-6">
                   <div className="bg-white rounded-3xl shadow-sm border border-purple-100 p-8 space-y-6">
                     <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
@@ -6057,12 +6058,12 @@ export default function Home() {
                       </div>
                     </div>
 
-                    <div className="bg-purple-50/70 border border-purple-200/80 rounded-2xl p-4 text-xs space-y-1.5 text-purple-950">
-                      <div className="font-bold flex items-center gap-2 text-purple-900 text-xs">
-                        <i className="fa-solid fa-shield-halved text-purple-700"></i> Database Access & Domain Rules:
+                    <div className="bg-[#77248c] text-white rounded-2xl p-5 text-xs space-y-2.5 shadow-md">
+                      <div className="font-bold flex items-center gap-2 text-white text-sm">
+                        <i className="fa-solid fa-shield-halved text-white text-base"></i> Database Access & Domain Rules:
                       </div>
-                      <ul className="list-disc list-inside space-y-1 text-purple-800 text-[11px]">
-                        <li>All caregiver accounts must use an official <strong>@akirapahomecareus.com</strong> email address.</li>
+                      <ul className="list-disc list-inside space-y-1.5 text-white/95 text-xs">
+                        <li>All caregiver accounts must use an official <strong className="text-white underline decoration-purple-300">@akirapahomecareus.com</strong> email address.</li>
                         <li>When an admin sets a password here, the database assigns role <strong>CAREGIVER</strong>.</li>
                         <li>Caregiver emails are strictly limited to the Caregiver Portal and cannot access Admin, Business Hub, or Family portals.</li>
                       </ul>

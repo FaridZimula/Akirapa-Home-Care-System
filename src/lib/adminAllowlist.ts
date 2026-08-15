@@ -43,3 +43,15 @@ export function isBusinessHubAuthorized(email: string): boolean {
   const normalized = email.trim().toLowerCase();
   return BUSINESS_HUB_AUTHORIZED_EMAILS.includes(normalized);
 }
+
+export const CAREGIVER_PROVISIONING_AUTHORIZED_EMAILS = [
+  'cathy@akirapahomecareus.com',
+  'info@akirapahomecareus.com',
+];
+
+export function isCaregiverProvisioningAuthorized(email: string): boolean {
+  if (!email || typeof email !== 'string') return false;
+  const normalized = email.trim().toLowerCase();
+  return CAREGIVER_PROVISIONING_AUTHORIZED_EMAILS.includes(normalized);
+}
+
