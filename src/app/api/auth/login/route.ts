@@ -55,12 +55,12 @@ export async function POST(request: Request) {
     }
 
     // 5. Log audit for successful login
-    await logAudit({
+    logAudit({
       userId: user.id,
       action: 'LOGIN_SUCCESS',
       details: `User logged in: ${normalizedEmail} with role ${user.role}`,
       outcome: 'SUCCESS',
-    });
+    }).catch((err) => console.error('Audit log error on login:', err));
 
     const response = NextResponse.json({
       user: {
