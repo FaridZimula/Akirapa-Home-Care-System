@@ -12,7 +12,6 @@ export async function GET(request: Request) {
   const error = requestUrl.searchParams.get('error');
 
   if (error) {
-    console.error('Google OAuth redirect error:', error);
     return NextResponse.redirect(new URL(`/?error=${encodeURIComponent(error)}`, requestUrl.origin));
   }
 
@@ -25,12 +24,12 @@ export async function GET(request: Request) {
   const redirectUri = process.env.GOOGLE_REDIRECT_URI || `${requestUrl.origin}/api/auth/google/callback`;
 
   if (!clientId || !clientSecret) {
-    console.error('Google OAuth credentials not configured');
     return NextResponse.redirect(new URL('/?error=google_not_configured', requestUrl.origin));
   }
 
+  // ── Step 1: Exchange auth code for access token ──────────────────────────
+  let access_token: string;
   try {
-    // Exchange Auth Code for Tokens
     const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -45,42 +44,54 @@ export async function GET(request: Request) {
 
     if (!tokenRes.ok) {
       const errBody = await tokenRes.text();
-      console.error('Failed to exchange Google OAuth code:', errBody);
-      let reason = 'token_exchange_failed';
-      try {
-        const googleError = JSON.parse(errBody)?.error;
-        if (typeof googleError === 'string' && googleError) {
-          reason = `token_exchange_failed_${googleError}`;
-        }
-      } catch { /* non-JSON body */ }
-      return NextResponse.redirect(new URL(`/?error=${encodeURIComponent(reason)}`, requestUrl.origin));
+      let googleError = 'unknown';
+      try { googleError = JSON.parse(errBody)?.error || 'unknown'; } catch { /* */ }
+      return NextResponse.redirect(
+        new URL(`/?error=${encodeURIComponent(`token_exchange_failed: ${googleError}`)}`, requestUrl.origin)
+      );
     }
 
-    const { access_token } = await tokenRes.json();
+    const tokenData = await tokenRes.json();
+    access_token = tokenData.access_token;
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return NextResponse.redirect(
+      new URL(`/?error=${encodeURIComponent(`step1_failed: ${msg.slice(0, 80)}`)}`, requestUrl.origin)
+    );
+  }
 
-    // Fetch User Profile from Google
+  // ── Step 2: Fetch Google user profile ────────────────────────────────────
+  let email: string;
+  let name: string;
+  try {
     const userRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
       headers: { Authorization: `Bearer ${access_token}` },
     });
 
     if (!userRes.ok) {
-      console.error('Failed to fetch Google user profile');
       return NextResponse.redirect(new URL('/?error=profile_fetch_failed', requestUrl.origin));
     }
 
     const googleUser = await userRes.json();
-    const email = (googleUser.email || '').trim().toLowerCase();
-    const name = googleUser.name || googleUser.given_name || 'Google User';
+    email = (googleUser.email || '').trim().toLowerCase();
+    name = googleUser.name || googleUser.given_name || 'Google User';
 
     if (!email) {
       return NextResponse.redirect(new URL('/?error=email_not_provided', requestUrl.origin));
     }
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return NextResponse.redirect(
+      new URL(`/?error=${encodeURIComponent(`step2_failed: ${msg.slice(0, 80)}`)}`, requestUrl.origin)
+    );
+  }
 
-    // Look up the user in the database by their Google email
+  // ── Step 3: Look up or create the user in the database ───────────────────
+  try {
     let user = await prisma.user.findUnique({ where: { email } });
 
     if (!user) {
-      // If the email is an authorized admin company email, auto-create the admin account
+      // Auto-create admin accounts for known company emails
       if (isCompanyDomainEmail(email) && isAdminEmailAllowed(email)) {
         user = await prisma.user.create({
           data: {
@@ -88,47 +99,38 @@ export async function GET(request: Request) {
             name,
             passwordHash: await hashPassword(crypto.randomBytes(24).toString('hex')),
             role: 'ADMIN',
-            phoneNumber: null,
           },
         });
-        console.log(`[OAUTH] Auto-created admin account for: ${email}`);
       } else {
-        // User doesn't exist in the system — they need to be registered first
-        console.warn(`[OAUTH_DENIED] No account found for Google email: ${email}`);
+        // No account found — must be registered by admin first
         return NextResponse.redirect(
-          new URL(`/?error=${encodeURIComponent('No account found for this Google email. Please contact your administrator.')}`, requestUrl.origin)
+          new URL(
+            `/?error=${encodeURIComponent('No account found for ' + email + '. Contact your administrator.')}`,
+            requestUrl.origin
+          )
         );
       }
     }
 
-    // Additional check: ADMIN role must be in the company allowlist
+    // Block unauthorized admin logins via Google
     if (user.role === 'ADMIN' && !isAdminEmailAllowed(email)) {
-      await logAudit({
-        userId: user.id,
-        action: 'ADMIN_LOGIN_DENIED',
-        details: `Blocked Google OAuth admin login for unauthorized email: ${email}`,
-        outcome: 'FAILURE',
-      });
+      logAudit({ userId: user.id, action: 'ADMIN_LOGIN_DENIED', details: `Blocked Google OAuth: ${email}`, outcome: 'FAILURE' }).catch(() => {});
       return NextResponse.redirect(new URL('/?error=admin_not_authorized', requestUrl.origin));
     }
 
-    // Log success
-    logAudit({
-      userId: user.id,
-      action: 'OAUTH_LOGIN_SUCCESS',
-      details: `Google OAuth login: ${email} as ${user.role}`,
-      outcome: 'SUCCESS',
-    }).catch(console.error);
+    // Log success (non-blocking)
+    logAudit({ userId: user.id, action: 'OAUTH_LOGIN_SUCCESS', details: `Google OAuth: ${email} as ${user.role}`, outcome: 'SUCCESS' }).catch(() => {});
 
-    // Create session and redirect to dashboard
+    // Create session and redirect
     const response = NextResponse.redirect(new URL('/', requestUrl.origin));
     const session = createSessionCookie(user.id);
     response.cookies.set(session.name, session.value, sessionCookieOptions(session.maxAge));
-
     return response;
 
-  } catch (err) {
-    console.error('Google OAuth callback error:', err);
-    return NextResponse.redirect(new URL('/?error=oauth_internal_error', requestUrl.origin));
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return NextResponse.redirect(
+      new URL(`/?error=${encodeURIComponent(`step3_db_failed: ${msg.slice(0, 120)}`)}`, requestUrl.origin)
+    );
   }
 }
