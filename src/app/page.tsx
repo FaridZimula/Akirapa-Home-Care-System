@@ -6272,17 +6272,17 @@ export default function Home() {
                 <div className="space-y-6">
                   {/* Access Gating check */}
                   {!(user.email === 'info@akirapahomecareus.com' || user.email === 'cathy@akirapahomecareus.com') ? (
-                    <div className="bg-amber-50 border-2 border-amber-200 rounded-3xl p-8 text-center max-w-2xl mx-auto my-8 animate-fade-up">
-                      <div className="w-16 h-16 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl shadow-xs">
-                        <i className="fa-solid fa-lock"></i>
+                    <div className="bg-[#77248c] border-2 border-[#77248c] rounded-3xl p-8 text-center max-w-2xl mx-auto my-8 animate-fade-up shadow-xl text-white">
+                      <div className="w-16 h-16 bg-white/20 text-white rounded-full flex items-center justify-center mx-auto mb-4 text-2xl shadow-inner backdrop-blur-xs">
+                        <i className="fa-solid fa-lock text-white"></i>
                       </div>
-                      <h3 className="text-xl font-extrabold text-amber-900 mb-2">Restricted Access — Senior Business Admins Only</h3>
-                      <p className="text-sm text-amber-800 leading-relaxed max-w-md mx-auto">
+                      <h3 className="text-xl font-extrabold text-white mb-2">Restricted Access — Senior Business Admins Only</h3>
+                      <p className="text-sm text-white/95 leading-relaxed max-w-md mx-auto">
                         The Business Hub contains sensitive corporate financial stats, monthly payroll metrics, and proprietary system data logs. Access is limited strictly to authorized senior business administrators logging in with:
                       </p>
-                      <div className="mt-4 flex flex-col sm:flex-row justify-center gap-2 font-mono text-xs font-bold text-purple-900">
-                        <span className="bg-white px-3 py-1.5 rounded-lg border border-amber-200">info@akirapahomecareus.com</span>
-                        <span className="bg-white px-3 py-1.5 rounded-lg border border-amber-200">cathy@akirapahomecareus.com</span>
+                      <div className="mt-4 flex flex-col sm:flex-row justify-center gap-2 font-mono text-xs font-bold text-white">
+                        <span className="bg-white/15 px-3.5 py-1.5 rounded-xl border border-white/30 backdrop-blur-xs shadow-2xs">info@akirapahomecareus.com</span>
+                        <span className="bg-white/15 px-3.5 py-1.5 rounded-xl border border-white/30 backdrop-blur-xs shadow-2xs">cathy@akirapahomecareus.com</span>
                       </div>
                     </div>
                   ) : (
