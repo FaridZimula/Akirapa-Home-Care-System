@@ -204,6 +204,9 @@ export default function Home() {
   const [isLoadingAudits, setIsLoadingAudits] = useState(false);
   const [auditOutcomeFilter, setAuditOutcomeFilter] = useState<'ALL' | 'SUCCESS' | 'FAILURE'>('ALL');
 
+  // Admin Dashboard Stat Card Interactive Filter
+  const [dashboardCardFilter, setDashboardCardFilter] = useState<'ALL' | 'CLIENTS' | 'CAREGIVERS' | 'ACTIVE_SHIFTS' | 'COMPLETED_SHIFTS' | 'UNASSIGNED_CLIENTS'>('ALL');
+
   // Notifications
   const [smsAlerts, setSmsAlerts] = useState<Array<{ timestamp: Date; to: string; message: string }>>([]);
   const [systemNotification, setSystemNotification] = useState<string | null>(null);
@@ -4801,51 +4804,333 @@ export default function Home() {
                       </>
                     ) : (
                       <>
-                        <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
+                        {/* 1. Total Clients Card */}
+                        <button
+                          type="button"
+                          onClick={() => setDashboardCardFilter(prev => prev === 'CLIENTS' ? 'ALL' : 'CLIENTS')}
+                          className={`text-left bg-white rounded-2xl shadow-sm p-6 border transition-all cursor-pointer hover:shadow-md active:scale-98 ${
+                            dashboardCardFilter === 'CLIENTS'
+                              ? 'border-purple-600 ring-2 ring-purple-500/20 bg-purple-50/20'
+                              : 'border-gray-100 hover:border-purple-200'
+                          }`}
+                        >
                           <div className="flex items-center justify-between">
-                            <div><div className="text-sm font-bold text-gray-700">Total Clients</div><div className="text-2xl font-bold text-gray-800">{clients.length}</div></div>
-                            <div className="w-12 h-12 bg-[#77248c] rounded-2xl flex items-center justify-center text-white shadow-xs"><i className="fa-solid fa-users text-xl text-white"></i></div>
+                            <div>
+                              <div className="text-sm font-bold text-gray-700 flex items-center gap-1.5">
+                                Total Clients
+                                {dashboardCardFilter === 'CLIENTS' && <span className="w-2 h-2 rounded-full bg-purple-600 animate-pulse" />}
+                              </div>
+                              <div className="text-2xl font-bold text-gray-800">{clients.length}</div>
+                              <div className="text-[10px] text-purple-600 font-semibold mt-1">
+                                {dashboardCardFilter === 'CLIENTS' ? '▼ Viewing details below' : 'Click to inspect list'}
+                              </div>
+                            </div>
+                            <div className="w-12 h-12 bg-[#77248c] rounded-2xl flex items-center justify-center text-white shadow-xs">
+                              <i className="fa-solid fa-users text-xl text-white"></i>
+                            </div>
                           </div>
-                        </div>
-                        <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
+                        </button>
+
+                        {/* 2. Caregivers Card */}
+                        <button
+                          type="button"
+                          onClick={() => setDashboardCardFilter(prev => prev === 'CAREGIVERS' ? 'ALL' : 'CAREGIVERS')}
+                          className={`text-left bg-white rounded-2xl shadow-sm p-6 border transition-all cursor-pointer hover:shadow-md active:scale-98 ${
+                            dashboardCardFilter === 'CAREGIVERS'
+                              ? 'border-teal-500 ring-2 ring-teal-500/20 bg-teal-50/20'
+                              : 'border-gray-100 hover:border-teal-200'
+                          }`}
+                        >
                           <div className="flex items-center justify-between">
-                            <div><div className="text-sm font-bold text-gray-700">Caregivers</div><div className="text-2xl font-bold text-gray-800">{caregivers.length}</div></div>
-                            <div className="w-12 h-12 bg-[#4cdbd5] rounded-2xl flex items-center justify-center text-white shadow-xs"><i className="fa-solid fa-user-md text-xl text-white"></i></div>
+                            <div>
+                              <div className="text-sm font-bold text-gray-700 flex items-center gap-1.5">
+                                Caregivers
+                                {dashboardCardFilter === 'CAREGIVERS' && <span className="w-2 h-2 rounded-full bg-teal-500 animate-pulse" />}
+                              </div>
+                              <div className="text-2xl font-bold text-gray-800">{caregivers.length}</div>
+                              <div className="text-[10px] text-teal-600 font-semibold mt-1">
+                                {dashboardCardFilter === 'CAREGIVERS' ? '▼ Viewing directory & passwords' : 'Click for staff & passwords'}
+                              </div>
+                            </div>
+                            <div className="w-12 h-12 bg-[#4cdbd5] rounded-2xl flex items-center justify-center text-white shadow-xs">
+                              <i className="fa-solid fa-user-md text-xl text-white"></i>
+                            </div>
                           </div>
-                        </div>
-                        <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
+                        </button>
+
+                        {/* 3. Active Shifts Card */}
+                        <button
+                          type="button"
+                          onClick={() => setDashboardCardFilter(prev => prev === 'ACTIVE_SHIFTS' ? 'ALL' : 'ACTIVE_SHIFTS')}
+                          className={`text-left bg-white rounded-2xl shadow-sm p-6 border transition-all cursor-pointer hover:shadow-md active:scale-98 ${
+                            dashboardCardFilter === 'ACTIVE_SHIFTS'
+                              ? 'border-amber-500 ring-2 ring-amber-500/20 bg-amber-50/20'
+                              : 'border-gray-100 hover:border-amber-200'
+                          }`}
+                        >
                           <div className="flex items-center justify-between">
-                            <div><div className="text-sm font-bold text-gray-700">Active Shifts</div><div className="text-2xl font-bold text-gray-800">{shifts.filter(s => s.status === 'IN_PROGRESS').length}</div></div>
-                            <div className="w-12 h-12 bg-amber-500 rounded-2xl flex items-center justify-center text-white shadow-xs"><i className="fa-solid fa-clock text-xl text-white"></i></div>
+                            <div>
+                              <div className="text-sm font-bold text-gray-700 flex items-center gap-1.5">
+                                Active Shifts
+                                {dashboardCardFilter === 'ACTIVE_SHIFTS' && <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />}
+                              </div>
+                              <div className="text-2xl font-bold text-gray-800">{shifts.filter(s => s.status === 'IN_PROGRESS').length}</div>
+                              <div className="text-[10px] text-amber-600 font-semibold mt-1">
+                                {dashboardCardFilter === 'ACTIVE_SHIFTS' ? '▼ Viewing live active shifts' : 'Click to inspect active shifts'}
+                              </div>
+                            </div>
+                            <div className="w-12 h-12 bg-amber-500 rounded-2xl flex items-center justify-center text-white shadow-xs">
+                              <i className="fa-solid fa-clock text-xl text-white"></i>
+                            </div>
                           </div>
-                        </div>
-                        <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
+                        </button>
+
+                        {/* 4. Completed Card */}
+                        <button
+                          type="button"
+                          onClick={() => setDashboardCardFilter(prev => prev === 'COMPLETED_SHIFTS' ? 'ALL' : 'COMPLETED_SHIFTS')}
+                          className={`text-left bg-white rounded-2xl shadow-sm p-6 border transition-all cursor-pointer hover:shadow-md active:scale-98 ${
+                            dashboardCardFilter === 'COMPLETED_SHIFTS'
+                              ? 'border-teal-600 ring-2 ring-teal-500/20 bg-teal-50/20'
+                              : 'border-gray-100 hover:border-teal-200'
+                          }`}
+                        >
                           <div className="flex items-center justify-between">
-                            <div><div className="text-sm font-bold text-gray-700">Completed</div><div className="text-2xl font-bold text-gray-800">{shifts.filter(s => s.status === 'COMPLETED').length}</div></div>
-                            <div className="w-12 h-12 bg-[#4cdbd5] rounded-2xl flex items-center justify-center text-white shadow-xs"><i className="fa-solid fa-circle-check text-xl text-white"></i></div>
+                            <div>
+                              <div className="text-sm font-bold text-gray-700 flex items-center gap-1.5">
+                                Completed
+                                {dashboardCardFilter === 'COMPLETED_SHIFTS' && <span className="w-2 h-2 rounded-full bg-teal-600 animate-pulse" />}
+                              </div>
+                              <div className="text-2xl font-bold text-gray-800">{shifts.filter(s => s.status === 'COMPLETED').length}</div>
+                              <div className="text-[10px] text-teal-700 font-semibold mt-1">
+                                {dashboardCardFilter === 'COMPLETED_SHIFTS' ? '▼ Viewing completed log' : 'Click to inspect completed shifts'}
+                              </div>
+                            </div>
+                            <div className="w-12 h-12 bg-[#4cdbd5] rounded-2xl flex items-center justify-center text-white shadow-xs">
+                              <i className="fa-solid fa-circle-check text-xl text-white"></i>
+                            </div>
                           </div>
-                        </div>
+                        </button>
+
+                        {/* 5. Unassigned Clients Card */}
                         {(() => {
                           const assignedClientIds = new Set(shifts.filter(s => s.status !== 'DROPPED' && s.status !== 'COMPLETED').map(s => s.clientId));
                           const unassigned = clients.filter(c => !assignedClientIds.has(c.id));
                           return (
-                            <div className="bg-white rounded-2xl shadow-sm p-6 border border-orange-100 col-span-1 sm:col-span-2 lg:col-span-1">
+                            <button
+                              type="button"
+                              onClick={() => setDashboardCardFilter(prev => prev === 'UNASSIGNED_CLIENTS' ? 'ALL' : 'UNASSIGNED_CLIENTS')}
+                              className={`text-left bg-white rounded-2xl shadow-sm p-6 border transition-all cursor-pointer hover:shadow-md active:scale-98 col-span-1 sm:col-span-2 lg:col-span-1 ${
+                                dashboardCardFilter === 'UNASSIGNED_CLIENTS'
+                                  ? 'border-orange-500 ring-2 ring-orange-500/20 bg-orange-50/20'
+                                  : 'border-orange-100 hover:border-orange-300'
+                              }`}
+                            >
                               <div className="flex items-center justify-between">
                                 <div>
-                                  <div className="text-sm font-bold text-orange-700">Unassigned Clients</div>
+                                  <div className="text-sm font-bold text-orange-700 flex items-center gap-1.5">
+                                    Unassigned Clients
+                                    {dashboardCardFilter === 'UNASSIGNED_CLIENTS' && <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />}
+                                  </div>
                                   <div className="text-2xl font-bold text-orange-600">{unassigned.length}</div>
-                                  {unassigned.length > 0 && (
-                                    <div className="text-xs text-gray-400 mt-1 truncate max-w-[140px]">{unassigned.map(c => c.name).join(', ')}</div>
-                                  )}
+                                  <div className="text-[10px] text-orange-600 font-semibold mt-1">
+                                    {dashboardCardFilter === 'UNASSIGNED_CLIENTS' ? '▼ Viewing unassigned list' : 'Click to inspect unassigned'}
+                                  </div>
                                 </div>
-                                <div className="w-12 h-12 bg-orange-500 rounded-2xl flex items-center justify-center text-white shadow-xs"><i className="fa-solid fa-user-xmark text-xl text-white"></i></div>
+                                <div className="w-12 h-12 bg-orange-500 rounded-2xl flex items-center justify-center text-white shadow-xs">
+                                  <i className="fa-solid fa-user-xmark text-xl text-white"></i>
+                                </div>
                               </div>
-                            </div>
+                            </button>
                           );
                         })()}
                       </>
                     )}
                   </div>
+
+                  {/* Dynamic Filtered Data View Displayed When A Stat Card Is Tapped */}
+                  {dashboardCardFilter !== 'ALL' && (
+                    <div className="bg-white rounded-3xl p-6 border border-purple-100 shadow-sm space-y-4 animate-fade-up">
+                      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-4">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-9 h-9 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center font-bold">
+                            {dashboardCardFilter === 'CLIENTS' && <i className="fa-solid fa-users"></i>}
+                            {dashboardCardFilter === 'CAREGIVERS' && <i className="fa-solid fa-user-md"></i>}
+                            {dashboardCardFilter === 'ACTIVE_SHIFTS' && <i className="fa-solid fa-clock"></i>}
+                            {dashboardCardFilter === 'COMPLETED_SHIFTS' && <i className="fa-solid fa-circle-check"></i>}
+                            {dashboardCardFilter === 'UNASSIGNED_CLIENTS' && <i className="fa-solid fa-user-xmark"></i>}
+                          </div>
+                          <div>
+                            <h3 className="font-bold text-gray-900 text-base">
+                              {dashboardCardFilter === 'CLIENTS' && 'Total Clients Directory'}
+                              {dashboardCardFilter === 'CAREGIVERS' && 'Caregivers Directory & Password Provisioning'}
+                              {dashboardCardFilter === 'ACTIVE_SHIFTS' && 'Live Active Shifts (In Progress)'}
+                              {dashboardCardFilter === 'COMPLETED_SHIFTS' && 'Completed Care Shifts Log'}
+                              {dashboardCardFilter === 'UNASSIGNED_CLIENTS' && 'Unassigned Clients Needing Care'}
+                            </h3>
+                            <p className="text-xs text-gray-400">Filtered view based on selected dashboard card</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          {user?.role === 'ADMIN' && (
+                            <button
+                              onClick={() => setShowAddUserModal(true)}
+                              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                            >
+                              <i className="fa-solid fa-user-plus"></i> Provision Staff Account
+                            </button>
+                          )}
+                          <button
+                            onClick={() => setDashboardCardFilter('ALL')}
+                            className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 font-semibold text-xs rounded-xl transition-all cursor-pointer flex items-center gap-1"
+                          >
+                            <i className="fa-solid fa-xmark"></i> Close Filter
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* DATA VIEW 1: CAREGIVERS */}
+                      {dashboardCardFilter === 'CAREGIVERS' && (
+                        <div className="overflow-x-auto">
+                          {caregivers.length === 0 ? (
+                            <div className="text-center py-8 text-gray-400 text-xs">No registered caregivers found in directory.</div>
+                          ) : (
+                            <table className="w-full text-left text-xs">
+                              <thead>
+                                <tr className="border-b border-gray-100 text-gray-400 uppercase text-[10px] tracking-wider font-bold">
+                                  <th className="py-3 px-2">Caregiver Name</th>
+                                  <th className="py-3 px-2">Email Address</th>
+                                  <th className="py-3 px-2">Phone</th>
+                                  <th className="py-3 px-2">Hourly Rate</th>
+                                  <th className="py-3 px-2 text-right">Actions</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-gray-50">
+                                {caregivers.map((cg: any) => (
+                                  <tr key={cg.id} className="hover:bg-purple-50/40 transition-colors">
+                                    <td className="py-3 px-2 font-bold text-gray-800 flex items-center gap-2">
+                                      <div className="w-7 h-7 rounded-full bg-teal-500 text-white font-bold flex items-center justify-center text-xs">
+                                        {cg.name ? cg.name.charAt(0).toUpperCase() : 'C'}
+                                      </div>
+                                      {cg.name}
+                                    </td>
+                                    <td className="py-3 px-2 text-gray-600 font-mono text-[11px]">{cg.email}</td>
+                                    <td className="py-3 px-2 text-gray-500">{cg.phoneNumber || '—'}</td>
+                                    <td className="py-3 px-2 font-semibold text-emerald-600">${cg.payRate ? cg.payRate.toFixed(2) : '28.00'}/hr</td>
+                                    <td className="py-3 px-2 text-right">
+                                      {user?.role === 'ADMIN' && (
+                                        <button
+                                          onClick={() => {
+                                            setTargetPasswordUser(cg);
+                                            setAdminNewPasswordInput('');
+                                            setAdminMustChangePasswordInput(false);
+                                            setShowAdminPasswordModal(true);
+                                          }}
+                                          className="px-3 py-1.5 bg-purple-100 hover:bg-purple-200 text-purple-800 font-bold text-[11px] rounded-lg transition-all flex items-center gap-1.5 ml-auto cursor-pointer"
+                                        >
+                                          <i className="fa-solid fa-key text-purple-600"></i> Set / Reset Password
+                                        </button>
+                                      )}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          )}
+                        </div>
+                      )}
+
+                      {/* DATA VIEW 2: CLIENTS */}
+                      {dashboardCardFilter === 'CLIENTS' && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                          {clients.length === 0 ? (
+                            <div className="col-span-full text-center py-8 text-gray-400 text-xs">No registered clients found.</div>
+                          ) : (
+                            clients.map((c: any) => (
+                              <div key={c.id} className="p-4 rounded-2xl border border-gray-100 hover:border-purple-200 bg-gray-50/50 space-y-2">
+                                <div className="flex justify-between items-start">
+                                  <div className="font-bold text-gray-900 text-sm">{c.name}</div>
+                                  <span className="px-2 py-0.5 rounded-md bg-purple-100 text-purple-700 text-[10px] font-bold">CLIENT</span>
+                                </div>
+                                <div className="text-xs text-gray-500 flex items-center gap-1.5">
+                                  <i className="fa-solid fa-location-dot text-purple-500"></i> {c.address}
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      )}
+
+                      {/* DATA VIEW 3: ACTIVE SHIFTS */}
+                      {dashboardCardFilter === 'ACTIVE_SHIFTS' && (
+                        <div className="space-y-3">
+                          {shifts.filter(s => s.status === 'IN_PROGRESS').length === 0 ? (
+                            <div className="text-center py-8 text-gray-400 text-xs">No active shifts in progress right now.</div>
+                          ) : (
+                            shifts.filter(s => s.status === 'IN_PROGRESS').map((s: any) => (
+                              <div key={s.id} className="p-4 rounded-2xl border border-amber-200 bg-amber-50/40 flex flex-wrap justify-between items-center gap-3">
+                                <div>
+                                  <div className="font-bold text-amber-900 text-sm">{s.client?.name}</div>
+                                  <div className="text-xs text-amber-800">Caregiver: <strong>{s.caregiver?.name}</strong></div>
+                                </div>
+                                <div className="text-right text-xs">
+                                  <span className="px-3 py-1 rounded-full bg-amber-500 text-white font-bold text-[10px] uppercase">IN PROGRESS</span>
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      )}
+
+                      {/* DATA VIEW 4: COMPLETED SHIFTS */}
+                      {dashboardCardFilter === 'COMPLETED_SHIFTS' && (
+                        <div className="space-y-3">
+                          {shifts.filter(s => s.status === 'COMPLETED').length === 0 ? (
+                            <div className="text-center py-8 text-gray-400 text-xs">No completed shifts recorded yet.</div>
+                          ) : (
+                            shifts.filter(s => s.status === 'COMPLETED').map((s: any) => (
+                              <div key={s.id} className="p-4 rounded-2xl border border-teal-100 bg-teal-50/30 flex flex-wrap justify-between items-center gap-3">
+                                <div>
+                                  <div className="font-bold text-gray-900 text-sm">{s.client?.name}</div>
+                                  <div className="text-xs text-gray-600">Caregiver: {s.caregiver?.name}</div>
+                                </div>
+                                <span className="px-3 py-1 rounded-full bg-teal-500 text-white font-bold text-[10px] uppercase">COMPLETED</span>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      )}
+
+                      {/* DATA VIEW 5: UNASSIGNED CLIENTS */}
+                      {dashboardCardFilter === 'UNASSIGNED_CLIENTS' && (() => {
+                        const assignedClientIds = new Set(shifts.filter(s => s.status !== 'DROPPED' && s.status !== 'COMPLETED').map(s => s.clientId));
+                        const unassigned = clients.filter(c => !assignedClientIds.has(c.id));
+                        return (
+                          <div className="space-y-3">
+                            {unassigned.length === 0 ? (
+                              <div className="text-center py-8 text-gray-400 text-xs">All clients currently have active caregiver assignments!</div>
+                            ) : (
+                              unassigned.map((c: any) => (
+                                <div key={c.id} className="p-4 rounded-2xl border border-orange-200 bg-orange-50/40 flex justify-between items-center gap-3">
+                                  <div>
+                                    <div className="font-bold text-orange-900 text-sm">{c.name}</div>
+                                    <div className="text-xs text-orange-700"><i className="fa-solid fa-location-dot"></i> {c.address}</div>
+                                  </div>
+                                  <button
+                                    onClick={() => setCurrentView('create_shift')}
+                                    className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs rounded-xl transition-all cursor-pointer"
+                                  >
+                                    <i className="fa-solid fa-calendar-plus mr-1"></i> Schedule Shift
+                                  </button>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
 
                   {user.role === 'FAMILY_MEMBER' && (
                     <div className="bg-gradient-to-r from-purple-50 via-white to-purple-50/50 rounded-3xl p-6 border border-purple-100 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
