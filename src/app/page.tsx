@@ -4572,6 +4572,11 @@ export default function Home() {
               <button onClick={() => { setCurrentView('create'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'create' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                 <i className="fa-solid fa-plus-circle w-5 text-center"></i> Create Shift
               </button>
+              {user.role === 'ADMIN' && (
+                <button onClick={() => { setCurrentView('add_caregiver'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'add_caregiver' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
+                  <i className="fa-solid fa-user-plus w-5 text-center"></i> Add Caregiver
+                </button>
+              )}
               <button onClick={() => { setCurrentView('business'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'business' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                 <i className="fa-solid fa-briefcase w-5 text-center"></i> Business Hub
               </button>
