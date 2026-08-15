@@ -5252,10 +5252,12 @@ export default function Home() {
                       <span className="mt-2 px-4 py-1.5 bg-[#77248c] text-white rounded-full text-sm font-bold shadow-xs">{user.role}</span>
                       {user.phoneNumber && <p className="text-sm text-gray-500 mt-2"><i className="fa-solid fa-phone mr-2"></i>{user.phoneNumber}</p>}
                     </div>
-                    <div className="grid grid-cols-2 gap-4 mt-8">
-                      <div className="bg-gray-50 rounded-xl p-4 text-center"><div className="text-sm text-gray-500">Member Since</div><div className="font-semibold">2026</div></div>
-                      <div className="bg-gray-50 rounded-xl p-4 text-center"><div className="text-sm text-gray-500">Total Shifts</div><div className="font-semibold">{shifts.filter(s => s.caregiverId === user.id).length}</div></div>
-                    </div>
+                    {user.role !== 'ADMIN' && (
+                      <div className="grid grid-cols-2 gap-4 mt-8">
+                        <div className="bg-gray-50 rounded-xl p-4 text-center"><div className="text-sm text-gray-500">Member Since</div><div className="font-semibold">2026</div></div>
+                        <div className="bg-gray-50 rounded-xl p-4 text-center"><div className="text-sm text-gray-500">Total Shifts</div><div className="font-semibold">{shifts.filter(s => s.caregiverId === user.id).length}</div></div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Caregiver Home Base Location (used for proximity-based shift scheduling) */}
