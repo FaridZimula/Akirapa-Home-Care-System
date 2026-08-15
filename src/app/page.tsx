@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { formatDate, formatTime, formatDateTime } from '@/lib/dateFormat';
-import { isCaregiverProvisioningAuthorized } from '@/lib/adminAllowlist';
+import { isCaregiverProvisioningAuthorized, isBusinessHubAuthorized } from '@/lib/adminAllowlist';
 
 // Structured client welfare check, asked every shift. Polarity is explicit per
 // question (some are "good = YES", others "bad = YES") so the computed
@@ -4578,15 +4578,17 @@ export default function Home() {
                   <i className="fa-solid fa-user-plus w-5 text-center"></i> Add Caregiver
                 </button>
               )}
-              <button onClick={() => { setCurrentView('business'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'business' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
-                <i className="fa-solid fa-briefcase w-5 text-center"></i> Business Hub
-              </button>
-              {user.role === 'ADMIN' && (
+              {user && isBusinessHubAuthorized(user.email) && (
+                <button onClick={() => { setCurrentView('business'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'business' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
+                  <i className="fa-solid fa-briefcase w-5 text-center"></i> Business Hub
+                </button>
+              )}
+              {user && isBusinessHubAuthorized(user.email) && (
                 <button onClick={() => { setCurrentView('financials'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'financials' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                   <i className="fa-solid fa-sack-dollar w-5 text-center"></i> Payroll
                 </button>
               )}
-              {user.role === 'ADMIN' && (
+              {user && isBusinessHubAuthorized(user.email) && (
                 <button onClick={() => { setCurrentView('billing'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'billing' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                   <i className="fa-solid fa-file-invoice-dollar w-5 text-center"></i> Billing
                 </button>
@@ -6608,7 +6610,7 @@ export default function Home() {
               )}
 
               {/* ===== PAYROLL / FINANCIALS VIEW ===== */}
-              {currentView === 'financials' && user.role === 'ADMIN' && (
+              {currentView === 'financials' && user && isBusinessHubAuthorized(user.email) && (
                 <div className="space-y-6">
                   {isLoadingFinancials ? (
                     <div className="py-16 text-center">
@@ -6741,7 +6743,7 @@ export default function Home() {
               )}
 
               {/* ===== BILLING & INVOICES VIEW (Payment Tracker) ===== */}
-              {currentView === 'billing' && user.role === 'ADMIN' && (
+              {currentView === 'billing' && user && isBusinessHubAuthorized(user.email) && (
                 <div className="space-y-6">
                   {isLoadingInvoices ? (
                     <div className="py-16 text-center">

@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/session';
 import { getCurrentWeekStart } from '@/lib/weekBounds';
 import { ShiftStatus } from '@prisma/client';
+import { isBusinessHubAuthorized } from '@/lib/adminAllowlist';
 
 export async function GET() {
   try {
@@ -10,8 +11,8 @@ export async function GET() {
     if (!sessionUser) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
-    if (sessionUser.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Payroll data is restricted to administrators' }, { status: 403 });
+    if (sessionUser.role !== 'ADMIN' || !isBusinessHubAuthorized(sessionUser.email)) {
+      return NextResponse.json({ error: 'Payroll data is restricted to authorized senior business administrators (cathy@akirapahomecareus.com and info@akirapahomecareus.com).' }, { status: 403 });
     }
 
     const weekStart = getCurrentWeekStart();
