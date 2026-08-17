@@ -66,19 +66,40 @@ export async function POST(request: Request) {
           mustChangePassword: true,
         },
       });
+    } else {
+      // If family user already exists, update credentials & phone so new password set by admin takes effect
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          passwordHash: hashedPassword,
+          name: name || user.name,
+          phoneNumber: phoneNumber || user.phoneNumber,
+          mustChangePassword: true,
+        },
+      });
     }
 
     const fullAddress = [address, city, state, zip].filter(Boolean).join(', ') || 'Not specified';
+
+    // Parse and sanitize numeric float fields to prevent NaN crashes in Prisma
+    const rawLat = typeof latitude === 'number' ? latitude : parseFloat(latitude);
+    const parsedLat = typeof rawLat === 'number' && !isNaN(rawLat) ? rawLat : 49.2827;
+
+    const rawLng = typeof longitude === 'number' ? longitude : parseFloat(longitude);
+    const parsedLng = typeof rawLng === 'number' && !isNaN(rawLng) ? rawLng : -123.1207;
+
+    const rawRate = typeof billingRatePerHour === 'number' ? billingRatePerHour : parseFloat(billingRatePerHour);
+    const parsedBillingRate = typeof rawRate === 'number' && !isNaN(rawRate) ? rawRate : 45.0;
 
     // Create client record
     const client = await prisma.client.create({
       data: {
         name,
         address: fullAddress,
-        latitude: typeof latitude === 'number' ? latitude : 49.2827,
-        longitude: typeof longitude === 'number' ? longitude : -123.1207,
+        latitude: parsedLat,
+        longitude: parsedLng,
         geofenceRadiusMeter: 200,
-        billingRatePerHour: typeof billingRatePerHour === 'number' ? billingRatePerHour : 45.0,
+        billingRatePerHour: parsedBillingRate,
         profileMetadata: JSON.stringify({
           careTier: careTier || 'Standard',
           city: city || null,
@@ -93,6 +114,39 @@ export async function POST(request: Request) {
           } : null,
         }),
       },
+    });
+
+    // Seed default Care Plan & initial tasks for the client
+    const carePlan = await prisma.carePlan.create({
+      data: {
+        clientId: client.id,
+      },
+    });
+
+    await prisma.carePlanTask.createMany({
+      data: [
+        {
+          carePlanId: carePlan.id,
+          taskName: 'Vital Signs Checklist',
+          description: 'Measure blood pressure, pulse, and temperature. Document in care feed.',
+          scheduledTime: '09:00 AM',
+          isMandatory: true,
+        },
+        {
+          carePlanId: carePlan.id,
+          taskName: 'Daily Medication Assistance',
+          description: 'Assist client with scheduled daily medication regimen.',
+          scheduledTime: '12:00 PM',
+          isMandatory: true,
+        },
+        {
+          carePlanId: carePlan.id,
+          taskName: 'Mobility & Hydration Check',
+          description: 'Encourage hydration and assist with light indoor/outdoor mobility walk.',
+          scheduledTime: '03:00 PM',
+          isMandatory: false,
+        },
+      ],
     });
 
     // Link Family User to Client

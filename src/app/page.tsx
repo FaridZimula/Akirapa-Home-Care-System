@@ -2481,9 +2481,11 @@ export default function Home() {
   const handleGoogleAccountSelect = async (email: string, role: 'ADMIN' | 'CAREGIVER' | 'CLIENT') => {
     setGoogleIsSubmitting(true);
     let password = 'googleAuthPassword123';
-    if (email === 'admin@akirapa.com') password = 'admin123';
-    else if (email === 'primary@akirapa.com') password = 'akirapa2634!';
-    else if (email === 'family@akirapa.com') password = 'family123';
+    const normalized = (email || '').trim().toLowerCase();
+    if (normalized.endsWith('@akirapahomecareus.com')) password = 'Akirapa2026!';
+    else if (normalized === 'admin@akirapa.com') password = 'admin123';
+    else if (normalized === 'primary@akirapa.com') password = 'akirapa2634!';
+    else if (normalized === 'family@akirapa.com') password = 'family123';
 
     try {
       await new Promise(resolve => setTimeout(resolve, 1200));
