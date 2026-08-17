@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { logAudit } from '@/lib/audit';
 import { getSessionUser } from '@/lib/session';
-import { ShiftStatus } from '@prisma/client';
+import { ShiftStatus, PodRole } from '@prisma/client';
 
 const clientInclude = {
   caregiverPods: {
