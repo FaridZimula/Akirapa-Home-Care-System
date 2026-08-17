@@ -121,7 +121,7 @@ export async function POST(request: Request) {
 
     if (hasRedFlags) {
       // Find client name to make audit alert descriptive
-      let clientName = 'Sarah Jenkins';
+      let clientName = 'Client Record';
       if (clientId) {
         const client = await prisma.client.findUnique({ where: { id: clientId } });
         if (client) clientName = client.name;

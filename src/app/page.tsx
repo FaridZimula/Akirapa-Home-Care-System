@@ -4915,13 +4915,20 @@ export default function Home() {
                       <>
                         <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
                           <div className="flex items-center justify-between">
-                            <div><div className="text-xs font-bold text-gray-500 uppercase">Client</div><div className="text-lg font-extrabold text-gray-900 truncate max-w-[150px] mt-0.5">{clients[0]?.name || 'Sarah Jenkins'}</div></div>
+                            <div><div className="text-xs font-bold text-gray-500 uppercase">Client</div><div className="text-lg font-extrabold text-gray-900 truncate max-w-[150px] mt-0.5">{clients.find(c => c.id === selectedFeedClientId)?.name || clients[0]?.name || 'My Family Member'}</div></div>
                             <div className="w-12 h-12 bg-[#77248c] rounded-2xl flex items-center justify-center text-white shadow-xs"><i className="fa-solid fa-heart text-xl text-white"></i></div>
                           </div>
                         </div>
                         <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
                           <div className="flex items-center justify-between">
-                            <div><div className="text-xs font-bold text-gray-500 uppercase">Assigned Caregiver</div><div className="text-lg font-extrabold text-gray-900 truncate max-w-[150px] mt-0.5">Amara Okafor</div></div>
+                            <div><div className="text-xs font-bold text-gray-500 uppercase">Assigned Caregiver</div><div className="text-lg font-extrabold text-gray-900 truncate max-w-[150px] mt-0.5">
+                              {(() => {
+                                const currentClient = clients.find((c: any) => c.id === selectedFeedClientId) || clients[0];
+                                const primaryPodCaregiver = currentClient?.caregiverPods?.find((p: any) => p.role === 'PRIMARY')?.caregiver?.name;
+                                const shiftCaregiver = shifts.find((s: any) => s.clientId === currentClient?.id && s.caregiver?.name)?.caregiver?.name;
+                                return primaryPodCaregiver || shiftCaregiver || caregivers[0]?.name || 'Unassigned';
+                              })()}
+                            </div></div>
                             <div className="w-12 h-12 bg-[#4cdbd5] rounded-2xl flex items-center justify-center text-white shadow-xs"><i className="fa-solid fa-user-nurse text-xl text-white"></i></div>
                           </div>
                         </div>
