@@ -88,6 +88,7 @@ export default function Home() {
   const [newShiftDate, setNewShiftDate] = useState('');
   const [newShiftHours, setNewShiftHours] = useState('8');
   const [schedulerWarning, setSchedulerWarning] = useState<string | null>(null);
+  const [autoAssignPodOnShiftCreate, setAutoAssignPodOnShiftCreate] = useState(true);
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [showAllCaregivers, setShowAllCaregivers] = useState(false);
@@ -1669,6 +1670,7 @@ export default function Home() {
           caregiverId: newShiftCaregiverId,
           scheduledStart: start.toISOString(),
           scheduledEnd: end.toISOString(),
+          autoAssignPod: autoAssignPodOnShiftCreate,
         }),
       });
       const data = await res.json();
@@ -1676,6 +1678,26 @@ export default function Home() {
         setShifts([data.shift, ...shifts]);
         setSchedulerWarning(data.warningAlert || null);
         showNotification(data.warningAlert ? 'Shift Created with Warning' : 'Shift Created Successfully');
+        loadData();
+      }
+    } catch (err) { console.error(err); }
+  };
+
+  const handleQuickAssignPodFromScheduler = async () => {
+    if (!newShiftClientId || !newShiftCaregiverId) return;
+    try {
+      const res = await fetch('/api/admin/pods', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientId: newShiftClientId,
+          caregiverId: newShiftCaregiverId,
+          role: 'PRIMARY',
+        }),
+      });
+      if (res.ok) {
+        setSchedulerWarning(null);
+        showNotification('Caregiver successfully assigned to client Caregiver Pod!');
         loadData();
       }
     } catch (err) { console.error(err); }
@@ -6601,8 +6623,20 @@ export default function Home() {
                   <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
                     <h3 className="font-semibold text-gray-800 mb-6">Create New Shift</h3>
                     {schedulerWarning && (
-                      <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-xl text-sm mb-4 flex items-center gap-2">
-                        <i className="fa-solid fa-triangle-exclamation"></i> {schedulerWarning}
+                      <div className="bg-amber-50 border border-amber-200 text-amber-900 p-4 rounded-2xl text-xs mb-4 space-y-2.5">
+                        <div className="flex items-start gap-2.5 font-medium">
+                          <i className="fa-solid fa-triangle-exclamation text-amber-600 text-base mt-0.5"></i>
+                          <div className="flex-1">{schedulerWarning}</div>
+                        </div>
+                        <div className="flex items-center justify-end gap-2 pt-1 border-t border-amber-200/60">
+                          <button
+                            type="button"
+                            onClick={handleQuickAssignPodFromScheduler}
+                            className="px-3.5 py-1.5 bg-[#77248c] hover:bg-[#5a1a6b] text-white font-bold text-xs rounded-xl shadow-sm transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
+                          >
+                            <i className="fa-solid fa-user-plus text-xs"></i> Assign to Client Pod Now
+                          </button>
+                        </div>
                       </div>
                     )}
                     <form onSubmit={handleCreateShift} className="space-y-4">
@@ -6634,6 +6668,20 @@ export default function Home() {
                         {loadingSuggestions && !showAllCaregivers && <div className="text-xs text-gray-400 mt-1"><i className="fa-solid fa-spinner animate-spin mr-1"></i> Finding best match...</div>}
                         {showAllCaregivers && <div className="text-xs text-amber-600 mt-1 flex items-center gap-1"><i className="fa-solid fa-triangle-exclamation"></i> Manual override — distance & availability checks bypassed.</div>}
                       </div>
+
+                      <div className="flex items-center gap-2 pt-1 pb-1">
+                        <input
+                          type="checkbox"
+                          id="autoAssignPodCheckbox"
+                          checked={autoAssignPodOnShiftCreate}
+                          onChange={(e) => setAutoAssignPodOnShiftCreate(e.target.checked)}
+                          className="w-4 h-4 text-purple-600 rounded border-gray-300 focus:ring-purple-500"
+                        />
+                        <label htmlFor="autoAssignPodCheckbox" className="text-xs text-gray-700 font-medium cursor-pointer">
+                          Auto-enroll caregiver into client's Caregiver Pod team when creating shift
+                        </label>
+                      </div>
+
                       <div>
                         <label className="text-sm font-medium text-gray-600">Start Time</label>
                         <input type="datetime-local" value={newShiftDate} onChange={(e) => setNewShiftDate(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
@@ -6644,7 +6692,7 @@ export default function Home() {
                           <option value="4">4 Hours</option><option value="6">6 Hours</option><option value="8">8 Hours</option>
                         </select>
                       </div>
-                      <button type="submit" className="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-sm rounded-xl transition-all">Create Shift</button>
+                      <button type="submit" className="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-sm rounded-xl transition-all cursor-pointer">Create Shift</button>
                     </form>
                   </div>
                 </div>

@@ -76,7 +76,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const { clientId, caregiverId, scheduledStart, scheduledEnd } = await request.json();
+    const { clientId, caregiverId, scheduledStart, scheduledEnd, autoAssignPod } = await request.json();
 
     if (!clientId || !caregiverId || !scheduledStart || !scheduledEnd) {
       return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
@@ -86,13 +86,37 @@ export async function POST(request: Request) {
     const end = new Date(scheduledEnd);
 
     // 1. Pod consistency check
-    const podAssignment = await prisma.caregiverPod.findFirst({
+    let podAssignment = await prisma.caregiverPod.findFirst({
       where: { clientId, caregiverId },
     });
 
     let warningAlert = null;
     if (!podAssignment) {
-      warningAlert = `Consistency Warning: Selected caregiver is NOT assigned to the Caregiver Pod for this client. Care outside the primary/secondary pod requires admin override.`;
+      if (autoAssignPod) {
+        // Find existing pod assignments to pick the best role
+        const existingPods = await prisma.caregiverPod.findMany({
+          where: { clientId },
+          select: { role: true },
+        });
+        const takenRoles = new Set(existingPods.map(p => p.role));
+        let assignRole: PodRole = PodRole.PRIMARY;
+        if (takenRoles.has(PodRole.PRIMARY)) {
+          if (!takenRoles.has(PodRole.SECONDARY_1)) assignRole = PodRole.SECONDARY_1;
+          else if (!takenRoles.has(PodRole.SECONDARY_2)) assignRole = PodRole.SECONDARY_2;
+        }
+
+        try {
+          podAssignment = await prisma.caregiverPod.create({
+            data: { clientId, caregiverId, role: assignRole },
+          });
+        } catch (e) {
+          console.error('Auto pod creation failed:', e);
+        }
+      }
+
+      if (!podAssignment) {
+        warningAlert = `Consistency Warning: Selected caregiver is NOT assigned to the Caregiver Pod for this client. Care outside the primary/secondary pod requires admin override.`;
+      }
     }
 
     // Calculate confirmation deadline: 24 hours before scheduled start
