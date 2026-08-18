@@ -478,6 +478,72 @@ export default function Home() {
   const [isAdminSettingPassword, setIsAdminSettingPassword] = useState(false);
   const [adminPasswordError, setAdminPasswordError] = useState<string | null>(null);
 
+  // Super Admin Instant Deletion & Initial Password Viewing States
+  const [visiblePasswords, setVisiblePasswords] = useState<{ [id: string]: boolean }>({});
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
+  const [deletingClientId, setDeletingClientId] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const toggleShowPassword = (id: string) => {
+    setVisiblePasswords(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const getInitialPassword = (item: any) => {
+    if (!item) return null;
+    const metaStr = item.profileMetadata || item.user?.profileMetadata || item.familyMembers?.[0]?.user?.profileMetadata;
+    if (!metaStr) return null;
+    try {
+      const meta = typeof metaStr === 'string' ? JSON.parse(metaStr) : metaStr;
+      return meta.initialPassword || null;
+    } catch {
+      return null;
+    }
+  };
+
+  const handleDeleteCaregiver = async (caregiverId: string, caregiverName: string) => {
+    if (!window.confirm(`Are you sure you want to delete caregiver "${caregiverName}"? All assigned shifts, pod assignments, and availability schedules will be deleted.`)) {
+      return;
+    }
+    setDeletingUserId(caregiverId);
+    try {
+      const res = await fetch(`/api/admin/users/${caregiverId}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (res.ok) {
+        showNotification(data.message || `Caregiver ${caregiverName} deleted successfully.`);
+        await loadData();
+      } else {
+        showNotification(data.error || 'Failed to delete caregiver.');
+      }
+    } catch (err) {
+      console.error('Failed to delete caregiver:', err);
+      showNotification('Network error deleting caregiver.');
+    } finally {
+      setDeletingUserId(null);
+    }
+  };
+
+  const handleDeleteClient = async (clientId: string, clientName: string) => {
+    if (!window.confirm(`Are you sure you want to delete client "${clientName}"? All client profiles, family accounts, shifts, and care plans will be permanently removed.`)) {
+      return;
+    }
+    setDeletingClientId(clientId);
+    try {
+      const res = await fetch(`/api/admin/clients/${clientId}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (res.ok) {
+        showNotification(data.message || `Client ${clientName} deleted successfully.`);
+        await loadData();
+      } else {
+        showNotification(data.error || 'Failed to delete client.');
+      }
+    } catch (err) {
+      console.error('Failed to delete client:', err);
+      showNotification('Network error deleting client.');
+    } finally {
+      setDeletingClientId(null);
+    }
+  };
+
   const fetchBusinessStats = async () => {
     setIsLoadingBusinessStats(true);
     setBusinessStatsError(null);
@@ -518,6 +584,7 @@ export default function Home() {
         setShowAdminPasswordModal(false);
         setTargetPasswordUser(null);
         setAdminNewPasswordInput('');
+        await loadData();
       } else {
         setAdminPasswordError(data.error || 'Failed to set password.');
       }
@@ -6351,37 +6418,101 @@ export default function Home() {
                             <tr className="border-b border-gray-100 text-gray-400 uppercase text-[10px] tracking-wider font-bold">
                               <th className="py-3 px-2">Caregiver Name</th>
                               <th className="py-3 px-2">Email Address</th>
+                              <th className="py-3 px-2">First-Time Password</th>
                               <th className="py-3 px-2">Phone</th>
                               <th className="py-3 px-2">Hourly Rate</th>
                               <th className="py-3 px-2 text-right">Actions</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-50">
-                            {caregivers.map((cg: any) => (
-                              <tr key={cg.id} className="hover:bg-purple-50/40 transition-colors">
-                                <td className="py-3.5 px-2 font-bold text-gray-800 flex items-center gap-2">
-                                  <div className="w-7 h-7 rounded-full bg-teal-500 text-white font-bold flex items-center justify-center text-xs">
-                                    {cg.name ? cg.name.charAt(0).toUpperCase() : 'C'}
-                                  </div>
-                                  {cg.name}
-                                </td>
-                                <td className="py-3.5 px-2 text-gray-600 font-mono text-[11px]">{cg.email}</td>
-                                <td className="py-3.5 px-2 text-gray-500">{cg.phoneNumber || '—'}</td>
-                                <td className="py-3.5 px-2 font-semibold text-emerald-600">${cg.payRate ? cg.payRate.toFixed(2) : '28.00'}/hr</td>
-                                <td className="py-3.5 px-2 text-right">
-                                  <button
-                                    onClick={() => {
-                                      setTargetPasswordUser(cg);
-                                      setAdminNewPasswordInput('');
-                                      setShowAdminPasswordModal(true);
-                                    }}
-                                    className="px-3.5 py-2 bg-[#77248c] hover:bg-[#5a1a6b] text-white font-bold text-xs rounded-xl shadow-sm hover:shadow-md transition-all flex items-center gap-1.5 ml-auto cursor-pointer active:scale-95"
-                                  >
-                                    <i className="fa-solid fa-key text-white text-xs"></i> Set / Reset Password
-                                  </button>
-                                </td>
-                              </tr>
-                            ))}
+                            {caregivers.map((cg: any) => {
+                              const initialPass = getInitialPassword(cg);
+                              const isPassVisible = Boolean(visiblePasswords[cg.id]);
+                              return (
+                                <tr key={cg.id} className="hover:bg-purple-50/40 transition-colors">
+                                  <td className="py-3.5 px-2 font-bold text-gray-800 flex items-center gap-2">
+                                    <div className="w-7 h-7 rounded-full bg-teal-500 text-white font-bold flex items-center justify-center text-xs">
+                                      {cg.name ? cg.name.charAt(0).toUpperCase() : 'C'}
+                                    </div>
+                                    {cg.name}
+                                  </td>
+                                  <td className="py-3.5 px-2 text-gray-600 font-mono text-[11px]">{cg.email}</td>
+                                  <td className="py-3.5 px-2">
+                                    {initialPass ? (
+                                      <div className="flex items-center gap-1.5">
+                                        {isPassVisible ? (
+                                          <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-mono font-bold">
+                                            {initialPass}
+                                          </span>
+                                        ) : (
+                                          <button
+                                            type="button"
+                                            onClick={() => toggleShowPassword(cg.id)}
+                                            className="px-2.5 py-1 bg-purple-50 hover:bg-purple-100 text-[#77248c] border border-purple-200 rounded-lg text-xs font-mono font-semibold transition-colors flex items-center gap-1 cursor-pointer"
+                                          >
+                                            <i className="fa-solid fa-eye-slash text-[10px]"></i> ••••••••
+                                          </button>
+                                        )}
+                                        {isPassVisible && (
+                                          <>
+                                            <button
+                                              type="button"
+                                              onClick={() => toggleShowPassword(cg.id)}
+                                              className="text-gray-400 hover:text-gray-600 p-1 cursor-pointer"
+                                              title="Hide password"
+                                            >
+                                              <i className="fa-solid fa-eye text-xs"></i>
+                                            </button>
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                navigator.clipboard.writeText(initialPass);
+                                                setCopiedId(cg.id);
+                                                setTimeout(() => setCopiedId(null), 2000);
+                                              }}
+                                              className="text-purple-600 hover:text-purple-800 p-1 font-bold text-[10px] cursor-pointer"
+                                            >
+                                              {copiedId === cg.id ? '✓ Copied' : 'Copy'}
+                                            </button>
+                                          </>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      <span className="text-gray-400 italic text-[11px]">Not saved (Reset to view)</span>
+                                    )}
+                                  </td>
+                                  <td className="py-3.5 px-2 text-gray-500">{cg.phoneNumber || '—'}</td>
+                                  <td className="py-3.5 px-2 font-semibold text-emerald-600">${cg.payRate ? cg.payRate.toFixed(2) : '28.00'}/hr</td>
+                                  <td className="py-3.5 px-2 text-right">
+                                    <div className="flex items-center justify-end gap-2">
+                                      <button
+                                        onClick={() => {
+                                          setTargetPasswordUser(cg);
+                                          setAdminNewPasswordInput('');
+                                          setShowAdminPasswordModal(true);
+                                        }}
+                                        className="px-3 py-1.5 bg-[#77248c] hover:bg-[#5a1a6b] text-white font-bold text-xs rounded-xl shadow-xs hover:shadow-md transition-all flex items-center gap-1 cursor-pointer active:scale-95"
+                                      >
+                                        <i className="fa-solid fa-key text-white text-xs"></i> Set / Reset Password
+                                      </button>
+
+                                      <button
+                                        onClick={() => handleDeleteCaregiver(cg.id, cg.name)}
+                                        disabled={deletingUserId === cg.id}
+                                        className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl shadow-xs hover:shadow-md transition-all flex items-center gap-1 cursor-pointer active:scale-95 disabled:opacity-50"
+                                        title="Delete caregiver in one tap"
+                                      >
+                                        {deletingUserId === cg.id ? (
+                                          <i className="fa-solid fa-circle-notch animate-spin"></i>
+                                        ) : (
+                                          <><i className="fa-solid fa-trash-can text-white text-xs"></i> Delete</>
+                                        )}
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
                           </tbody>
                         </table>
                       )}
@@ -6568,6 +6699,7 @@ export default function Home() {
                             <tr className="border-b border-gray-100 text-gray-400 font-bold uppercase tracking-wider text-[10px]">
                               <th className="pb-3 px-2">Client Name</th>
                               <th className="pb-3 px-2">Address</th>
+                              <th className="pb-3 px-2">First-Time Password</th>
                               <th className="pb-3 px-2">Care Tier</th>
                               <th className="pb-3 px-2">Billing Rate</th>
                               <th className="pb-3 px-2 text-right">Actions</th>
@@ -6576,6 +6708,8 @@ export default function Home() {
                           <tbody className="divide-y divide-gray-50">
                             {clients.map((cl: any) => {
                               const linkedFamilyUser = cl.familyMembers?.[0]?.user || cl.linkedUser || null;
+                              const initialPass = getInitialPassword(linkedFamilyUser || cl);
+                              const isPassVisible = Boolean(visiblePasswords[cl.id]);
                               return (
                                 <tr key={cl.id} className="hover:bg-purple-50/40 transition-colors">
                                   <td className="py-3.5 px-2 font-bold text-gray-800">
@@ -6588,23 +6722,82 @@ export default function Home() {
                                     </div>
                                   </td>
                                   <td className="py-3.5 px-2 text-gray-600">{cl.address || '—'}</td>
+                                  <td className="py-3.5 px-2">
+                                    {initialPass ? (
+                                      <div className="flex items-center gap-1.5">
+                                        {isPassVisible ? (
+                                          <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-mono font-bold">
+                                            {initialPass}
+                                          </span>
+                                        ) : (
+                                          <button
+                                            type="button"
+                                            onClick={() => toggleShowPassword(cl.id)}
+                                            className="px-2.5 py-1 bg-purple-50 hover:bg-purple-100 text-[#77248c] border border-purple-200 rounded-lg text-xs font-mono font-semibold transition-colors flex items-center gap-1 cursor-pointer"
+                                          >
+                                            <i className="fa-solid fa-eye-slash text-[10px]"></i> ••••••••
+                                          </button>
+                                        )}
+                                        {isPassVisible && (
+                                          <>
+                                            <button
+                                              type="button"
+                                              onClick={() => toggleShowPassword(cl.id)}
+                                              className="text-gray-400 hover:text-gray-600 p-1 cursor-pointer"
+                                              title="Hide password"
+                                            >
+                                              <i className="fa-solid fa-eye text-xs"></i>
+                                            </button>
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                navigator.clipboard.writeText(initialPass);
+                                                setCopiedId(cl.id);
+                                                setTimeout(() => setCopiedId(null), 2000);
+                                              }}
+                                              className="text-purple-600 hover:text-purple-800 p-1 font-bold text-[10px] cursor-pointer"
+                                            >
+                                              {copiedId === cl.id ? '✓ Copied' : 'Copy'}
+                                            </button>
+                                          </>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      <span className="text-gray-400 italic text-[11px]">Not saved (Reset to view)</span>
+                                    )}
+                                  </td>
                                   <td className="py-3.5 px-2 font-semibold text-purple-700">{cl.careTier || 'Standard'}</td>
                                   <td className="py-3.5 px-2 font-semibold text-emerald-600">${cl.billingRatePerHour ? cl.billingRatePerHour.toFixed(2) : '45.00'}/hr</td>
                                   <td className="py-3.5 px-2 text-right">
-                                    <button
-                                      onClick={() => {
-                                        if (!linkedFamilyUser) {
-                                          showNotification(`No linked family account found for client ${cl.name}.`);
-                                          return;
-                                        }
-                                        setTargetPasswordUser(linkedFamilyUser);
-                                        setAdminNewPasswordInput('');
-                                        setShowAdminPasswordModal(true);
-                                      }}
-                                      className="px-3.5 py-2 bg-[#77248c] hover:bg-[#5a1a6b] text-white font-bold text-xs rounded-xl shadow-sm hover:shadow-md transition-all flex items-center gap-1.5 ml-auto cursor-pointer active:scale-95"
-                                    >
-                                      <i className="fa-solid fa-key text-white text-xs"></i> Set / Reset Password
-                                    </button>
+                                    <div className="flex items-center justify-end gap-2">
+                                      <button
+                                        onClick={() => {
+                                          if (!linkedFamilyUser) {
+                                            showNotification(`No linked family account found for client ${cl.name}.`);
+                                            return;
+                                          }
+                                          setTargetPasswordUser(linkedFamilyUser);
+                                          setAdminNewPasswordInput('');
+                                          setShowAdminPasswordModal(true);
+                                        }}
+                                        className="px-3 py-1.5 bg-[#77248c] hover:bg-[#5a1a6b] text-white font-bold text-xs rounded-xl shadow-xs hover:shadow-md transition-all flex items-center gap-1 cursor-pointer active:scale-95"
+                                      >
+                                        <i className="fa-solid fa-key text-white text-xs"></i> Set / Reset Password
+                                      </button>
+
+                                      <button
+                                        onClick={() => handleDeleteClient(cl.id, cl.name)}
+                                        disabled={deletingClientId === cl.id}
+                                        className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl shadow-xs hover:shadow-md transition-all flex items-center gap-1 cursor-pointer active:scale-95 disabled:opacity-50"
+                                        title="Delete client profile in one tap"
+                                      >
+                                        {deletingClientId === cl.id ? (
+                                          <i className="fa-solid fa-circle-notch animate-spin"></i>
+                                        ) : (
+                                          <><i className="fa-solid fa-trash-can text-white text-xs"></i> Delete</>
+                                        )}
+                                      </button>
+                                    </div>
                                   </td>
                                 </tr>
                               );

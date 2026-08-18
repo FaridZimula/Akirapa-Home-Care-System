@@ -59,6 +59,14 @@ export async function POST(request: Request) {
 
     const passwordHash = await hashPassword(password);
 
+    let userMetaObj: any = {};
+    try {
+      userMetaObj = profileMetadata
+        ? (typeof profileMetadata === 'string' ? JSON.parse(profileMetadata) : profileMetadata)
+        : {};
+    } catch {}
+    userMetaObj.initialPassword = password;
+
     const user = await prisma.user.create({
       data: {
         email: normalizedEmail,
@@ -69,7 +77,7 @@ export async function POST(request: Request) {
         payRate: payRate ? parseFloat(payRate) : null,
         latitude: latitude ? parseFloat(latitude) : null,
         longitude: longitude ? parseFloat(longitude) : null,
-        profileMetadata: typeof profileMetadata === 'string' ? profileMetadata : profileMetadata ? JSON.stringify(profileMetadata) : null,
+        profileMetadata: JSON.stringify(userMetaObj),
         // Opt-in per account: when set, login diverts to a set-your-own-password
         // step so the admin-issued temporary password stops working immediately.
         mustChangePassword: mustChangePassword === true,
@@ -94,6 +102,7 @@ export async function POST(request: Request) {
         payRate: user.payRate,
         latitude: user.latitude,
         longitude: user.longitude,
+        profileMetadata: user.profileMetadata,
       },
     });
 
@@ -135,6 +144,7 @@ export async function GET(request: Request) {
         createdAt: true,
         mustChangePassword: true,
         passwordUpdatedAt: true,
+        profileMetadata: true,
       },
     });
 
@@ -181,10 +191,17 @@ export async function PUT(request: Request) {
 
     const passwordHash = await hashPassword(newPassword);
 
+    let updatedMeta: any = {};
+    try {
+      updatedMeta = targetUser.profileMetadata ? JSON.parse(targetUser.profileMetadata) : {};
+    } catch {}
+    updatedMeta.initialPassword = newPassword;
+
     await prisma.user.update({
       where: { id: userId },
       data: {
         passwordHash,
+        profileMetadata: JSON.stringify(updatedMeta),
         mustChangePassword: mustChangePassword !== undefined ? mustChangePassword : true,
         passwordUpdatedAt: new Date(),
       },

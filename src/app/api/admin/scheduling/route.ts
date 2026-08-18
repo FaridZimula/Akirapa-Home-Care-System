@@ -8,14 +8,14 @@ const clientInclude = {
   caregiverPods: {
     include: {
       caregiver: {
-        select: { id: true, name: true, email: true, phoneNumber: true },
+        select: { id: true, name: true, email: true, phoneNumber: true, profileMetadata: true },
       },
     },
   },
   familyMembers: {
     include: {
       user: {
-        select: { id: true, name: true, email: true, phoneNumber: true },
+        select: { id: true, name: true, email: true, phoneNumber: true, profileMetadata: true },
       },
     },
   },
@@ -51,7 +51,7 @@ export async function GET() {
 
     const caregivers = await prisma.user.findMany({
       where: { role: 'CAREGIVER' },
-      select: { id: true, name: true, email: true, phoneNumber: true },
+      select: { id: true, name: true, email: true, phoneNumber: true, payRate: true, profileMetadata: true },
     });
 
     const shifts = await prisma.shift.findMany({

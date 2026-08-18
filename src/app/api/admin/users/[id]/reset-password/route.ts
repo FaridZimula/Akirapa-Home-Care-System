@@ -49,10 +49,17 @@ export async function POST(
       );
     }
 
+    let targetMeta: any = {};
+    try {
+      targetMeta = target.profileMetadata ? JSON.parse(target.profileMetadata) : {};
+    } catch {}
+    targetMeta.initialPassword = password;
+
     await prisma.user.update({
       where: { id },
       data: {
         passwordHash: await hashPassword(password),
+        profileMetadata: JSON.stringify(targetMeta),
         mustChangePassword: mustChangePassword === true,
         passwordUpdatedAt: new Date(),
       },

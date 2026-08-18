@@ -63,17 +63,23 @@ export async function POST(request: Request) {
           name,
           role: UserRole.FAMILY_MEMBER,
           phoneNumber: phoneNumber || null,
+          profileMetadata: JSON.stringify({ initialPassword: password }),
           mustChangePassword: true,
         },
       });
     } else {
       // If family user already exists, update credentials & phone so new password set by admin takes effect
+      let existingUserMeta: any = {};
+      try { existingUserMeta = user.profileMetadata ? JSON.parse(user.profileMetadata) : {}; } catch {}
+      existingUserMeta.initialPassword = password;
+
       user = await prisma.user.update({
         where: { id: user.id },
         data: {
           passwordHash: hashedPassword,
           name: name || user.name,
           phoneNumber: phoneNumber || user.phoneNumber,
+          profileMetadata: JSON.stringify(existingUserMeta),
           mustChangePassword: true,
         },
       });
