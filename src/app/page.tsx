@@ -2716,11 +2716,11 @@ export default function Home() {
 
         <form onSubmit={(e) => { e.preventDefault(); handlePortalLogin(loginEmail, loginPassword); }} className="space-y-4">
           <div>
-            <label className="text-xs font-semibold text-gray-500 uppercase">Email address</label>
+            <label className="text-xs font-semibold text-gray-500 uppercase">Email address <span className="text-red-500 ml-0.5">*</span></label>
             <input type="email" required placeholder="email@akirapahomecareus.com" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all" />
           </div>
           <div>
-            <label className="text-xs font-semibold text-gray-500 uppercase">Password</label>
+            <label className="text-xs font-semibold text-gray-500 uppercase">Password <span className="text-red-500 ml-0.5">*</span></label>
             <div className="relative">
               <input
                 type={showLoginPassword ? "text" : "password"}
@@ -3341,14 +3341,14 @@ export default function Home() {
 
         <form onSubmit={isForgotCodeSent ? handleResetPasswordSubmit : handleSendForgotCode} className="space-y-4">
           <div>
-            <label className="text-xs font-semibold text-gray-500 uppercase">Email</label>
+            <label className="text-xs font-semibold text-gray-500 uppercase">Email <span className="text-red-500 ml-0.5">*</span></label>
             <input type="email" required disabled={isForgotCodeSent} placeholder="email@akirapahomecareus.com" value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50" />
           </div>
           {isForgotCodeSent && (
             <>
-              <div><label className="text-xs font-semibold text-gray-500 uppercase">6-Digit Code</label><input type="text" maxLength={6} placeholder="192804" value={forgotCode} onChange={(e) => setForgotCode(e.target.value.replace(/\D/g, ''))} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-center text-base font-bold tracking-widest focus:outline-none focus:ring-2 focus:ring-purple-500" /></div>
+              <div><label className="text-xs font-semibold text-gray-500 uppercase">6-Digit Code <span className="text-red-500 ml-0.5">*</span></label><input type="text" maxLength={6} placeholder="192804" value={forgotCode} onChange={(e) => setForgotCode(e.target.value.replace(/\D/g, ''))} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-center text-base font-bold tracking-widest focus:outline-none focus:ring-2 focus:ring-purple-500" /></div>
               <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase">New Password</label>
+                <label className="text-xs font-semibold text-gray-500 uppercase">New Password <span className="text-red-500 ml-0.5">*</span></label>
                 <div className="relative">
                   <input
                     type={showForgotPassword ? "text" : "password"}
