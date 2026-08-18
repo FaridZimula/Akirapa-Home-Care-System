@@ -5,6 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { formatDate, formatTime, formatDateTime } from '@/lib/dateFormat';
 import { isCaregiverProvisioningAuthorized, isBusinessHubAuthorized } from '@/lib/adminAllowlist';
 import { cleanUSPhoneDigits, formatUSPhoneWithCountryCode, formatUSPhoneDisplay } from '@/lib/phone';
+import { LocationAutocompleteInput } from '@/components/LocationAutocompleteInput';
 
 // Structured client welfare check, asked every shift. Polarity is explicit per
 // question (some are "good = YES", others "bad = YES") so the computed
@@ -203,7 +204,8 @@ export default function Home() {
   const [newShiftTaskInput, setNewShiftTaskInput] = useState<string>('');
 
   // Add Client Provisioning State
-  const [newClientName, setNewClientName] = useState('');
+  const [newClientFirstName, setNewClientFirstName] = useState('');
+  const [newClientLastName, setNewClientLastName] = useState('');
   const [newClientEmail, setNewClientEmail] = useState('');
   const [newClientPassword, setNewClientPassword] = useState('');
   const [newClientAddress, setNewClientAddress] = useState('');
@@ -213,7 +215,8 @@ export default function Home() {
   const [newClientPhone, setNewClientPhone] = useState('');
   const [newClientCareTier, setNewClientCareTier] = useState('Standard');
   const [newClientBillingRate, setNewClientBillingRate] = useState('45.00');
-  const [newClientEmergencyName, setNewClientEmergencyName] = useState('');
+  const [newClientEmergencyFirstName, setNewClientEmergencyFirstName] = useState('');
+  const [newClientEmergencyLastName, setNewClientEmergencyLastName] = useState('');
   const [newClientEmergencyPhone, setNewClientEmergencyPhone] = useState('');
   const [newClientEmergencyRelationship, setNewClientEmergencyRelationship] = useState('Family Contact');
   const [isProvisioningClient, setIsProvisioningClient] = useState(false);
@@ -231,7 +234,8 @@ export default function Home() {
   const [showMandatoryOnboardingModal, setShowMandatoryOnboardingModal] = useState(false);
   const [onboardingPhone, setOnboardingPhone] = useState('');
   const [onboardingAddress, setOnboardingAddress] = useState('');
-  const [onboardingEmergencyName, setOnboardingEmergencyName] = useState('');
+  const [onboardingEmergencyFirstName, setOnboardingEmergencyFirstName] = useState('');
+  const [onboardingEmergencyLastName, setOnboardingEmergencyLastName] = useState('');
   const [onboardingEmergencyPhone, setOnboardingEmergencyPhone] = useState('');
   const [isSubmittingOnboarding, setIsSubmittingOnboarding] = useState(false);
 
@@ -255,7 +259,8 @@ export default function Home() {
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserPassword, setNewUserPassword] = useState('');
-  const [newUserName, setNewUserName] = useState('');
+  const [newUserFirstName, setNewUserFirstName] = useState('');
+  const [newUserLastName, setNewUserLastName] = useState('');
   const [newUserRole, setNewUserRole] = useState<'CAREGIVER' | 'CARE_COORDINATOR'>('CAREGIVER');
   const [newUserPhone, setNewUserPhone] = useState('');
   const [newUserPayRate, setNewUserPayRate] = useState('28.00');
@@ -263,7 +268,8 @@ export default function Home() {
   const [addUserError, setAddUserError] = useState<string | null>(null);
 
   // Signup States
-  const [signupName, setSignupName] = useState('');
+  const [signupFirstName, setSignupFirstName] = useState('');
+  const [signupLastName, setSignupLastName] = useState('');
   const [signupEmail, setSignupEmail] = useState('');
   const [signupPassword, setSignupPassword] = useState('');
   const [signupPhone, setSignupPhone] = useState('');
@@ -277,7 +283,8 @@ export default function Home() {
   const [isSendingSignupCode, setIsSendingSignupCode] = useState(false);
 
   // Signup — Client Details (only used when signupRole === 'CLIENT')
-  const [patientFullName, setPatientFullName] = useState('');
+  const [patientFirstName, setPatientFirstName] = useState('');
+  const [patientLastName, setPatientLastName] = useState('');
   const [patientDobInput, setPatientDobInput] = useState('');
   const [patientGenderInput, setPatientGenderInput] = useState('');
   const [patientPhoneInput, setPatientPhoneInput] = useState('');
@@ -292,10 +299,12 @@ export default function Home() {
   const [patientAllergiesNotes, setPatientAllergiesNotes] = useState('');
 
   // Signup — Emergency Contacts
-  const [primaryContactName, setPrimaryContactName] = useState('');
+  const [primaryContactFirstName, setPrimaryContactFirstName] = useState('');
+  const [primaryContactLastName, setPrimaryContactLastName] = useState('');
   const [primaryContactRelationship, setPrimaryContactRelationship] = useState('');
   const [primaryContactPhone, setPrimaryContactPhone] = useState('');
-  const [secondaryContactName, setSecondaryContactName] = useState('');
+  const [secondaryContactFirstName, setSecondaryContactFirstName] = useState('');
+  const [secondaryContactLastName, setSecondaryContactLastName] = useState('');
   const [secondaryContactRelationship, setSecondaryContactRelationship] = useState('');
   const [secondaryContactPhone, setSecondaryContactPhone] = useState('');
 
@@ -600,8 +609,10 @@ export default function Home() {
 
   const handleProvisionClient = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newClientName || !newClientEmail || !newClientPassword) {
-      setAddClientError('Client name, login email, and first-time password are required.');
+    const newClientName = `${newClientFirstName.trim()} ${newClientLastName.trim()}`.trim();
+    const newClientEmergencyName = `${newClientEmergencyFirstName.trim()} ${newClientEmergencyLastName.trim()}`.trim();
+    if (!newClientFirstName || !newClientLastName || !newClientEmail || !newClientPassword) {
+      setAddClientError('Client first name, last name, login email, and first-time password are required.');
       return;
     }
     setIsProvisioningClient(true);
@@ -629,10 +640,10 @@ export default function Home() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to provision client.');
       showNotification(data.message || `Client ${newClientName} provisioned successfully!`);
-      setNewClientName(''); setNewClientEmail(''); setNewClientPassword('');
+      setNewClientFirstName(''); setNewClientLastName(''); setNewClientEmail(''); setNewClientPassword('');
       setNewClientAddress(''); setNewClientCity(''); setNewClientState('');
       setNewClientZip(''); setNewClientPhone('');
-      setNewClientEmergencyName(''); setNewClientEmergencyPhone('');
+      setNewClientEmergencyFirstName(''); setNewClientEmergencyLastName(''); setNewClientEmergencyPhone('');
       await loadData();
     } catch (err: any) {
       setAddClientError(err.message || 'An unexpected error occurred.');
@@ -1507,6 +1518,11 @@ export default function Home() {
       setSignupError('Please verify your email address first.');
       return;
     }
+    const signupName = `${signupFirstName.trim()} ${signupLastName.trim()}`.trim();
+    const patientFullName = `${patientFirstName.trim()} ${patientLastName.trim()}`.trim();
+    const primaryContactName = `${primaryContactFirstName.trim()} ${primaryContactLastName.trim()}`.trim();
+    const secondaryContactName = `${secondaryContactFirstName.trim()} ${secondaryContactLastName.trim()}`.trim();
+
     setIsSigningUp(true);
     setSignupError(null);
     try {
@@ -1576,11 +1592,13 @@ export default function Home() {
         await loadData();
         setSignupEmail('');
         setSignupPassword('');
-        setSignupName('');
+        setSignupFirstName('');
+        setSignupLastName('');
         setSignupPhone('');
         setSignupCode('');
         setIsSignupCodeSent(false);
-        setPatientFullName('');
+        setPatientFirstName('');
+        setPatientLastName('');
         setPatientDobInput('');
         setPatientGenderInput('');
         setPatientPhoneInput('');
@@ -1589,10 +1607,12 @@ export default function Home() {
         setPatientCityInput('');
         setPatientStateInput('');
         setPatientZipInput('');
-        setPrimaryContactName('');
+        setPrimaryContactFirstName('');
+        setPrimaryContactLastName('');
         setPrimaryContactRelationship('');
         setPrimaryContactPhone('');
-        setSecondaryContactName('');
+        setSecondaryContactFirstName('');
+        setSecondaryContactLastName('');
         setSecondaryContactRelationship('');
         setSecondaryContactPhone('');
         setCgDob('');
@@ -1626,6 +1646,7 @@ export default function Home() {
     e.preventDefault();
     setAddUserError(null);
     setIsCreatingUser(true);
+    const newUserName = `${newUserFirstName.trim()} ${newUserLastName.trim()}`.trim();
 
     try {
       const res = await fetch('/api/admin/users', {
@@ -1651,7 +1672,8 @@ export default function Home() {
       setShowAddUserModal(false);
       setNewUserEmail('');
       setNewUserPassword('');
-      setNewUserName('');
+      setNewUserFirstName('');
+      setNewUserLastName('');
       setNewUserPhone('');
       await loadData();
     } catch (err) {
@@ -2846,12 +2868,18 @@ export default function Home() {
         </div>
 
         <form onSubmit={handleRegister} className="space-y-4">
-          <div>
-            <label className="text-xs font-semibold text-gray-500 uppercase">Full Name</label>
-            <input type="text" required placeholder="Jane Doe" value={signupName} onChange={(e) => setSignupName(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-semibold text-gray-500 uppercase">First Name <span className="text-red-500 ml-0.5">*</span></label>
+              <input type="text" required placeholder="Jane" value={signupFirstName} onChange={(e) => setSignupFirstName(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-500 uppercase">Last Name <span className="text-red-500 ml-0.5">*</span></label>
+              <input type="text" required placeholder="Doe" value={signupLastName} onChange={(e) => setSignupLastName(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+            </div>
           </div>
           <div>
-            <label className="text-xs font-semibold text-gray-500 uppercase">Email</label>
+            <label className="text-xs font-semibold text-gray-500 uppercase">Email <span className="text-red-500 ml-0.5">*</span></label>
             <div className="flex gap-2">
               <input type="email" required disabled={isSignupCodeSent} placeholder="email@akirapahomecareus.com" value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} className="flex-1 min-w-0 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50" />
               <button
@@ -2870,12 +2898,12 @@ export default function Home() {
           </div>
           {isSignupCodeSent && (
             <div>
-              <label className="text-xs font-semibold text-gray-500 uppercase">6-Digit Verification Code</label>
+              <label className="text-xs font-semibold text-gray-500 uppercase">6-Digit Verification Code <span className="text-red-500 ml-0.5">*</span></label>
               <input type="text" required maxLength={6} placeholder="192804" value={signupCode} onChange={(e) => setSignupCode(e.target.value.replace(/\D/g, ''))} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-center text-base font-bold tracking-widest focus:outline-none focus:ring-2 focus:ring-purple-500" />
             </div>
           )}
           <div>
-            <label className="text-xs font-semibold text-gray-500 uppercase">Password</label>
+            <label className="text-xs font-semibold text-gray-500 uppercase">Password <span className="text-red-500 ml-0.5">*</span></label>
             <div className="relative">
               <input
                 type={showSignupPassword ? "text" : "password"}
@@ -2901,7 +2929,7 @@ export default function Home() {
             {renderPasswordStrengthMeter(signupPassword)}
           </div>
           <div>
-            <label className="text-xs font-semibold text-gray-500 uppercase">US Phone Number</label>
+            <label className="text-xs font-semibold text-gray-500 uppercase">US Phone Number <span className="text-red-500 ml-0.5">*</span></label>
             <div className="relative flex items-center mt-1">
               <span className="absolute left-3.5 font-mono font-bold text-[#77248c] text-sm select-none pointer-events-none">+1</span>
               <input
@@ -2955,8 +2983,19 @@ export default function Home() {
                     <input type="text" placeholder="e.g. EAD Card No. / Work Permit No." value={cgWorkAuthNumber} onChange={(e) => setCgWorkAuthNumber(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
                   </div>
                   <div className="col-span-2">
-                    <label className="text-xs font-semibold text-gray-500 uppercase">Home Address</label>
-                    <input type="text" placeholder="123 Main St" value={cgAddress} onChange={(e) => setCgAddress(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                    <label className="text-xs font-semibold text-gray-500 uppercase">Home Address <span className="text-red-500 ml-0.5">*</span></label>
+                    <LocationAutocompleteInput
+                      value={cgAddress}
+                      onChange={(val) => setCgAddress(val)}
+                      onSelectLocation={(loc) => {
+                        setCgAddress(loc.street || loc.full);
+                        if (loc.city) setCgCity(loc.city);
+                        if (loc.state) setCgState(loc.state);
+                        if (loc.zip) setCgZip(loc.zip);
+                      }}
+                      placeholder="Start typing US address..."
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    />
                   </div>
                   <div className="col-span-1">
                     <label className="text-xs font-semibold text-gray-500 uppercase">City</label>
@@ -3062,8 +3101,12 @@ export default function Home() {
                 </div>
                 <div className="grid grid-cols-3 gap-3">
                   <div className="col-span-1">
-                    <label className="text-xs font-semibold text-gray-500 uppercase">Full Name</label>
-                    <input type="text" placeholder="Client's full name" value={patientFullName} onChange={(e) => setPatientFullName(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                    <label className="text-xs font-semibold text-gray-500 uppercase">First Name <span className="text-red-500 ml-0.5">*</span></label>
+                    <input type="text" required placeholder="Robert" value={patientFirstName} onChange={(e) => setPatientFirstName(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                  </div>
+                  <div className="col-span-1">
+                    <label className="text-xs font-semibold text-gray-500 uppercase">Last Name <span className="text-red-500 ml-0.5">*</span></label>
+                    <input type="text" required placeholder="Smith" value={patientLastName} onChange={(e) => setPatientLastName(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
                   </div>
                   <div className="col-span-1">
                     <label className="text-xs font-semibold text-gray-500 uppercase">Date of Birth</label>
@@ -3091,13 +3134,24 @@ export default function Home() {
                       />
                     </div>
                   </div>
-                  <div className="col-span-2">
+                  <div className="col-span-1">
                     <label className="text-xs font-semibold text-gray-500 uppercase">Email Address</label>
                     <input type="email" placeholder="email@akirapahomecareus.com" value={patientEmailInput} onChange={(e) => setPatientEmailInput(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
                   </div>
                   <div className="col-span-3">
-                    <label className="text-xs font-semibold text-gray-500 uppercase">Home Address</label>
-                    <input type="text" placeholder="123 Main St" value={patientAddressInput} onChange={(e) => setPatientAddressInput(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                    <label className="text-xs font-semibold text-gray-500 uppercase">Home Address <span className="text-red-500 ml-0.5">*</span></label>
+                    <LocationAutocompleteInput
+                      value={patientAddressInput}
+                      onChange={(val) => setPatientAddressInput(val)}
+                      onSelectLocation={(loc) => {
+                        setPatientAddressInput(loc.street || loc.full);
+                        if (loc.city) setPatientCityInput(loc.city);
+                        if (loc.state) setPatientStateInput(loc.state);
+                        if (loc.zip) setPatientZipInput(loc.zip);
+                      }}
+                      placeholder="Start typing US address..."
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    />
                   </div>
                   <div className="col-span-1">
                     <label className="text-xs font-semibold text-gray-500 uppercase">City</label>
@@ -3144,9 +3198,13 @@ export default function Home() {
                   <div>
                     <div className="text-[11px] font-bold text-gray-400 uppercase mb-2">Primary Contact</div>
                     <div className="grid grid-cols-2 gap-3">
-                      <div className="col-span-2">
-                        <label className="text-xs font-semibold text-gray-500 uppercase">Contact Name</label>
-                        <input type="text" value={primaryContactName} onChange={(e) => setPrimaryContactName(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                      <div className="col-span-1">
+                        <label className="text-xs font-semibold text-gray-500 uppercase">First Name <span className="text-red-500 ml-0.5">*</span></label>
+                        <input type="text" required placeholder="Mary" value={primaryContactFirstName} onChange={(e) => setPrimaryContactFirstName(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                      </div>
+                      <div className="col-span-1">
+                        <label className="text-xs font-semibold text-gray-500 uppercase">Last Name <span className="text-red-500 ml-0.5">*</span></label>
+                        <input type="text" required placeholder="Smith" value={primaryContactLastName} onChange={(e) => setPrimaryContactLastName(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
                       </div>
                       <div className="col-span-1">
                         <label className="text-xs font-semibold text-gray-500 uppercase">Relationship</label>
@@ -3170,9 +3228,13 @@ export default function Home() {
                   <div>
                     <div className="text-[11px] font-bold text-gray-400 uppercase mb-2">Secondary Contact</div>
                     <div className="grid grid-cols-2 gap-3">
-                      <div className="col-span-2">
-                        <label className="text-xs font-semibold text-gray-500 uppercase">Contact Name</label>
-                        <input type="text" value={secondaryContactName} onChange={(e) => setSecondaryContactName(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                      <div className="col-span-1">
+                        <label className="text-xs font-semibold text-gray-500 uppercase">First Name</label>
+                        <input type="text" placeholder="John" value={secondaryContactFirstName} onChange={(e) => setSecondaryContactFirstName(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                      </div>
+                      <div className="col-span-1">
+                        <label className="text-xs font-semibold text-gray-500 uppercase">Last Name</label>
+                        <input type="text" placeholder="Smith" value={secondaryContactLastName} onChange={(e) => setSecondaryContactLastName(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
                       </div>
                       <div className="col-span-1">
                         <label className="text-xs font-semibold text-gray-500 uppercase">Relationship</label>
@@ -3432,20 +3494,33 @@ export default function Home() {
             </div>
 
             <form onSubmit={handleAdminCreateUser} className="space-y-4 text-xs">
-              <div>
-                <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Full Name</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Sarah Jenkins"
-                  value={newUserName}
-                  onChange={(e) => setNewUserName(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">First Name <span className="text-red-500 ml-0.5">*</span></label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Sarah"
+                    value={newUserFirstName}
+                    onChange={(e) => setNewUserFirstName(e.target.value)}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Last Name <span className="text-red-500 ml-0.5">*</span></label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Jenkins"
+                    value={newUserLastName}
+                    onChange={(e) => setNewUserLastName(e.target.value)}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
+                  />
+                </div>
               </div>
 
               <div>
-                <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Company Email (@akirapahomecareus.com)</label>
+                <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Company Email (@akirapahomecareus.com) <span className="text-red-500 ml-0.5">*</span></label>
                 <input
                   type="email"
                   required
@@ -3457,7 +3532,7 @@ export default function Home() {
               </div>
 
               <div>
-                <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Initial Password</label>
+                <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Initial Password <span className="text-red-500 ml-0.5">*</span></label>
                 <input
                   type="text"
                   required
@@ -3517,7 +3592,7 @@ export default function Home() {
 
               <button
                 type="submit"
-                disabled={isCreatingUser || !newUserEmail || !newUserPassword || !newUserName}
+                disabled={isCreatingUser || !newUserEmail || !newUserPassword || !newUserFirstName || !newUserLastName}
                 className="w-full py-3.5 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-sm rounded-xl transition-all disabled:opacity-50 mt-2"
               >
                 {isCreatingUser ? 'Provisioning Account...' : 'Create Staff Account'}
@@ -6374,18 +6449,32 @@ export default function Home() {
                     <form onSubmit={(e) => { setNewUserRole('CAREGIVER'); handleAdminCreateUser(e); }} className="space-y-4 text-xs">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Caregiver Full Name <span className="text-red-500">*</span></label>
+                          <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Caregiver First Name <span className="text-red-500">*</span></label>
                           <input
                             type="text"
                             required
-                            placeholder="e.g. Sarah Connor"
-                            value={newUserName}
-                            onChange={(e) => setNewUserName(e.target.value)}
+                            placeholder="e.g. Sarah"
+                            value={newUserFirstName}
+                            onChange={(e) => setNewUserFirstName(e.target.value)}
                             className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
                           />
                         </div>
 
                         <div>
+                          <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Caregiver Last Name <span className="text-red-500">*</span></label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. Connor"
+                            value={newUserLastName}
+                            onChange={(e) => setNewUserLastName(e.target.value)}
+                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="md:col-span-2">
                           <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Official Caregiver Email <span className="text-red-500">*</span></label>
                           <input
                             type="email"
@@ -6442,7 +6531,7 @@ export default function Home() {
 
                       <button
                         type="submit"
-                        disabled={isCreatingUser || !newUserEmail || !newUserPassword || !newUserName}
+                        disabled={isCreatingUser || !newUserEmail || !newUserPassword || !newUserFirstName || !newUserLastName}
                         className="w-full py-4 bg-[#77248c] hover:bg-[#5a1a6b] text-white font-bold text-sm rounded-xl transition-all disabled:opacity-50 shadow-md cursor-pointer flex items-center justify-center gap-2 mt-2"
                       >
                         {isCreatingUser ? (
@@ -6606,18 +6695,32 @@ export default function Home() {
                     <form onSubmit={handleProvisionClient} className="space-y-4 text-xs">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Client Full Name <span className="text-red-500">*</span></label>
+                          <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Client First Name <span className="text-red-500">*</span></label>
                           <input
                             type="text"
                             required
-                            placeholder="e.g. Robert Smith"
-                            value={newClientName}
-                            onChange={(e) => setNewClientName(e.target.value)}
+                            placeholder="e.g. Robert"
+                            value={newClientFirstName}
+                            onChange={(e) => setNewClientFirstName(e.target.value)}
                             className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
                           />
                         </div>
 
                         <div>
+                          <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Client Last Name <span className="text-red-500">*</span></label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. Smith"
+                            value={newClientLastName}
+                            onChange={(e) => setNewClientLastName(e.target.value)}
+                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="md:col-span-2">
                           <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Client / Family Email (Normal Email) <span className="text-red-500">*</span></label>
                           <input
                             type="email"
@@ -6685,12 +6788,17 @@ export default function Home() {
                         </div>
 
                         <div className="md:col-span-2">
-                          <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Street Address</label>
-                          <input
-                            type="text"
-                            placeholder="1234 West 4th Ave"
+                          <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Street Address <span className="text-red-500">*</span></label>
+                          <LocationAutocompleteInput
                             value={newClientAddress}
-                            onChange={(e) => setNewClientAddress(e.target.value)}
+                            onChange={(val) => setNewClientAddress(val)}
+                            onSelectLocation={(loc) => {
+                              setNewClientAddress(loc.street || loc.full);
+                              if (loc.city) setNewClientCity(loc.city);
+                              if (loc.state) setNewClientState(loc.state);
+                              if (loc.zip) setNewClientZip(loc.zip);
+                            }}
+                            placeholder="1234 West 4th Ave..."
                             className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
                           />
                         </div>
@@ -6698,17 +6806,32 @@ export default function Home() {
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Emergency Contact Name</label>
+                          <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Emergency Contact First Name <span className="text-red-500">*</span></label>
                           <input
                             type="text"
-                            placeholder="e.g. Mary Smith"
-                            value={newClientEmergencyName}
-                            onChange={(e) => setNewClientEmergencyName(e.target.value)}
+                            required
+                            placeholder="e.g. Mary"
+                            value={newClientEmergencyFirstName}
+                            onChange={(e) => setNewClientEmergencyFirstName(e.target.value)}
                             className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
                           />
                         </div>
 
                         <div>
+                          <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Emergency Contact Last Name <span className="text-red-500">*</span></label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. Smith"
+                            value={newClientEmergencyLastName}
+                            onChange={(e) => setNewClientEmergencyLastName(e.target.value)}
+                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="md:col-span-2">
                           <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Emergency Contact Phone</label>
                           <div className="relative flex items-center mt-1">
                             <span className="absolute left-3.5 font-mono font-bold text-[#77248c] text-sm select-none pointer-events-none">+1</span>
@@ -6731,7 +6854,7 @@ export default function Home() {
 
                       <button
                         type="submit"
-                        disabled={isProvisioningClient || !newClientName || !newClientEmail || !newClientPassword}
+                        disabled={isProvisioningClient || !newClientFirstName || !newClientLastName || !newClientEmail || !newClientPassword}
                         className="w-full py-4 bg-[#77248c] hover:bg-[#5a1a6b] text-white font-bold text-sm rounded-xl transition-all disabled:opacity-50 shadow-md cursor-pointer flex items-center justify-center gap-2 mt-2"
                       >
                         {isProvisioningClient ? (
@@ -8092,7 +8215,7 @@ export default function Home() {
             </div>
             <div className="space-y-4">
               <div>
-                <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px] block mb-1">US Phone Number *</label>
+                <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px] block mb-1">US Phone Number <span className="text-red-500 ml-0.5">*</span></label>
                 <div className="relative flex items-center mt-1">
                   <span className="absolute left-3.5 font-mono font-bold text-[#77248c] text-sm select-none pointer-events-none">+1</span>
                   <input
@@ -8105,24 +8228,42 @@ export default function Home() {
                 </div>
               </div>
               <div>
-                <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px] block mb-1">{user.role === 'CAREGIVER' ? 'Home Address' : 'Your Address'}</label>
-                <input
-                  type="text"
-                  placeholder="123 Main St, City, State"
+                <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px] block mb-1">
+                  {user.role === 'CAREGIVER' ? 'Home Address' : 'Your Address'} <span className="text-red-500 ml-0.5">*</span>
+                </label>
+                <LocationAutocompleteInput
                   value={onboardingAddress}
-                  onChange={(e) => setOnboardingAddress(e.target.value)}
+                  onChange={(val) => setOnboardingAddress(val)}
+                  onSelectLocation={(loc) => {
+                    setOnboardingAddress(loc.full || loc.street);
+                  }}
+                  placeholder="123 Main St, City, State"
                   className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
-              <div>
-                <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px] block mb-1">Emergency Contact Name</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Jane Doe"
-                  value={onboardingEmergencyName}
-                  onChange={(e) => setOnboardingEmergencyName(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px] block mb-1">Emergency Contact First Name <span className="text-red-500 ml-0.5">*</span></label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Jane"
+                    value={onboardingEmergencyFirstName}
+                    onChange={(e) => setOnboardingEmergencyFirstName(e.target.value)}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px] block mb-1">Emergency Contact Last Name <span className="text-red-500 ml-0.5">*</span></label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Doe"
+                    value={onboardingEmergencyLastName}
+                    onChange={(e) => setOnboardingEmergencyLastName(e.target.value)}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
               </div>
               <div>
                 <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px] block mb-1">Emergency Contact Phone</label>
@@ -8151,7 +8292,10 @@ export default function Home() {
                         phoneNumber: onboardingPhone,
                         profileMetadata: JSON.stringify({
                           address: onboardingAddress,
-                          emergencyContact: { name: onboardingEmergencyName, phone: onboardingEmergencyPhone },
+                          emergencyContact: {
+                            name: `${onboardingEmergencyFirstName.trim()} ${onboardingEmergencyLastName.trim()}`.trim(),
+                            phone: onboardingEmergencyPhone,
+                          },
                         }),
                       }),
                     });
