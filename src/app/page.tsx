@@ -2953,7 +2953,7 @@ export default function Home() {
             <>
               <div className="pt-3 border-t border-gray-100">
                 <div className="flex flex-col items-center mb-4">
-                  <div className="w-11 h-11 bg-[#4cdbd5] rounded-full flex items-center justify-center mb-2 shadow-xs"><i className="fa-solid fa-id-card text-white text-base"></i></div>
+                  <div className="w-11 h-11 bg-[#77248c] text-white rounded-full flex items-center justify-center mb-2 shadow-xs"><i className="fa-solid fa-id-card text-white text-base"></i></div>
                   <h3 className="text-xs font-bold text-teal-700 uppercase tracking-wider">Caregiver Details</h3>
                 </div>
                 <div className="grid grid-cols-3 gap-3">
@@ -3017,7 +3017,7 @@ export default function Home() {
 
               <div className="pt-3 border-t border-gray-100">
                 <div className="flex flex-col items-center mb-4">
-                  <div className="w-11 h-11 bg-[#4cdbd5] rounded-full flex items-center justify-center mb-2 shadow-xs"><i className="fa-solid fa-briefcase text-white text-base"></i></div>
+                  <div className="w-11 h-11 bg-[#77248c] text-white rounded-full flex items-center justify-center mb-2 shadow-xs"><i className="fa-solid fa-briefcase text-white text-base"></i></div>
                   <h3 className="text-xs font-bold text-teal-700 uppercase tracking-wider">Position Details</h3>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -3096,7 +3096,7 @@ export default function Home() {
             <>
               <div className="pt-3 border-t border-gray-100">
                 <div className="flex flex-col items-center mb-4">
-                  <div className="w-11 h-11 bg-[#4cdbd5] rounded-full flex items-center justify-center mb-2 shadow-xs"><i className="fa-solid fa-user text-white text-base"></i></div>
+                  <div className="w-11 h-11 bg-[#77248c] text-white rounded-full flex items-center justify-center mb-2 shadow-xs"><i className="fa-solid fa-user text-white text-base"></i></div>
                   <h3 className="text-xs font-bold text-teal-700 uppercase tracking-wider">Client Details</h3>
                 </div>
                 <div className="grid grid-cols-3 gap-3">
@@ -3173,7 +3173,7 @@ export default function Home() {
 
               <div className="pt-3 border-t border-gray-100">
                 <div className="flex flex-col items-center mb-4">
-                  <div className="w-11 h-11 bg-[#4cdbd5] rounded-full flex items-center justify-center mb-2 shadow-xs"><i className="fa-solid fa-notes-medical text-white text-base"></i></div>
+                  <div className="w-11 h-11 bg-[#77248c] text-white rounded-full flex items-center justify-center mb-2 shadow-xs"><i className="fa-solid fa-notes-medical text-white text-base"></i></div>
                   <h3 className="text-xs font-bold text-teal-700 uppercase tracking-wider">Health & Care Notes</h3>
                   <p className="text-[11px] text-gray-400 mt-1 text-center">Helps caregivers prepare properly and stay alert to what matters.</p>
                 </div>
@@ -3191,7 +3191,7 @@ export default function Home() {
 
               <div className="pt-3 border-t border-gray-100">
                 <div className="flex flex-col items-center mb-4">
-                  <div className="w-11 h-11 bg-[#4cdbd5] rounded-full flex items-center justify-center mb-2 shadow-xs"><i className="fa-solid fa-phone text-white text-base"></i></div>
+                  <div className="w-11 h-11 bg-[#77248c] text-white rounded-full flex items-center justify-center mb-2 shadow-xs"><i className="fa-solid fa-phone text-white text-base"></i></div>
                   <h3 className="text-xs font-bold text-teal-700 uppercase tracking-wider">Emergency Contact</h3>
                 </div>
                 <div className="space-y-4">
@@ -3260,7 +3260,7 @@ export default function Home() {
 
               <div className="pt-3 border-t border-gray-100">
                 <div className="flex flex-col items-center mb-4">
-                  <div className="w-11 h-11 bg-[#4cdbd5] rounded-full flex items-center justify-center mb-2 shadow-xs"><i className="fa-solid fa-heart text-white text-base"></i></div>
+                  <div className="w-11 h-11 bg-[#77248c] text-white rounded-full flex items-center justify-center mb-2 shadow-xs"><i className="fa-solid fa-heart text-white text-base"></i></div>
                   <h3 className="text-xs font-bold text-teal-700 uppercase tracking-wider">Care Preferences</h3>
                   <p className="text-[11px] text-gray-400 mt-1 text-center">What kind of care & comfort services would you like? This helps us match the right caregiver.</p>
                 </div>
@@ -3285,7 +3285,7 @@ export default function Home() {
 
               <div className="pt-3 border-t border-gray-100">
                 <div className="flex flex-col items-center mb-4">
-                  <div className="w-11 h-11 bg-[#4cdbd5] rounded-full flex items-center justify-center mb-2 shadow-xs"><i className="fa-solid fa-comment-dots text-white text-base"></i></div>
+                  <div className="w-11 h-11 bg-[#77248c] text-white rounded-full flex items-center justify-center mb-2 shadow-xs"><i className="fa-solid fa-comment-dots text-white text-base"></i></div>
                   <h3 className="text-xs font-bold text-teal-700 uppercase tracking-wider">About Me</h3>
                   <p className="text-[11px] text-gray-400 mt-1 text-center">Help your care team get to know you. You (or your family) can update these anytime later.</p>
                 </div>
@@ -3415,8 +3415,8 @@ export default function Home() {
           <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl p-8 animate-fade-up">
             <div className="flex justify-between items-center border-b border-gray-100 pb-4 mb-4">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 bg-purple-100 rounded-xl flex items-center justify-center text-purple-700 font-bold">
-                  <i className="fa-solid fa-key"></i>
+                <div className="w-9 h-9 bg-[#77248c] text-white rounded-xl flex items-center justify-center font-bold shadow-xs">
+                  <i className="fa-solid fa-key text-white"></i>
                 </div>
                 <div>
                   <h3 className="font-bold text-gray-800 text-base">Set First-Time Password</h3>
@@ -3480,8 +3480,8 @@ export default function Home() {
           <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl p-8 animate-fade-up">
             <div className="flex justify-between items-center border-b border-gray-100 pb-4 mb-4">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 bg-purple-100 rounded-xl flex items-center justify-center text-purple-700 font-bold">
-                  <i className="fa-solid fa-user-plus"></i>
+                <div className="w-9 h-9 bg-[#77248c] text-white rounded-xl flex items-center justify-center font-bold shadow-xs">
+                  <i className="fa-solid fa-user-plus text-white"></i>
                 </div>
                 <div>
                   <h3 className="font-bold text-gray-800 text-base">Provision Staff / Caregiver</h3>
@@ -5135,13 +5135,13 @@ export default function Home() {
                                 .reduce((sum, s) => sum + (new Date(s.actualEnd).getTime() - new Date(s.actualStart).getTime()), 0);
                               return (totalMs / 3600000).toFixed(1);
                             })()}</div></div>
-                            <div className="w-12 h-12 bg-[#4cdbd5] rounded-2xl flex items-center justify-center text-white shadow-xs"><i className="fa-solid fa-hourglass-half text-xl text-white"></i></div>
+                            <div className="w-12 h-12 bg-[#77248c] rounded-2xl flex items-center justify-center text-white shadow-xs"><i className="fa-solid fa-hourglass-half text-xl text-white"></i></div>
                           </div>
                         </div>
                         <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
                           <div className="flex items-center justify-between">
                             <div><div className="text-sm font-bold text-gray-700">My Clients</div><div className="text-2xl font-bold text-gray-800">{new Set(shifts.filter(s => s.caregiverId === user.id).map(s => s.clientId)).size}</div></div>
-                            <div className="w-12 h-12 bg-[#4cdbd5] rounded-2xl flex items-center justify-center text-white shadow-xs"><i className="fa-solid fa-user-group text-xl text-white"></i></div>
+                            <div className="w-12 h-12 bg-[#77248c] rounded-2xl flex items-center justify-center text-white shadow-xs"><i className="fa-solid fa-user-group text-xl text-white"></i></div>
                           </div>
                         </div>
                       </>
@@ -5163,7 +5163,7 @@ export default function Home() {
                                 return primaryPodCaregiver || shiftCaregiver || caregivers[0]?.name || 'Unassigned';
                               })()}
                             </div></div>
-                            <div className="w-12 h-12 bg-[#4cdbd5] rounded-2xl flex items-center justify-center text-white shadow-xs"><i className="fa-solid fa-user-nurse text-xl text-white"></i></div>
+                            <div className="w-12 h-12 bg-[#77248c] rounded-2xl flex items-center justify-center text-white shadow-xs"><i className="fa-solid fa-user-nurse text-xl text-white"></i></div>
                           </div>
                         </div>
                         <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
@@ -5223,7 +5223,7 @@ export default function Home() {
                               </div>
                               <div className="text-2xl font-bold text-gray-800">{caregivers.length}</div>
                             </div>
-                            <div className="w-12 h-12 bg-[#4cdbd5] rounded-2xl flex items-center justify-center text-white shadow-xs">
+                            <div className="w-12 h-12 bg-[#77248c] rounded-2xl flex items-center justify-center text-white shadow-xs">
                               <i className="fa-solid fa-user-md text-xl text-white"></i>
                             </div>
                           </div>
@@ -5271,7 +5271,7 @@ export default function Home() {
                               </div>
                               <div className="text-2xl font-bold text-gray-800">{shifts.filter(s => s.status === 'COMPLETED').length}</div>
                             </div>
-                            <div className="w-12 h-12 bg-[#4cdbd5] rounded-2xl flex items-center justify-center text-white shadow-xs">
+                            <div className="w-12 h-12 bg-[#77248c] rounded-2xl flex items-center justify-center text-white shadow-xs">
                               <i className="fa-solid fa-circle-check text-xl text-white"></i>
                             </div>
                           </div>
@@ -5315,12 +5315,12 @@ export default function Home() {
                     <div className="bg-white rounded-3xl p-6 border border-purple-100 shadow-sm space-y-4 animate-fade-up">
                       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-4">
                         <div className="flex items-center gap-2.5">
-                          <div className="w-9 h-9 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center font-bold">
-                            {dashboardCardFilter === 'CLIENTS' && <i className="fa-solid fa-users"></i>}
-                            {dashboardCardFilter === 'CAREGIVERS' && <i className="fa-solid fa-user-md"></i>}
-                            {dashboardCardFilter === 'ACTIVE_SHIFTS' && <i className="fa-solid fa-clock"></i>}
-                            {dashboardCardFilter === 'COMPLETED_SHIFTS' && <i className="fa-solid fa-circle-check"></i>}
-                            {dashboardCardFilter === 'UNASSIGNED_CLIENTS' && <i className="fa-solid fa-user-xmark"></i>}
+                          <div className="w-9 h-9 rounded-xl bg-[#77248c] text-white flex items-center justify-center font-bold shadow-xs">
+                            {dashboardCardFilter === 'CLIENTS' && <i className="fa-solid fa-users text-white"></i>}
+                            {dashboardCardFilter === 'CAREGIVERS' && <i className="fa-solid fa-user-md text-white"></i>}
+                            {dashboardCardFilter === 'ACTIVE_SHIFTS' && <i className="fa-solid fa-clock text-white"></i>}
+                            {dashboardCardFilter === 'COMPLETED_SHIFTS' && <i className="fa-solid fa-circle-check text-white"></i>}
+                            {dashboardCardFilter === 'UNASSIGNED_CLIENTS' && <i className="fa-solid fa-user-xmark text-white"></i>}
                           </div>
                           <div>
                             <h3 className="font-bold text-gray-900 text-base">
@@ -8178,8 +8178,8 @@ export default function Home() {
           <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 animate-fade-up">
             <div className="flex justify-between items-center mb-6">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-purple-50 text-[#77248c] flex items-center justify-center">
-                  <i className="fa-solid fa-shield-halved"></i>
+                <div className="w-10 h-10 rounded-2xl bg-[#77248c] text-white flex items-center justify-center shadow-xs">
+                  <i className="fa-solid fa-shield-halved text-white"></i>
                 </div>
                 <div>
                   <h3 className="font-extrabold text-gray-900 text-base">Change Your Password</h3>
