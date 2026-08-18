@@ -7121,8 +7121,8 @@ export default function Home() {
                         <div>
                           <div className="flex items-center gap-2">
                             <h3 className="text-2xl font-extrabold text-gray-900 tracking-tight">Business Intelligence Hub</h3>
-                            <span className="bg-emerald-100 text-emerald-800 text-xs font-extrabold px-2.5 py-0.5 rounded-full border border-emerald-200">
-                              <i className="fa-solid fa-shield-check mr-1"></i> Authorized Senior Access
+                            <span className="bg-[#4cdbd5] text-white text-xs font-extrabold px-3 py-1 rounded-full shadow-xs">
+                              <i className="fa-solid fa-shield-check mr-1 text-white"></i> Authorized Senior Access
                             </span>
                           </div>
                           <p className="text-sm text-gray-500 mt-1">
@@ -7163,49 +7163,49 @@ export default function Home() {
                         <>
                           {/* MONTHLY BUSINESS KPI METRICS GRID */}
                           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                            <div className="bg-purple-50/80 border border-purple-100 rounded-2xl p-5 hover-lift">
+                            <div className="bg-purple-50/70 border-2 border-purple-200 rounded-2xl p-5 hover-lift shadow-2xs">
                               <div className="flex items-center justify-between mb-2">
-                                <span className="text-xs font-extrabold text-purple-700 uppercase tracking-wider">Gross Monthly Revenue</span>
-                                <div className="w-8 h-8 bg-purple-600 text-white rounded-xl flex items-center justify-center text-sm shadow-xs">
-                                  <i className="fa-solid fa-dollar-sign"></i>
+                                <span className="text-xs font-extrabold text-purple-800 uppercase tracking-wider">Gross Monthly Revenue</span>
+                                <div className="w-9 h-9 bg-[#77248c] text-white rounded-xl flex items-center justify-center text-sm shadow-xs">
+                                  <i className="fa-solid fa-dollar-sign text-white"></i>
                                 </div>
                               </div>
-                              <div className="text-2xl font-black text-purple-900">${businessStats?.summary?.totalRevenue?.toLocaleString() || '0'}</div>
-                              <div className="text-[11px] text-purple-600 font-semibold mt-1">Calculated from client billing rates</div>
+                              <div className="text-2xl font-black text-purple-950">${businessStats?.summary?.totalRevenue?.toLocaleString() || '0'}</div>
+                              <div className="text-[11px] text-purple-700 font-semibold mt-1">Calculated from client billing rates</div>
                             </div>
 
-                            <div className="bg-teal-50/80 border border-teal-100 rounded-2xl p-5 hover-lift">
+                            <div className="bg-cyan-50/70 border-2 border-cyan-200 rounded-2xl p-5 hover-lift shadow-2xs">
                               <div className="flex items-center justify-between mb-2">
-                                <span className="text-xs font-extrabold text-teal-700 uppercase tracking-wider">Caregiver Payroll</span>
-                                <div className="w-8 h-8 bg-teal-600 text-white rounded-xl flex items-center justify-center text-sm shadow-xs">
-                                  <i className="fa-solid fa-wallet"></i>
+                                <span className="text-xs font-extrabold text-teal-800 uppercase tracking-wider">Caregiver Payroll</span>
+                                <div className="w-9 h-9 bg-teal-600 text-white rounded-xl flex items-center justify-center text-sm shadow-xs">
+                                  <i className="fa-solid fa-wallet text-white"></i>
                                 </div>
                               </div>
-                              <div className="text-2xl font-black text-teal-900">${businessStats?.summary?.totalPayroll?.toLocaleString() || '0'}</div>
-                              <div className="text-[11px] text-teal-600 font-semibold mt-1">Staff wages & overtime compensation</div>
+                              <div className="text-2xl font-black text-teal-950">${businessStats?.summary?.totalPayroll?.toLocaleString() || '0'}</div>
+                              <div className="text-[11px] text-teal-700 font-semibold mt-1">Staff wages & overtime compensation</div>
                             </div>
 
-                            <div className="bg-emerald-50/80 border border-emerald-100 rounded-2xl p-5 hover-lift">
+                            <div className="bg-emerald-50/70 border-2 border-emerald-200 rounded-2xl p-5 hover-lift shadow-2xs">
                               <div className="flex items-center justify-between mb-2">
-                                <span className="text-xs font-extrabold text-emerald-700 uppercase tracking-wider">Net Operating Profit</span>
-                                <div className="w-8 h-8 bg-emerald-600 text-white rounded-xl flex items-center justify-center text-sm shadow-xs">
-                                  <i className="fa-solid fa-chart-line"></i>
+                                <span className="text-xs font-extrabold text-emerald-800 uppercase tracking-wider">Net Operating Profit</span>
+                                <div className="w-9 h-9 bg-emerald-600 text-white rounded-xl flex items-center justify-center text-sm shadow-xs">
+                                  <i className="fa-solid fa-chart-line text-white"></i>
                                 </div>
                               </div>
-                              <div className="text-2xl font-black text-emerald-900">${businessStats?.summary?.netProfit?.toLocaleString() || '0'}</div>
+                              <div className="text-2xl font-black text-emerald-950">${businessStats?.summary?.netProfit?.toLocaleString() || '0'}</div>
                               <div className="text-[11px] text-emerald-700 font-extrabold mt-1">
                                 Margin: <span className="bg-emerald-200 px-1.5 py-0.5 rounded text-emerald-900">{businessStats?.summary?.profitMarginPercent || 0}%</span>
                               </div>
                             </div>
 
-                            <div className="bg-amber-50/80 border border-amber-100 rounded-2xl p-5 hover-lift">
+                            <div className="bg-amber-50/70 border-2 border-amber-300 rounded-2xl p-5 hover-lift shadow-2xs">
                               <div className="flex items-center justify-between mb-2">
-                                <span className="text-xs font-extrabold text-amber-700 uppercase tracking-wider">Care Hours Delivered</span>
-                                <div className="w-8 h-8 bg-amber-500 text-white rounded-xl flex items-center justify-center text-sm shadow-xs">
-                                  <i className="fa-solid fa-clock"></i>
+                                <span className="text-xs font-extrabold text-amber-800 uppercase tracking-wider">Care Hours Delivered</span>
+                                <div className="w-9 h-9 bg-orange-500 text-white rounded-xl flex items-center justify-center text-sm shadow-xs">
+                                  <i className="fa-solid fa-clock text-white"></i>
                                 </div>
                               </div>
-                              <div className="text-2xl font-black text-amber-900">{businessStats?.summary?.totalCareHours || 0} hrs</div>
+                              <div className="text-2xl font-black text-amber-950">{businessStats?.summary?.totalCareHours || 0} hrs</div>
                               <div className="text-[11px] text-amber-700 font-semibold mt-1">Avg shift: {businessStats?.summary?.avgShiftDuration || 0} hrs</div>
                             </div>
                           </div>
@@ -7213,17 +7213,22 @@ export default function Home() {
                           {/* MONTHLY FINANCIAL TREND GRAPHICS & SHIFT STATUS DISTRIBUTION */}
                           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 print-page-break">
                             {/* Graphic 1: Weekly Financial Breakdown */}
-                            <div className="lg:col-span-2 bg-slate-900 text-white rounded-2xl p-6 shadow-md border border-slate-800">
-                              <div className="flex items-center justify-between mb-6">
-                                <div>
-                                  <h4 className="font-extrabold text-base text-white flex items-center gap-2">
-                                    <i className="fa-solid fa-chart-column text-cyan-400"></i> Monthly Financial Trends & Weekly Breakdown
-                                  </h4>
-                                  <p className="text-xs text-slate-400 mt-0.5">Comparison of Gross Revenue vs Caregiver Payroll across weeks</p>
+                            <div className="lg:col-span-2 bg-[#1a1024] text-white rounded-3xl p-6 shadow-xl border border-purple-900/40">
+                              <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-10 h-10 rounded-2xl bg-[#77248c] text-white flex items-center justify-center font-bold shadow-md">
+                                    <i className="fa-solid fa-chart-column text-lg text-white"></i>
+                                  </div>
+                                  <div>
+                                    <h4 className="font-extrabold text-base text-white">
+                                      Monthly Financial Trends & Weekly Breakdown
+                                    </h4>
+                                    <p className="text-xs text-purple-200/80 mt-0.5">Comparison of Gross Revenue vs Caregiver Payroll across weeks</p>
+                                  </div>
                                 </div>
-                                <div className="flex items-center gap-3 text-[11px] font-bold">
-                                  <div className="flex items-center gap-1.5"><span className="w-3 h-3 bg-purple-500 rounded-sm"></span><span>Revenue</span></div>
-                                  <div className="flex items-center gap-1.5"><span className="w-3 h-3 bg-teal-400 rounded-sm"></span><span>Payroll</span></div>
+                                <div className="flex items-center gap-4 text-[11px] font-bold">
+                                  <div className="flex items-center gap-1.5"><span className="w-3 h-3 bg-purple-500 rounded-sm shadow-xs"></span><span className="text-white">Revenue</span></div>
+                                  <div className="flex items-center gap-1.5"><span className="w-3 h-3 bg-white rounded-sm shadow-xs"></span><span className="text-white">Payroll</span></div>
                                 </div>
                               </div>
 
@@ -7234,27 +7239,27 @@ export default function Home() {
                                   const payPct = Math.min(100, Math.round((w.payroll / maxVal) * 100));
 
                                   return (
-                                    <div key={idx} className="bg-slate-800/80 rounded-xl p-3 border border-slate-700/50">
-                                      <div className="flex justify-between items-center text-xs font-extrabold mb-2">
-                                        <span className="text-slate-300">{w.weekLabel}</span>
-                                        <span className="text-slate-400 font-mono">{w.shifts} completed shifts ({w.hours} care hrs)</span>
+                                    <div key={idx} className="bg-[#271738]/90 rounded-2xl p-4 border border-purple-800/40 shadow-xs">
+                                      <div className="flex justify-between items-center text-xs font-extrabold mb-3">
+                                        <span className="text-white font-bold">{w.weekLabel}</span>
+                                        <span className="text-purple-200 font-mono text-[11px]">{w.shifts} completed shifts ({w.hours} care hrs)</span>
                                       </div>
-                                      <div className="space-y-2">
+                                      <div className="space-y-2.5">
                                         {/* Revenue Bar */}
                                         <div className="flex items-center gap-3 text-xs">
-                                          <span className="w-14 text-[10px] font-bold text-purple-400 uppercase">Revenue</span>
-                                          <div className="flex-1 bg-slate-700 rounded-full h-3 overflow-hidden">
-                                            <div className="bg-gradient-to-r from-purple-600 to-purple-400 h-full rounded-full transition-all duration-500" style={{ width: `${Math.max(5, revPct)}%` }}></div>
+                                          <span className="w-16 text-[10px] font-extrabold text-purple-300 uppercase tracking-wider">Revenue</span>
+                                          <div className="flex-1 bg-[#150b1f] rounded-full h-3 overflow-hidden p-0.5 border border-purple-900/30">
+                                            <div className="bg-gradient-to-r from-[#77248c] to-purple-500 h-full rounded-full transition-all duration-500 shadow-xs" style={{ width: `${Math.max(5, revPct)}%` }}></div>
                                           </div>
-                                          <span className="w-16 text-right font-mono font-bold text-purple-300">${w.revenue.toLocaleString()}</span>
+                                          <span className="w-16 text-right font-mono font-extrabold text-purple-200">${w.revenue.toLocaleString()}</span>
                                         </div>
                                         {/* Payroll Bar */}
                                         <div className="flex items-center gap-3 text-xs">
-                                          <span className="w-14 text-[10px] font-bold text-teal-400 uppercase">Payroll</span>
-                                          <div className="flex-1 bg-slate-700 rounded-full h-3 overflow-hidden">
-                                            <div className="bg-gradient-to-r from-teal-500 to-teal-300 h-full rounded-full transition-all duration-500" style={{ width: `${Math.max(5, payPct)}%` }}></div>
+                                          <span className="w-16 text-[10px] font-extrabold text-white uppercase tracking-wider">Payroll</span>
+                                          <div className="flex-1 bg-[#150b1f] rounded-full h-3 overflow-hidden p-0.5 border border-purple-900/30">
+                                            <div className="bg-gradient-to-r from-purple-300 to-white h-full rounded-full transition-all duration-500 shadow-xs" style={{ width: `${Math.max(5, payPct)}%` }}></div>
                                           </div>
-                                          <span className="w-16 text-right font-mono font-bold text-teal-300">${w.payroll.toLocaleString()}</span>
+                                          <span className="w-16 text-right font-mono font-extrabold text-white">${w.payroll.toLocaleString()}</span>
                                         </div>
                                       </div>
                                     </div>
@@ -7264,11 +7269,14 @@ export default function Home() {
                             </div>
 
                             {/* Graphic 2: Shift Volume & Status Distribution */}
-                            <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm flex flex-col justify-between">
+                            <div className="bg-white rounded-3xl p-6 border border-gray-200 shadow-sm flex flex-col justify-between">
                               <div>
-                                <h4 className="font-extrabold text-base text-gray-800 mb-1 flex items-center gap-2">
-                                  <i className="fa-solid fa-pie-chart text-purple-600"></i> Monthly Care Operations
-                                </h4>
+                                <div className="flex items-center gap-3 mb-1">
+                                  <div className="w-9 h-9 rounded-xl bg-[#77248c] text-white flex items-center justify-center font-bold shadow-xs">
+                                    <i className="fa-solid fa-pie-chart text-white"></i>
+                                  </div>
+                                  <h4 className="font-extrabold text-base text-gray-900">Monthly Care Operations</h4>
+                                </div>
                                 <p className="text-xs text-gray-500 mb-6">Breakdown of shift fulfillment for {businessStats?.monthName}</p>
 
                                 <div className="space-y-4 text-xs">
