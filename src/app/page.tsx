@@ -3406,7 +3406,7 @@ export default function Home() {
   // ============================================================
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="h-screen w-full bg-gray-50 flex flex-col overflow-hidden">
 
 
       {/* Admin Set First-Time Caregiver Password Modal */}
@@ -4869,8 +4869,8 @@ export default function Home() {
       )}
 
       {/* ==================== SIDEBAR ==================== */}
-      <aside className={`fixed lg:sticky top-0 left-0 z-50 w-64 bg-white border-r border-gray-200 h-screen flex flex-col transition-transform duration-300 ease-in-out print:hidden ${
-        isMobileMenuOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'
+      <aside className={`fixed lg:static top-0 left-0 z-50 w-64 bg-white border-r border-gray-200 h-full flex flex-col transition-transform duration-300 ease-in-out print:hidden shrink-0 ${
+        isMobileMenuOpen ? 'translate-x-0 shadow-2xl fixed inset-y-0' : '-translate-x-full lg:translate-x-0'
       }`}>
         {/* Brand */}
         <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between shrink-0">
@@ -5014,7 +5014,7 @@ export default function Home() {
       </aside>
 
       {/* ==================== MAIN CONTENT ==================== */}
-      <main className="flex-1 flex flex-col min-h-screen w-full min-w-0 print:hidden">
+      <main className="flex-1 flex flex-col h-full w-full min-w-0 overflow-y-auto print:hidden">
         {/* Top Bar */}
         <header className="bg-white border-b border-gray-200 px-4 md:px-8 py-4 flex items-center justify-between sticky top-0 z-30 print:hidden">
           <div className="flex items-center gap-3 flex-1 min-w-0">
