@@ -5,6 +5,7 @@ import { hashPassword } from '@/lib/password';
 import { isCompanyDomainEmail, isCaregiverProvisioningAuthorized, OFFICIAL_DOMAIN } from '@/lib/adminAllowlist';
 import { getSessionUser } from '@/lib/session';
 import { UserRole } from '@prisma/client';
+import { formatUSPhoneWithCountryCode } from '@/lib/phone';
 
 export async function POST(request: Request) {
   try {
@@ -73,7 +74,7 @@ export async function POST(request: Request) {
         passwordHash,
         name,
         role: role as UserRole,
-        phoneNumber: phoneNumber || null,
+        phoneNumber: formatUSPhoneWithCountryCode(phoneNumber),
         payRate: payRate ? parseFloat(payRate) : null,
         latitude: latitude ? parseFloat(latitude) : null,
         longitude: longitude ? parseFloat(longitude) : null,

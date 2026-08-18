@@ -5,6 +5,7 @@ import { hashPassword } from '@/lib/password';
 import { createSessionCookie, sessionCookieOptions } from '@/lib/session';
 import { UserRole, PodRole, ShiftStatus } from '@prisma/client';
 import { isCompanyDomainEmail, OFFICIAL_DOMAIN } from '@/lib/adminAllowlist';
+import { formatUSPhoneWithCountryCode } from '@/lib/phone';
 
 export async function POST(request: Request) {
   try {
@@ -146,7 +147,7 @@ export async function POST(request: Request) {
         passwordHash: await hashPassword(password),
         name,
         role: finalRole,
-        phoneNumber: phoneNumber || '+16045550199',
+        phoneNumber: formatUSPhoneWithCountryCode(phoneNumber) || '+16045550199',
         profileMetadata: caregiverMetadata,
       },
     });
@@ -232,7 +233,7 @@ export async function POST(request: Request) {
         const clientMetadata = JSON.stringify({
           dob: patientDob,
           gender: patientGender,
-          phone: patientPhone,
+          phone: formatUSPhoneWithCountryCode(patientPhone),
           email: patientEmail,
           preferredLanguage: patientLanguage,
           city: patientCity,
@@ -240,8 +241,14 @@ export async function POST(request: Request) {
           zip: patientZip,
           medicalConditions: medicalConditions || '',
           allergiesNotes: allergiesNotes || '',
-          primaryEmergency,
-          secondaryEmergency,
+          primaryEmergency: primaryEmergency ? {
+            ...primaryEmergency,
+            phone: formatUSPhoneWithCountryCode(primaryEmergency.phone) || primaryEmergency.phone || '',
+          } : null,
+          secondaryEmergency: secondaryEmergency ? {
+            ...secondaryEmergency,
+            phone: formatUSPhoneWithCountryCode(secondaryEmergency.phone) || secondaryEmergency.phone || '',
+          } : null,
           preferences: Array.isArray(carePreferences) ? carePreferences : [],
           otherPreferences: otherPreferences || '',
           personality: personality || '',

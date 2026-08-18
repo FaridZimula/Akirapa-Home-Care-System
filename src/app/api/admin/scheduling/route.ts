@@ -85,7 +85,65 @@ export async function POST(request: Request) {
     const start = new Date(scheduledStart);
     const end = new Date(scheduledEnd);
 
-    // 1. Pod consistency check
+    if (isNaN(start.getTime()) || isNaN(end.getTime()) || start >= end) {
+      return NextResponse.json({ error: 'Invalid shift start or end time.' }, { status: 400 });
+    }
+
+    // 1. Enforce Client Single-Caregiver Rule: Check if the client already has an active shift in this time window
+    const existingClientShift = await prisma.shift.findFirst({
+      where: {
+        clientId,
+        status: { notIn: [ShiftStatus.DROPPED, ShiftStatus.NO_SHOW] },
+        OR: [
+          { scheduledStart: { lte: start }, scheduledEnd: { gt: start } },
+          { scheduledStart: { lt: end }, scheduledEnd: { gte: end } },
+          { scheduledStart: { gte: start }, scheduledEnd: { lte: end } },
+        ],
+      },
+      include: {
+        client: { select: { name: true } },
+        caregiver: { select: { name: true } },
+      },
+    });
+
+    if (existingClientShift) {
+      const formatTimeStr = (d: Date) => d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      return NextResponse.json(
+        {
+          error: `Booking Conflict: Client ${existingClientShift.client.name} is already assigned caregiver ${existingClientShift.caregiver.name} during this shift time window (${formatTimeStr(existingClientShift.scheduledStart)} - ${formatTimeStr(existingClientShift.scheduledEnd)}). A client can only be given one caregiver at a time.`,
+        },
+        { status: 400 }
+      );
+    }
+
+    // 2. Check if the Caregiver is already booked for another shift in this time window
+    const existingCaregiverShift = await prisma.shift.findFirst({
+      where: {
+        caregiverId,
+        status: { notIn: [ShiftStatus.DROPPED, ShiftStatus.NO_SHOW] },
+        OR: [
+          { scheduledStart: { lte: start }, scheduledEnd: { gt: start } },
+          { scheduledStart: { lt: end }, scheduledEnd: { gte: end } },
+          { scheduledStart: { gte: start }, scheduledEnd: { lte: end } },
+        ],
+      },
+      include: {
+        client: { select: { name: true } },
+        caregiver: { select: { name: true } },
+      },
+    });
+
+    if (existingCaregiverShift) {
+      const formatTimeStr = (d: Date) => d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      return NextResponse.json(
+        {
+          error: `Booking Conflict: Caregiver ${existingCaregiverShift.caregiver.name} is already scheduled for client ${existingCaregiverShift.client.name} during this shift time window (${formatTimeStr(existingCaregiverShift.scheduledStart)} - ${formatTimeStr(existingCaregiverShift.scheduledEnd)}).`,
+        },
+        { status: 400 }
+      );
+    }
+
+    // 3. Pod consistency check
     let podAssignment = await prisma.caregiverPod.findFirst({
       where: { clientId, caregiverId },
     });

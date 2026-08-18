@@ -94,12 +94,23 @@ export async function GET(request: Request) {
         ]
       },
       select: {
+        clientId: true,
         caregiverId: true,
         scheduledStart: true,
         scheduledEnd: true,
-        client: { select: { name: true } }
+        client: { select: { name: true } },
+        caregiver: { select: { name: true } }
       }
     });
+
+    // Check if the client already has an active shift during this time window
+    const clientShiftMatch = overlappingShifts.find(s => s.clientId === clientId);
+    const clientConflict = clientShiftMatch ? {
+      hasConflict: true,
+      caregiverName: clientShiftMatch.caregiver.name,
+      scheduledStart: clientShiftMatch.scheduledStart,
+      scheduledEnd: clientShiftMatch.scheduledEnd
+    } : null;
 
     // Group overlapping shifts by caregiverId
     const conflictsMap = new Map<string, Array<{ start: Date; end: Date; clientName: string }>>();
@@ -202,6 +213,7 @@ export async function GET(request: Request) {
         startTime: startTimeStr,
         endTime: endTimeStr,
       },
+      clientConflict,
       suggestions,
     });
   } catch (error) {

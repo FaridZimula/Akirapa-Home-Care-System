@@ -5,6 +5,7 @@ import { hashPassword } from '@/lib/password';
 import { isBusinessHubAuthorized } from '@/lib/adminAllowlist';
 import { getSessionUser } from '@/lib/session';
 import { UserRole } from '@prisma/client';
+import { formatUSPhoneWithCountryCode } from '@/lib/phone';
 
 export async function POST(request: Request) {
   try {
@@ -43,6 +44,8 @@ export async function POST(request: Request) {
     }
 
     const normalizedEmail = email.trim().toLowerCase();
+    const formattedPhone = formatUSPhoneWithCountryCode(phoneNumber);
+    const formattedEmergencyPhone = formatUSPhoneWithCountryCode(emergencyContactPhone) || '';
 
     // Check if user already exists
     let user = await prisma.user.findUnique({
@@ -62,7 +65,7 @@ export async function POST(request: Request) {
           passwordHash: hashedPassword,
           name,
           role: UserRole.FAMILY_MEMBER,
-          phoneNumber: phoneNumber || null,
+          phoneNumber: formattedPhone,
           profileMetadata: JSON.stringify({ initialPassword: password }),
           mustChangePassword: true,
         },
@@ -78,7 +81,7 @@ export async function POST(request: Request) {
         data: {
           passwordHash: hashedPassword,
           name: name || user.name,
-          phoneNumber: phoneNumber || user.phoneNumber,
+          phoneNumber: formattedPhone || user.phoneNumber,
           profileMetadata: JSON.stringify(existingUserMeta),
           mustChangePassword: true,
         },
@@ -115,7 +118,7 @@ export async function POST(request: Request) {
           gender: null,
           primaryEmergency: emergencyContactName ? {
             name: emergencyContactName,
-            phone: emergencyContactPhone || '',
+            phone: formattedEmergencyPhone,
             relationship: emergencyContactRelationship || 'Family Contact',
           } : null,
         }),

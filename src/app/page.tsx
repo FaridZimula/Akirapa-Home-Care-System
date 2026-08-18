@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { formatDate, formatTime, formatDateTime } from '@/lib/dateFormat';
 import { isCaregiverProvisioningAuthorized, isBusinessHubAuthorized } from '@/lib/adminAllowlist';
+import { cleanUSPhoneDigits, formatUSPhoneWithCountryCode, formatUSPhoneDisplay } from '@/lib/phone';
 
 // Structured client welfare check, asked every shift. Polarity is explicit per
 // question (some are "good = YES", others "bad = YES") so the computed
@@ -88,6 +89,7 @@ export default function Home() {
   const [newShiftDate, setNewShiftDate] = useState('');
   const [newShiftHours, setNewShiftHours] = useState('8');
   const [schedulerWarning, setSchedulerWarning] = useState<string | null>(null);
+  const [clientConflictAlert, setClientConflictAlert] = useState<string | null>(null);
   const [autoAssignPodOnShiftCreate, setAutoAssignPodOnShiftCreate] = useState(true);
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
@@ -1358,6 +1360,14 @@ export default function Home() {
         const data = await res.json();
         if (res.ok) {
           setSuggestions(data.suggestions || []);
+          if (data.clientConflict?.hasConflict) {
+            const formatTimeStr = (dStr: string) => new Date(dStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            setClientConflictAlert(
+              `Booking Conflict: Selected client is ALREADY assigned caregiver "${data.clientConflict.caregiverName}" during this shift time (${formatTimeStr(data.clientConflict.scheduledStart)} - ${formatTimeStr(data.clientConflict.scheduledEnd)}). A client can only be given one caregiver at a time.`
+            );
+          } else {
+            setClientConflictAlert(null);
+          }
           const bestMatch = data.suggestions?.find((s: any) => !s.hasConflict);
           if (bestMatch) setNewShiftCaregiverId(bestMatch.id);
         }
@@ -1744,10 +1754,17 @@ export default function Home() {
       if (res.ok) {
         setShifts([data.shift, ...shifts]);
         setSchedulerWarning(data.warningAlert || null);
+        setClientConflictAlert(null);
         showNotification(data.warningAlert ? 'Shift Created with Warning' : 'Shift Created Successfully');
         loadData();
+      } else {
+        setClientConflictAlert(data.error || 'Booking Conflict: Shift could not be created.');
+        showNotification(data.error || 'Failed to create shift');
       }
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      console.error(err);
+      setClientConflictAlert('Network error attempting to create shift.');
+    }
   };
 
   const handleQuickAssignPodFromScheduler = async () => {
@@ -2884,8 +2901,17 @@ export default function Home() {
             {renderPasswordStrengthMeter(signupPassword)}
           </div>
           <div>
-            <label className="text-xs font-semibold text-gray-500 uppercase">Phone</label>
-            <input type="text" placeholder="+16045550199" value={signupPhone} onChange={(e) => setSignupPhone(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+            <label className="text-xs font-semibold text-gray-500 uppercase">US Phone Number</label>
+            <div className="relative flex items-center mt-1">
+              <span className="absolute left-3.5 font-mono font-bold text-[#77248c] text-sm select-none pointer-events-none">+1</span>
+              <input
+                type="tel"
+                placeholder="(555) 019-2834"
+                value={cleanUSPhoneDigits(signupPhone)}
+                onChange={(e) => setSignupPhone(cleanUSPhoneDigits(e.target.value))}
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono"
+              />
+            </div>
           </div>
           <div>
             <label className="text-xs font-semibold text-gray-500 uppercase">I am a</label>
@@ -3053,8 +3079,17 @@ export default function Home() {
                     </select>
                   </div>
                   <div className="col-span-1">
-                    <label className="text-xs font-semibold text-gray-500 uppercase">Phone Number</label>
-                    <input type="text" placeholder="+16045550199" value={patientPhoneInput} onChange={(e) => setPatientPhoneInput(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                    <label className="text-xs font-semibold text-gray-500 uppercase">US Phone Number</label>
+                    <div className="relative flex items-center mt-1">
+                      <span className="absolute left-3.5 font-mono font-bold text-[#77248c] text-sm select-none pointer-events-none">+1</span>
+                      <input
+                        type="tel"
+                        placeholder="(555) 019-2834"
+                        value={cleanUSPhoneDigits(patientPhoneInput)}
+                        onChange={(e) => setPatientPhoneInput(cleanUSPhoneDigits(e.target.value))}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono"
+                      />
+                    </div>
                   </div>
                   <div className="col-span-2">
                     <label className="text-xs font-semibold text-gray-500 uppercase">Email Address</label>
@@ -3119,7 +3154,16 @@ export default function Home() {
                       </div>
                       <div className="col-span-1">
                         <label className="text-xs font-semibold text-gray-500 uppercase">Phone Number</label>
-                        <input type="text" value={primaryContactPhone} onChange={(e) => setPrimaryContactPhone(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                        <div className="relative flex items-center mt-1">
+                          <span className="absolute left-3.5 font-mono font-bold text-[#77248c] text-sm select-none pointer-events-none">+1</span>
+                          <input
+                            type="tel"
+                            placeholder="(555) 019-2834"
+                            value={cleanUSPhoneDigits(primaryContactPhone)}
+                            onChange={(e) => setPrimaryContactPhone(cleanUSPhoneDigits(e.target.value))}
+                            className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono"
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -3136,7 +3180,16 @@ export default function Home() {
                       </div>
                       <div className="col-span-1">
                         <label className="text-xs font-semibold text-gray-500 uppercase">Phone Number</label>
-                        <input type="text" value={secondaryContactPhone} onChange={(e) => setSecondaryContactPhone(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                        <div className="relative flex items-center mt-1">
+                          <span className="absolute left-3.5 font-mono font-bold text-[#77248c] text-sm select-none pointer-events-none">+1</span>
+                          <input
+                            type="tel"
+                            placeholder="(555) 019-2834"
+                            value={cleanUSPhoneDigits(secondaryContactPhone)}
+                            onChange={(e) => setSecondaryContactPhone(cleanUSPhoneDigits(e.target.value))}
+                            className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono"
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -3429,14 +3482,17 @@ export default function Home() {
                 </div>
 
                 <div>
-                  <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Phone Number</label>
-                  <input
-                    type="text"
-                    placeholder="+16045550199"
-                    value={newUserPhone}
-                    onChange={(e) => setNewUserPhone(e.target.value)}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
-                  />
+                  <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">US Phone Number</label>
+                  <div className="relative flex items-center mt-1">
+                    <span className="absolute left-3.5 font-mono font-bold text-[#77248c] text-sm select-none pointer-events-none">+1</span>
+                    <input
+                      type="tel"
+                      placeholder="(555) 019-2834"
+                      value={cleanUSPhoneDigits(newUserPhone)}
+                      onChange={(e) => setNewUserPhone(cleanUSPhoneDigits(e.target.value))}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -5233,7 +5289,7 @@ export default function Home() {
                                       {cg.name}
                                     </td>
                                     <td className="py-3 px-2 text-gray-600 font-mono text-[11px]">{cg.email}</td>
-                                    <td className="py-3 px-2 text-gray-500">{cg.phoneNumber || '—'}</td>
+                                    <td className="py-3 px-2 text-gray-500">{formatUSPhoneDisplay(cg.phoneNumber)}</td>
                                     <td className="py-3 px-2 font-semibold text-emerald-600">${cg.payRate ? cg.payRate.toFixed(2) : '28.00'}/hr</td>
                                     <td className="py-3 px-2 text-right">
                                       {user && isCaregiverProvisioningAuthorized(user.email) && (
@@ -5476,7 +5532,7 @@ export default function Home() {
                       <h2 className="text-2xl font-bold text-gray-800 mt-4">{user.name}</h2>
                       <p className="text-gray-500">{user.email}</p>
                       <span className="mt-2 px-4 py-1.5 bg-[#77248c] text-white rounded-full text-sm font-bold shadow-xs">{user.role}</span>
-                      {user.phoneNumber && <p className="text-sm text-gray-500 mt-2"><i className="fa-solid fa-phone mr-2"></i>{user.phoneNumber}</p>}
+                      {user.phoneNumber && <p className="text-sm text-gray-500 mt-2 font-mono"><i className="fa-solid fa-phone mr-2"></i>{formatUSPhoneDisplay(user.phoneNumber)}</p>}
                     </div>
                     {user.role !== 'ADMIN' && (
                       <div className="grid grid-cols-2 gap-4 mt-8">
@@ -6481,7 +6537,7 @@ export default function Home() {
                                       <span className="text-gray-400 italic text-[11px]">Not saved (Reset to view)</span>
                                     )}
                                   </td>
-                                  <td className="py-3.5 px-2 text-gray-500">{cg.phoneNumber || '—'}</td>
+                                  <td className="py-3.5 px-2 text-gray-500 font-mono">{formatUSPhoneDisplay(cg.phoneNumber)}</td>
                                   <td className="py-3.5 px-2 font-semibold text-emerald-600">${cg.payRate ? cg.payRate.toFixed(2) : '28.00'}/hr</td>
                                   <td className="py-3.5 px-2 text-right">
                                     <div className="flex items-center justify-end gap-2">
@@ -6588,14 +6644,17 @@ export default function Home() {
                         </div>
 
                         <div>
-                          <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Phone Number</label>
-                          <input
-                            type="text"
-                            placeholder="+1 (604) 555-0188"
-                            value={newClientPhone}
-                            onChange={(e) => setNewClientPhone(e.target.value)}
-                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
-                          />
+                          <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">US Phone Number</label>
+                          <div className="relative flex items-center mt-1">
+                            <span className="absolute left-3.5 font-mono font-bold text-[#77248c] text-sm select-none pointer-events-none">+1</span>
+                            <input
+                              type="tel"
+                              placeholder="(555) 019-2834"
+                              value={cleanUSPhoneDigits(newClientPhone)}
+                              onChange={(e) => setNewClientPhone(cleanUSPhoneDigits(e.target.value))}
+                              className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono"
+                            />
+                          </div>
                         </div>
 
                         <div>
@@ -6651,13 +6710,16 @@ export default function Home() {
 
                         <div>
                           <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Emergency Contact Phone</label>
-                          <input
-                            type="text"
-                            placeholder="+1 (604) 555-9988"
-                            value={newClientEmergencyPhone}
-                            onChange={(e) => setNewClientEmergencyPhone(e.target.value)}
-                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
-                          />
+                          <div className="relative flex items-center mt-1">
+                            <span className="absolute left-3.5 font-mono font-bold text-[#77248c] text-sm select-none pointer-events-none">+1</span>
+                            <input
+                              type="tel"
+                              placeholder="(555) 019-2834"
+                              value={cleanUSPhoneDigits(newClientEmergencyPhone)}
+                              onChange={(e) => setNewClientEmergencyPhone(cleanUSPhoneDigits(e.target.value))}
+                              className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono"
+                            />
+                          </div>
                         </div>
                       </div>
 
@@ -6815,6 +6877,12 @@ export default function Home() {
                 <div className="max-w-2xl mx-auto">
                   <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
                     <h3 className="font-semibold text-gray-800 mb-6">Create New Shift</h3>
+                    {clientConflictAlert && (
+                      <div className="bg-red-50 border border-red-200 text-red-900 p-4 rounded-2xl text-xs mb-4 flex items-start gap-2.5 font-medium shadow-2xs">
+                        <i className="fa-solid fa-triangle-exclamation text-red-600 text-base mt-0.5"></i>
+                        <div className="flex-1 font-semibold">{clientConflictAlert}</div>
+                      </div>
+                    )}
                     {schedulerWarning && (
                       <div className="bg-amber-50 border border-amber-200 text-amber-900 p-4 rounded-2xl text-xs mb-4 space-y-2.5">
                         <div className="flex items-start gap-2.5 font-medium">
@@ -8024,14 +8092,17 @@ export default function Home() {
             </div>
             <div className="space-y-4">
               <div>
-                <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px] block mb-1">Phone Number *</label>
-                <input
-                  type="tel"
-                  placeholder="+1 (604) 555-0199"
-                  value={onboardingPhone}
-                  onChange={(e) => setOnboardingPhone(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
+                <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px] block mb-1">US Phone Number *</label>
+                <div className="relative flex items-center mt-1">
+                  <span className="absolute left-3.5 font-mono font-bold text-[#77248c] text-sm select-none pointer-events-none">+1</span>
+                  <input
+                    type="tel"
+                    placeholder="(555) 019-2834"
+                    value={cleanUSPhoneDigits(onboardingPhone)}
+                    onChange={(e) => setOnboardingPhone(cleanUSPhoneDigits(e.target.value))}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono"
+                  />
+                </div>
               </div>
               <div>
                 <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px] block mb-1">{user.role === 'CAREGIVER' ? 'Home Address' : 'Your Address'}</label>
@@ -8055,13 +8126,16 @@ export default function Home() {
               </div>
               <div>
                 <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px] block mb-1">Emergency Contact Phone</label>
-                <input
-                  type="tel"
-                  placeholder="+1 (604) 555-9911"
-                  value={onboardingEmergencyPhone}
-                  onChange={(e) => setOnboardingEmergencyPhone(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
+                <div className="relative flex items-center mt-1">
+                  <span className="absolute left-3.5 font-mono font-bold text-[#77248c] text-sm select-none pointer-events-none">+1</span>
+                  <input
+                    type="tel"
+                    placeholder="(555) 019-2834"
+                    value={cleanUSPhoneDigits(onboardingEmergencyPhone)}
+                    onChange={(e) => setOnboardingEmergencyPhone(cleanUSPhoneDigits(e.target.value))}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono"
+                  />
+                </div>
               </div>
               <button
                 disabled={isSubmittingOnboarding || !onboardingPhone}
