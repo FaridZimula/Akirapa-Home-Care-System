@@ -4873,87 +4873,74 @@ export default function Home() {
         isMobileMenuOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'
       }`}>
         {/* Brand */}
-        <div className="px-6 py-6 border-b border-gray-100 flex items-center justify-between">
+        <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2">
-            <img src="/System logo.png" alt="Akirapa System Logo" className="h-16 w-auto max-w-[200px] object-contain transition-all py-1" />
+            <img src="/System logo.png" alt="Akirapa System Logo" className="h-14 w-auto max-w-[180px] object-contain transition-all py-0.5" />
           </div>
           <button 
             type="button" 
             onClick={() => setIsMobileMenuOpen(false)}
-            className="lg:hidden text-gray-400 hover:text-gray-600 p-1"
+            className="lg:hidden text-gray-400 hover:text-gray-600 p-1 cursor-pointer"
           >
             <i className="fa-solid fa-xmark text-lg"></i>
           </button>
         </div>
 
-        {/* Profile Section */}
-        <div className="px-6 py-4 border-b border-gray-100">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold text-lg">
-              {user.name?.charAt(0) || 'U'}
-            </div>
-            <div className="min-w-0">
-              <div className="font-semibold text-sm text-gray-800 truncate">{user.name}</div>
-              <div className="text-xs text-gray-400">{user.role}</div>
-            </div>
-          </div>
-        </div>
-
         {/* Navigation */}
-        <nav className="flex-1 px-3 py-4 space-y-1.5 overflow-y-auto">
-          <button onClick={() => { setCurrentView('dashboard'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'dashboard' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
-            <i className="fa-solid fa-gauge-high w-5 text-center"></i> Dashboard
+        <nav className="flex-1 px-3 py-3 space-y-1 overflow-y-auto">
+          <button onClick={() => { setCurrentView('dashboard'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${currentView === 'dashboard' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
+            <i className="fa-solid fa-gauge-high w-4 text-center"></i> Dashboard
           </button>
           
           {/* Admin/Coordinator Views */}
           {(user.role === 'ADMIN' || user.role === 'CARE_COORDINATOR') && (
             <>
-              <button onClick={() => { setCurrentView('listings'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'listings' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
-                <i className="fa-solid fa-calendar-check w-5 text-center"></i> Shifts
+              <button onClick={() => { setCurrentView('listings'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${currentView === 'listings' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
+                <i className="fa-solid fa-calendar-check w-4 text-center"></i> Shifts
               </button>
-              <button onClick={() => { setCurrentView('create'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'create' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
-                <i className="fa-solid fa-plus-circle w-5 text-center"></i> Create Shift
+              <button onClick={() => { setCurrentView('create'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${currentView === 'create' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
+                <i className="fa-solid fa-plus-circle w-4 text-center"></i> Create Shift
               </button>
               {user && isCaregiverProvisioningAuthorized(user.email) && (
-                <button onClick={() => { setCurrentView('add_caregiver'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'add_caregiver' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
-                  <i className="fa-solid fa-user-plus w-5 text-center"></i> Add Caregiver
+                <button onClick={() => { setCurrentView('add_caregiver'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${currentView === 'add_caregiver' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
+                  <i className="fa-solid fa-user-plus w-4 text-center"></i> Add Caregiver
                 </button>
               )}
               {user && isCaregiverProvisioningAuthorized(user.email) && (
-                <button onClick={() => { setCurrentView('add_client'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'add_client' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
-                  <i className="fa-solid fa-user-plus w-5 text-center"></i> Add Client
+                <button onClick={() => { setCurrentView('add_client'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${currentView === 'add_client' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
+                  <i className="fa-solid fa-user-plus w-4 text-center"></i> Add Client
                 </button>
               )}
               {user && isBusinessHubAuthorized(user.email) && (
-                <button onClick={() => { setCurrentView('business'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'business' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
-                  <i className="fa-solid fa-briefcase w-5 text-center"></i> Business Hub
+                <button onClick={() => { setCurrentView('business'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${currentView === 'business' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
+                  <i className="fa-solid fa-briefcase w-4 text-center"></i> Business Hub
                 </button>
               )}
               {user && isBusinessHubAuthorized(user.email) && (
-                <button onClick={() => { setCurrentView('financials'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'financials' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
-                  <i className="fa-solid fa-sack-dollar w-5 text-center"></i> Payroll
+                <button onClick={() => { setCurrentView('financials'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${currentView === 'financials' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
+                  <i className="fa-solid fa-sack-dollar w-4 text-center"></i> Payroll
                 </button>
               )}
               {user && isBusinessHubAuthorized(user.email) && (
-                <button onClick={() => { setCurrentView('billing'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'billing' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
-                  <i className="fa-solid fa-file-invoice-dollar w-5 text-center"></i> Billing
+                <button onClick={() => { setCurrentView('billing'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${currentView === 'billing' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
+                  <i className="fa-solid fa-file-invoice-dollar w-4 text-center"></i> Billing
                 </button>
               )}
               {(user.role === 'ADMIN' || user.role === 'CARE_COORDINATOR') && (
-                <button onClick={() => { setCurrentView('caregiverReviews'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'caregiverReviews' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
-                  <i className="fa-solid fa-star-half-stroke w-5 text-center"></i> Caregiver Reviews
+                <button onClick={() => { setCurrentView('caregiverReviews'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${currentView === 'caregiverReviews' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
+                  <i className="fa-solid fa-star-half-stroke w-4 text-center"></i> Caregiver Reviews
                 </button>
               )}
-              <button onClick={() => { setCurrentView('messages'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'messages' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
-                <i className="fa-solid fa-comments w-5 text-center"></i> Messages
+              <button onClick={() => { setCurrentView('messages'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${currentView === 'messages' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
+                <i className="fa-solid fa-comments w-4 text-center"></i> Messages
               </button>
               {(user.role === 'ADMIN' || user.role === 'CARE_COORDINATOR') && (
-                <button onClick={() => { setCurrentView('messageOversight'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'messageOversight' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
-                  <i className="fa-solid fa-eye w-5 text-center"></i> Message Oversight
+                <button onClick={() => { setCurrentView('messageOversight'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${currentView === 'messageOversight' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
+                  <i className="fa-solid fa-eye w-4 text-center"></i> Message Oversight
                 </button>
               )}
-              <button onClick={() => { setCurrentView('audit'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'audit' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
-                <i className="fa-solid fa-shield-halved w-5 text-center"></i> Audit Logs
+              <button onClick={() => { setCurrentView('audit'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${currentView === 'audit' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
+                <i className="fa-solid fa-shield-halved w-4 text-center"></i> Audit Logs
               </button>
             </>
           )}
@@ -4961,14 +4948,14 @@ export default function Home() {
           {/* Caregiver Views */}
           {user.role === 'CAREGIVER' && (
             <>
-              <button onClick={() => { setCurrentView('listings'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'listings' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
-                <i className="fa-solid fa-clock w-5 text-center"></i> My Shifts
+              <button onClick={() => { setCurrentView('listings'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${currentView === 'listings' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
+                <i className="fa-solid fa-clock w-4 text-center"></i> My Shifts
               </button>
-              <button onClick={() => { setCurrentView('messages'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'messages' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
-                <i className="fa-solid fa-comments w-5 text-center"></i> Messages
+              <button onClick={() => { setCurrentView('messages'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${currentView === 'messages' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
+                <i className="fa-solid fa-comments w-4 text-center"></i> Messages
               </button>
-              <button onClick={() => { setCurrentView('interested'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'interested' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
-                <i className="fa-solid fa-bell w-5 text-center"></i> Alerts
+              <button onClick={() => { setCurrentView('interested'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${currentView === 'interested' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
+                <i className="fa-solid fa-bell w-4 text-center"></i> Alerts
               </button>
             </>
           )}
@@ -4976,27 +4963,54 @@ export default function Home() {
           {/* Family Views */}
           {user.role === 'FAMILY_MEMBER' && (
             <>
-              <button onClick={() => { setCurrentView('listings'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'listings' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
-                <i className="fa-solid fa-heart-pulse w-5 text-center"></i> Care Feed
+              <button onClick={() => { setCurrentView('listings'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${currentView === 'listings' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
+                <i className="fa-solid fa-heart-pulse w-4 text-center"></i> Care Feed
               </button>
-              <button onClick={() => { setCurrentView('messages'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'messages' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
-                <i className="fa-solid fa-comments w-5 text-center"></i> Messages
+              <button onClick={() => { setCurrentView('messages'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${currentView === 'messages' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
+                <i className="fa-solid fa-comments w-4 text-center"></i> Messages
               </button>
-              <button onClick={() => { setCurrentView('purchases'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'purchases' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
-                <i className="fa-solid fa-file-invoice w-5 text-center"></i> Documents
+              <button onClick={() => { setCurrentView('purchases'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${currentView === 'purchases' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
+                <i className="fa-solid fa-file-invoice w-4 text-center"></i> Documents
               </button>
             </>
           )}
 
           {/* Common Views */}
-          <button onClick={() => { setCurrentView('profile'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${currentView === 'profile' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
-            <i className="fa-solid fa-user w-5 text-center"></i> My Profile
-          </button>
-          
-          <button onClick={() => { logout(false); setIsMobileMenuOpen(false); }} className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold text-white bg-red-600 hover:bg-red-700 shadow-md transition-all mt-6 cursor-pointer">
-            <i className="fa-solid fa-right-from-bracket w-5 text-center text-white text-base"></i> Sign Out
+          <button onClick={() => { setCurrentView('profile'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${currentView === 'profile' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
+            <i className="fa-solid fa-user w-4 text-center"></i> My Profile
           </button>
         </nav>
+
+        {/* Pinned Bottom User & Sign Out Footer */}
+        <div className="p-3 border-t border-gray-100 bg-gray-50/80 shrink-0 space-y-2">
+          <div className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-gray-200/80 shadow-2xs">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-full bg-[#77248c] text-white flex items-center justify-center font-bold text-xs shrink-0">
+                {user.name?.charAt(0) || 'U'}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="font-bold text-xs text-gray-800 truncate">{user.name}</div>
+                <div className="text-[10px] text-gray-400 font-medium truncate">{user.role}</div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => { setCurrentView('profile'); setIsMobileMenuOpen(false); }}
+              className={`p-1.5 rounded-lg transition-colors cursor-pointer shrink-0 ${currentView === 'profile' ? 'bg-purple-100 text-[#77248c]' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'}`}
+              title="My Profile"
+            >
+              <i className="fa-solid fa-gear text-xs"></i>
+            </button>
+          </div>
+
+          <button 
+            onClick={() => { logout(false); setIsMobileMenuOpen(false); }} 
+            className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold text-white bg-red-600 hover:bg-red-700 shadow-sm transition-all cursor-pointer"
+          >
+            <i className="fa-solid fa-right-from-bracket text-xs"></i>
+            <span>Sign Out</span>
+          </button>
+        </div>
       </aside>
 
       {/* ==================== MAIN CONTENT ==================== */}
@@ -6873,7 +6887,7 @@ export default function Home() {
                         <h4 className="font-extrabold text-base text-gray-800">Client Roster & Credential Management</h4>
                         <p className="text-xs text-gray-500">Manage client profiles and family member login credentials.</p>
                       </div>
-                      <span className="text-xs font-extrabold bg-purple-50 text-[#77248c] px-3 py-1 rounded-full border border-purple-200">{clients.length} Clients</span>
+                      <span className="text-xs font-extrabold bg-[#77248c] text-white px-3 py-1 rounded-full shadow-xs">{clients.length} Clients</span>
                     </div>
                     {clients.length === 0 ? (
                       <div className="text-center py-8 text-xs text-gray-400">No clients registered in the system yet.</div>
