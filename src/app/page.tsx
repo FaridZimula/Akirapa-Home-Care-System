@@ -5,6 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { formatDate, formatTime, formatDateTime } from '@/lib/dateFormat';
 import { isCaregiverProvisioningAuthorized, isBusinessHubAuthorized } from '@/lib/adminAllowlist';
 import { cleanUSPhoneDigits, formatUSPhoneWithCountryCode, formatUSPhoneDisplay } from '@/lib/phone';
+import PhoneInput from '@/components/PhoneInput';
 import { LocationAutocompleteInput } from '@/components/LocationAutocompleteInput';
 
 // Structured client welfare check, asked every shift. Polarity is explicit per
@@ -2929,17 +2930,12 @@ export default function Home() {
             {renderPasswordStrengthMeter(signupPassword)}
           </div>
           <div>
-            <label className="text-xs font-semibold text-gray-500 uppercase">US Phone Number <span className="text-red-500 ml-0.5">*</span></label>
-            <div className="relative flex items-center mt-1">
-              <span className="absolute left-3.5 font-mono font-bold text-[#77248c] text-sm select-none pointer-events-none">+1</span>
-              <input
-                type="tel"
-                placeholder="(555) 019-2834"
-                value={cleanUSPhoneDigits(signupPhone)}
-                onChange={(e) => setSignupPhone(cleanUSPhoneDigits(e.target.value))}
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono"
-              />
-            </div>
+            <label className="text-xs font-semibold text-gray-500 uppercase">Phone Number <span className="text-red-500 ml-0.5">*</span></label>
+            <PhoneInput
+              value={signupPhone}
+              onChange={(val) => setSignupPhone(val)}
+              className="mt-1"
+            />
           </div>
           <div>
             <label className="text-xs font-semibold text-gray-500 uppercase">I am a</label>
@@ -3122,17 +3118,12 @@ export default function Home() {
                     </select>
                   </div>
                   <div className="col-span-1">
-                    <label className="text-xs font-semibold text-gray-500 uppercase">US Phone Number</label>
-                    <div className="relative flex items-center mt-1">
-                      <span className="absolute left-3.5 font-mono font-bold text-[#77248c] text-sm select-none pointer-events-none">+1</span>
-                      <input
-                        type="tel"
-                        placeholder="(555) 019-2834"
-                        value={cleanUSPhoneDigits(patientPhoneInput)}
-                        onChange={(e) => setPatientPhoneInput(cleanUSPhoneDigits(e.target.value))}
-                        className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono"
-                      />
-                    </div>
+                    <label className="text-xs font-semibold text-gray-500 uppercase">Phone Number</label>
+                    <PhoneInput
+                      value={patientPhoneInput}
+                      onChange={(val) => setPatientPhoneInput(val)}
+                      className="mt-1"
+                    />
                   </div>
                   <div className="col-span-1">
                     <label className="text-xs font-semibold text-gray-500 uppercase">Email Address</label>
@@ -3212,16 +3203,11 @@ export default function Home() {
                       </div>
                       <div className="col-span-1">
                         <label className="text-xs font-semibold text-gray-500 uppercase">Phone Number</label>
-                        <div className="relative flex items-center mt-1">
-                          <span className="absolute left-3.5 font-mono font-bold text-[#77248c] text-sm select-none pointer-events-none">+1</span>
-                          <input
-                            type="tel"
-                            placeholder="(555) 019-2834"
-                            value={cleanUSPhoneDigits(primaryContactPhone)}
-                            onChange={(e) => setPrimaryContactPhone(cleanUSPhoneDigits(e.target.value))}
-                            className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono"
-                          />
-                        </div>
+                        <PhoneInput
+                          value={primaryContactPhone}
+                          onChange={(val) => setPrimaryContactPhone(val)}
+                          className="mt-1"
+                        />
                       </div>
                     </div>
                   </div>
@@ -3242,16 +3228,11 @@ export default function Home() {
                       </div>
                       <div className="col-span-1">
                         <label className="text-xs font-semibold text-gray-500 uppercase">Phone Number</label>
-                        <div className="relative flex items-center mt-1">
-                          <span className="absolute left-3.5 font-mono font-bold text-[#77248c] text-sm select-none pointer-events-none">+1</span>
-                          <input
-                            type="tel"
-                            placeholder="(555) 019-2834"
-                            value={cleanUSPhoneDigits(secondaryContactPhone)}
-                            onChange={(e) => setSecondaryContactPhone(cleanUSPhoneDigits(e.target.value))}
-                            className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono"
-                          />
-                        </div>
+                        <PhoneInput
+                          value={secondaryContactPhone}
+                          onChange={(val) => setSecondaryContactPhone(val)}
+                          className="mt-1"
+                        />
                       </div>
                     </div>
                   </div>
@@ -3557,17 +3538,12 @@ export default function Home() {
                 </div>
 
                 <div>
-                  <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">US Phone Number</label>
-                  <div className="relative flex items-center mt-1">
-                    <span className="absolute left-3.5 font-mono font-bold text-[#77248c] text-sm select-none pointer-events-none">+1</span>
-                    <input
-                      type="tel"
-                      placeholder="(555) 019-2834"
-                      value={cleanUSPhoneDigits(newUserPhone)}
-                      onChange={(e) => setNewUserPhone(cleanUSPhoneDigits(e.target.value))}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono"
-                    />
-                  </div>
+                  <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Phone Number</label>
+                  <PhoneInput
+                    value={newUserPhone}
+                    onChange={(val) => setNewUserPhone(val)}
+                    className="mt-1"
+                  />
                 </div>
               </div>
 
@@ -5747,12 +5723,10 @@ export default function Home() {
                     <div className="space-y-4 text-xs">
                       <div>
                         <label className="font-semibold text-gray-600 uppercase block mb-1">Contact Phone Number</label>
-                        <input
-                          type="text"
+                        <PhoneInput
                           value={userPhoneInput || user.phoneNumber || ''}
-                          onChange={(e) => setUserPhoneInput(e.target.value)}
-                          placeholder="+16045550199"
-                          className="w-full max-w-md bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          onChange={(val) => setUserPhoneInput(val)}
+                          className="mt-1 max-w-md"
                         />
                       </div>
 
@@ -6516,12 +6490,10 @@ export default function Home() {
 
                         <div>
                           <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Phone Number</label>
-                          <input
-                            type="text"
-                            placeholder="+16045550199"
+                          <PhoneInput
                             value={newUserPhone}
-                            onChange={(e) => setNewUserPhone(e.target.value)}
-                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
+                            onChange={(val) => setNewUserPhone(val)}
+                            className="mt-1"
                           />
                         </div>
 
@@ -6600,14 +6572,14 @@ export default function Home() {
                                     {initialPass ? (
                                       <div className="flex items-center gap-1.5">
                                         {isPassVisible ? (
-                                          <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-mono font-bold">
+                                          <span className="px-2.5 py-1 bg-cyan-500 text-white border border-cyan-600 rounded-lg text-xs font-mono font-bold shadow-2xs">
                                             {initialPass}
                                           </span>
                                         ) : (
                                           <button
                                             type="button"
                                             onClick={() => toggleShowPassword(cg.id)}
-                                            className="px-2.5 py-1 bg-purple-50 hover:bg-purple-100 text-[#77248c] border border-purple-200 rounded-lg text-xs font-mono font-semibold transition-colors flex items-center gap-1 cursor-pointer"
+                                            className="px-2.5 py-1 bg-[#77248c] hover:bg-[#5a1a6b] text-white border border-purple-700 rounded-lg text-xs font-mono font-semibold transition-colors flex items-center gap-1 cursor-pointer shadow-2xs"
                                           >
                                             <i className="fa-solid fa-eye-slash text-[10px]"></i> ••••••••
                                           </button>
@@ -6761,17 +6733,12 @@ export default function Home() {
                         </div>
 
                         <div>
-                          <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">US Phone Number</label>
-                          <div className="relative flex items-center mt-1">
-                            <span className="absolute left-3.5 font-mono font-bold text-[#77248c] text-sm select-none pointer-events-none">+1</span>
-                            <input
-                              type="tel"
-                              placeholder="(555) 019-2834"
-                              value={cleanUSPhoneDigits(newClientPhone)}
-                              onChange={(e) => setNewClientPhone(cleanUSPhoneDigits(e.target.value))}
-                              className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono"
-                            />
-                          </div>
+                          <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Phone Number</label>
+                          <PhoneInput
+                            value={newClientPhone}
+                            onChange={(val) => setNewClientPhone(val)}
+                            className="mt-1"
+                          />
                         </div>
 
                         <div>
@@ -6847,16 +6814,11 @@ export default function Home() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="md:col-span-2">
                           <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Emergency Contact Phone</label>
-                          <div className="relative flex items-center mt-1">
-                            <span className="absolute left-3.5 font-mono font-bold text-[#77248c] text-sm select-none pointer-events-none">+1</span>
-                            <input
-                              type="tel"
-                              placeholder="(555) 019-2834"
-                              value={cleanUSPhoneDigits(newClientEmergencyPhone)}
-                              onChange={(e) => setNewClientEmergencyPhone(cleanUSPhoneDigits(e.target.value))}
-                              className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono"
-                            />
-                          </div>
+                          <PhoneInput
+                            value={newClientEmergencyPhone}
+                            onChange={(val) => setNewClientEmergencyPhone(val)}
+                            className="mt-1"
+                          />
                         </div>
                       </div>
 
@@ -6925,14 +6887,14 @@ export default function Home() {
                                     {initialPass ? (
                                       <div className="flex items-center gap-1.5">
                                         {isPassVisible ? (
-                                          <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-mono font-bold">
+                                          <span className="px-2.5 py-1 bg-cyan-500 text-white border border-cyan-600 rounded-lg text-xs font-mono font-bold shadow-2xs">
                                             {initialPass}
                                           </span>
                                         ) : (
                                           <button
                                             type="button"
                                             onClick={() => toggleShowPassword(cl.id)}
-                                            className="px-2.5 py-1 bg-purple-50 hover:bg-purple-100 text-[#77248c] border border-purple-200 rounded-lg text-xs font-mono font-semibold transition-colors flex items-center gap-1 cursor-pointer"
+                                            className="px-2.5 py-1 bg-[#77248c] hover:bg-[#5a1a6b] text-white border border-purple-700 rounded-lg text-xs font-mono font-semibold transition-colors flex items-center gap-1 cursor-pointer shadow-2xs"
                                           >
                                             <i className="fa-solid fa-eye-slash text-[10px]"></i> ••••••••
                                           </button>
@@ -8335,17 +8297,13 @@ export default function Home() {
             </div>
             <div className="space-y-4">
               <div>
-                <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px] block mb-1">US Phone Number <span className="text-red-500 ml-0.5">*</span></label>
-                <div className="relative flex items-center mt-1">
-                  <span className="absolute left-3.5 font-mono font-bold text-[#77248c] text-sm select-none pointer-events-none">+1</span>
-                  <input
-                    type="tel"
-                    placeholder="(555) 019-2834"
-                    value={cleanUSPhoneDigits(onboardingPhone)}
-                    onChange={(e) => setOnboardingPhone(cleanUSPhoneDigits(e.target.value))}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono"
-                  />
-                </div>
+                <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px] block mb-1">Phone Number <span className="text-red-500 ml-0.5">*</span></label>
+                <PhoneInput
+                  value={onboardingPhone}
+                  onChange={(val) => setOnboardingPhone(val)}
+                  className="mt-1"
+                  required
+                />
               </div>
               <div>
                 <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px] block mb-1">
@@ -8387,16 +8345,11 @@ export default function Home() {
               </div>
               <div>
                 <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px] block mb-1">Emergency Contact Phone</label>
-                <div className="relative flex items-center mt-1">
-                  <span className="absolute left-3.5 font-mono font-bold text-[#77248c] text-sm select-none pointer-events-none">+1</span>
-                  <input
-                    type="tel"
-                    placeholder="(555) 019-2834"
-                    value={cleanUSPhoneDigits(onboardingEmergencyPhone)}
-                    onChange={(e) => setOnboardingEmergencyPhone(cleanUSPhoneDigits(e.target.value))}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono"
-                  />
-                </div>
+                <PhoneInput
+                  value={onboardingEmergencyPhone}
+                  onChange={(val) => setOnboardingEmergencyPhone(val)}
+                  className="mt-1"
+                />
               </div>
               <button
                 disabled={isSubmittingOnboarding || !onboardingPhone}
