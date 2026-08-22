@@ -5602,7 +5602,11 @@ export default function Home() {
                     {user.role !== 'ADMIN' && (
                       <div className="grid grid-cols-2 gap-4 mt-8">
                         <div className="bg-gray-50 rounded-xl p-4 text-center"><div className="text-sm text-gray-500">Member Since</div><div className="font-semibold">2026</div></div>
-                        <div className="bg-gray-50 rounded-xl p-4 text-center"><div className="text-sm text-gray-500">Total Shifts</div><div className="font-semibold">{shifts.filter(s => s.caregiverId === user.id).length}</div></div>
+                        {user.role === 'CAREGIVER' ? (
+                          <div className="bg-gray-50 rounded-xl p-4 text-center"><div className="text-sm text-gray-500">Total Shifts</div><div className="font-semibold">{shifts.filter(s => s.caregiverId === user.id).length}</div></div>
+                        ) : (
+                          <div className="bg-purple-50 rounded-xl p-4 text-center border border-purple-100"><div className="text-sm text-purple-600 font-semibold">Portal</div><div className="font-bold text-[#77248c]">Family Care</div></div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -5640,7 +5644,7 @@ export default function Home() {
                   )}
 
                   {/* Caregiver Weekly Working Availability Schedule Manager */}
-                  <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+                  {user.role === 'CAREGIVER' && (<div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
                     <div className="flex flex-wrap justify-between items-center gap-3 border-b border-gray-100 pb-4 mb-4">
                       <div>
                         <h3 className="font-bold text-gray-800 text-base flex items-center gap-2">
@@ -5701,9 +5705,10 @@ export default function Home() {
                       </button>
                     </div>
                   </div>
+                  )}
 
                   {/* Caregiver Certifications & Clinical Skills Metadata Editor */}
-                  <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+                  {user.role === 'CAREGIVER' && (<div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
                     <div className="flex flex-wrap justify-between items-center gap-3 border-b border-gray-100 pb-4 mb-4">
                       <div>
                         <h3 className="font-bold text-gray-800 text-base flex items-center gap-2">
@@ -5778,6 +5783,57 @@ export default function Home() {
                       </div>
                     </div>
                   </div>
+                  )}
+
+                  {/* Family Member Account Profile Section */}
+                  {user.role === 'FAMILY_MEMBER' && (
+                    <div className="space-y-4">
+                      {/* Quick Account Info Card */}
+                      <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+                        <div className="flex items-center gap-3 border-b border-gray-100 pb-4 mb-5">
+                          <div className="w-10 h-10 rounded-2xl bg-purple-50 flex items-center justify-center">
+                            <i className="fa-solid fa-circle-user text-[#77248c] text-lg"></i>
+                          </div>
+                          <div>
+                            <h3 className="font-bold text-gray-800 text-base">Account Information</h3>
+                            <p className="text-xs text-gray-500">Your family portal account details</p>
+                          </div>
+                        </div>
+                        <div className="space-y-3 text-sm">
+                          <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                            <i className="fa-solid fa-user text-purple-400 w-4 text-center"></i>
+                            <div>
+                              <div className="text-[10px] text-gray-400 uppercase font-semibold">Full Name</div>
+                              <div className="font-semibold text-gray-800">{user.name}</div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                            <i className="fa-solid fa-envelope text-purple-400 w-4 text-center"></i>
+                            <div>
+                              <div className="text-[10px] text-gray-400 uppercase font-semibold">Email Address</div>
+                              <div className="font-semibold text-gray-800 font-mono text-xs">{user.email}</div>
+                            </div>
+                          </div>
+                          {user.phoneNumber && (
+                            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                              <i className="fa-solid fa-phone text-purple-400 w-4 text-center"></i>
+                              <div>
+                                <div className="text-[10px] text-gray-400 uppercase font-semibold">Phone Number</div>
+                                <div className="font-semibold text-gray-800 font-mono text-xs">{formatUSPhoneDisplay(user.phoneNumber)}</div>
+                              </div>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-xl border border-purple-100">
+                            <i className="fa-solid fa-heart text-[#77248c] w-4 text-center"></i>
+                            <div>
+                              <div className="text-[10px] text-gray-400 uppercase font-semibold">Portal Access</div>
+                              <div className="font-bold text-[#77248c] text-xs">Family Care Portal — Full Access</div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Change Password Card (Caregiver & Family) */}
                   {(user.role === 'CAREGIVER' || user.role === 'FAMILY_MEMBER') && (
