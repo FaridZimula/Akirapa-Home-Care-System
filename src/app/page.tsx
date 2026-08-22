@@ -5129,19 +5129,32 @@ export default function Home() {
                             <div className="w-12 h-12 bg-[#77248c] rounded-2xl flex items-center justify-center text-white shadow-xs"><i className="fa-solid fa-heart text-xl text-white"></i></div>
                           </div>
                         </div>
-                        <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
-                          <div className="flex items-center justify-between">
-                            <div><div className="text-xs font-bold text-gray-500 uppercase">Assigned Caregiver</div><div className="text-lg font-extrabold text-gray-900 truncate max-w-[150px] mt-0.5">
-                              {(() => {
-                                const currentClient = clients.find((c: any) => c.id === selectedFeedClientId) || clients[0];
-                                const primaryPodCaregiver = currentClient?.caregiverPods?.find((p: any) => p.role === 'PRIMARY')?.caregiver?.name;
-                                const shiftCaregiver = shifts.find((s: any) => s.clientId === currentClient?.id && s.caregiver?.name)?.caregiver?.name;
-                                return primaryPodCaregiver || shiftCaregiver || caregivers[0]?.name || 'Unassigned';
-                              })()}
-                            </div></div>
-                            <div className="w-12 h-12 bg-[#77248c] rounded-2xl flex items-center justify-center text-white shadow-xs"><i className="fa-solid fa-user-nurse text-xl text-white"></i></div>
-                          </div>
-                        </div>
+                        {(() => {
+                          const currentClient = clients.find((c: any) => c.id === selectedFeedClientId) || clients[0];
+                          const primaryPodCaregiver = currentClient?.caregiverPods?.find((p: any) => p.role === 'PRIMARY')?.caregiver?.name;
+                          const shiftCaregiver = shifts.find((s: any) => s.clientId === currentClient?.id && s.caregiver?.name)?.caregiver?.name;
+                          const assignedName = primaryPodCaregiver || shiftCaregiver || null;
+                          return (
+                            <div className={`rounded-2xl shadow-sm p-6 border ${assignedName ? 'bg-white border-gray-100' : 'bg-amber-50 border-amber-200'}`}>
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <div className="text-xs font-bold text-gray-500 uppercase">Assigned Caregiver</div>
+                                  {assignedName ? (
+                                    <div className="text-lg font-extrabold text-gray-900 truncate max-w-[150px] mt-0.5">{assignedName}</div>
+                                  ) : (
+                                    <div className="mt-1">
+                                      <div className="text-sm font-extrabold text-amber-700">Pending Assignment</div>
+                                      <div className="text-[10px] text-amber-600 font-medium mt-0.5">Awaiting admin scheduling</div>
+                                    </div>
+                                  )}
+                                </div>
+                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-xs ${assignedName ? 'bg-[#77248c]' : 'bg-amber-400'}`}>
+                                  <i className={`text-xl text-white fa-solid ${assignedName ? 'fa-user-nurse' : 'fa-clock'}`}></i>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })()}
                         <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
                           <div className="flex items-center justify-between">
                             <div><div className="text-xs font-bold text-gray-500 uppercase">Latest Wellness</div><div className="text-lg font-extrabold text-emerald-600 truncate max-w-[150px] mt-0.5">Calm & Good</div></div>
