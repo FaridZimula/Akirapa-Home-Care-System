@@ -5135,20 +5135,20 @@ export default function Home() {
                           const shiftCaregiver = shifts.find((s: any) => s.clientId === currentClient?.id && s.caregiver?.name)?.caregiver?.name;
                           const assignedName = primaryPodCaregiver || shiftCaregiver || null;
                           return (
-                            <div className={`rounded-2xl shadow-sm p-6 border ${assignedName ? 'bg-white border-gray-100' : 'bg-amber-50 border-amber-200'}`}>
+                            <div className={`rounded-2xl shadow-sm p-6 border transition-all ${assignedName ? 'bg-white border-gray-100' : 'bg-orange-500 border-orange-600 text-white'}`}>
                               <div className="flex items-center justify-between">
                                 <div>
-                                  <div className="text-xs font-bold text-gray-500 uppercase">Assigned Caregiver</div>
+                                  <div className={`text-xs font-bold uppercase ${assignedName ? 'text-gray-500' : 'text-orange-100'}`}>Assigned Caregiver</div>
                                   {assignedName ? (
                                     <div className="text-lg font-extrabold text-gray-900 truncate max-w-[150px] mt-0.5">{assignedName}</div>
                                   ) : (
                                     <div className="mt-1">
-                                      <div className="text-sm font-extrabold text-amber-700">Pending Assignment</div>
-                                      <div className="text-[10px] text-amber-600 font-medium mt-0.5">Awaiting admin scheduling</div>
+                                      <div className="text-lg font-extrabold text-white">Pending Assignment</div>
+                                      <div className="text-[10px] text-orange-100 font-medium mt-0.5">Awaiting admin scheduling</div>
                                     </div>
                                   )}
                                 </div>
-                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-xs ${assignedName ? 'bg-[#77248c]' : 'bg-amber-400'}`}>
+                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-xs ${assignedName ? 'bg-[#77248c]' : 'bg-orange-600/90'}`}>
                                   <i className={`text-xl text-white fa-solid ${assignedName ? 'fa-user-nurse' : 'fa-clock'}`}></i>
                                 </div>
                               </div>
