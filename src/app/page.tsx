@@ -7455,17 +7455,17 @@ export default function Home() {
                   ) : financialsData ? (
                     <>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="bg-purple-50 rounded-xl p-4 text-center">
-                          <div className="text-2xl font-bold text-purple-600">${financialsData.totalPayroll.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-                          <div className="text-sm text-gray-600">Total Payroll (This Week)</div>
+                        <div className="bg-[#77248c] text-white rounded-xl p-4 text-center shadow-xs">
+                          <div className="text-2xl font-bold text-white">${financialsData.totalPayroll.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                          <div className="text-sm text-white/90 font-medium">Total Payroll (This Week)</div>
                         </div>
-                        <div className="bg-green-50 rounded-xl p-4 text-center">
-                          <div className="text-2xl font-bold text-green-600">{financialsData.totalHours.toFixed(1)}</div>
-                          <div className="text-sm text-gray-600">Hours Worked</div>
+                        <div className="bg-green-600 text-white rounded-xl p-4 text-center shadow-xs">
+                          <div className="text-2xl font-bold text-white">{financialsData.totalHours.toFixed(1)}</div>
+                          <div className="text-sm text-white/90 font-medium">Hours Worked</div>
                         </div>
-                        <div className="bg-amber-50 rounded-xl p-4 text-center">
-                          <div className="text-2xl font-bold text-amber-600">{financialsData.caregiverPayroll.length}</div>
-                          <div className="text-sm text-gray-600">Caregivers Active</div>
+                        <div className="bg-orange-500 text-white rounded-xl p-4 text-center shadow-xs">
+                          <div className="text-2xl font-bold text-white">{financialsData.caregiverPayroll.length}</div>
+                          <div className="text-sm text-white/90 font-medium">Caregivers Active</div>
                         </div>
                       </div>
 
@@ -7587,77 +7587,138 @@ export default function Home() {
                     </div>
                   ) : invoicesData ? (
                     <>
-                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
-                          <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Total Invoiced</div>
-                          <div className="text-2xl font-bold text-gray-800">${invoicesData.totalInvoiced.toFixed(2)}</div>
+                      {/* Payment Tracker Header Banner */}
+                      <div className="bg-gradient-to-r from-[#77248c] via-purple-900 to-[#5a1a6b] rounded-3xl p-6 text-white shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div>
+                          <div className="flex items-center gap-2 text-xs font-bold text-purple-200 uppercase tracking-widest mb-1">
+                            <span className="w-3 h-3 rounded-full bg-[#4cdbd5] inline-block shadow-xs"></span>
+                            Akirapa Home Care Agency • Financial Intelligence
+                          </div>
+                          <h2 className="text-3xl font-black text-white tracking-tight">PAYMENT TRACKER</h2>
+                          <p className="text-xs text-purple-100/90 mt-1 max-w-xl">
+                            Track client invoices, payments, remaining balances, and overdue accounts at a glance.
+                          </p>
                         </div>
-                        <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
-                          <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Total Received</div>
-                          <div className="text-2xl font-bold text-emerald-600">${invoicesData.totalReceived.toFixed(2)}</div>
+
+                        <button
+                          onClick={() => setShowGenerateInvoiceModal(true)}
+                          className="px-5 py-3 bg-[#4cdbd5] hover:bg-[#3bc7c1] text-purple-950 font-black text-xs rounded-2xl flex items-center gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer active:scale-95"
+                        >
+                          <i className="fa-solid fa-file-invoice text-sm"></i>
+                          <span>Generate New Invoice</span>
+                        </button>
+                      </div>
+
+                      {/* 4 Summary Metric Cards */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="bg-[#77248c] text-white rounded-2xl p-5 shadow-md border border-purple-800/40 hover-lift">
+                          <div className="text-[11px] font-extrabold text-purple-200 uppercase tracking-wider mb-1">Total Invoiced</div>
+                          <div className="text-2xl font-black text-white">${invoicesData.totalInvoiced.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                          <div className="text-[11px] text-purple-200/80 mt-1 font-medium">Gross billing generated</div>
                         </div>
-                        <div className="bg-teal-600 rounded-2xl shadow-sm p-6">
-                          <div className="text-xs font-bold text-teal-100 uppercase tracking-wider mb-1">Outstanding</div>
-                          <div className="text-2xl font-bold text-white">${invoicesData.outstanding.toFixed(2)}</div>
+
+                        <div className="bg-emerald-600 text-white rounded-2xl p-5 shadow-md border border-emerald-500/40 hover-lift">
+                          <div className="text-[11px] font-extrabold text-emerald-100 uppercase tracking-wider mb-1">Total Received</div>
+                          <div className="text-2xl font-black text-white">${invoicesData.totalReceived.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                          <div className="text-[11px] text-emerald-100/80 mt-1 font-medium">Collected client payments</div>
                         </div>
-                        <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
-                          <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Overdue</div>
-                          <div className="text-2xl font-bold text-red-600">${invoicesData.overdue.toFixed(2)}</div>
+
+                        <div className="bg-cyan-600 text-white rounded-2xl p-5 shadow-md border border-cyan-500/40 hover-lift">
+                          <div className="text-[11px] font-extrabold text-cyan-100 uppercase tracking-wider mb-1">Outstanding</div>
+                          <div className="text-2xl font-black text-white">${invoicesData.outstanding.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                          <div className="text-[11px] text-cyan-100/80 mt-1 font-medium">Pending & active balances</div>
+                        </div>
+
+                        <div className="bg-red-600 text-white rounded-2xl p-5 shadow-md border border-red-500/40 hover-lift">
+                          <div className="text-[11px] font-extrabold text-red-100 uppercase tracking-wider mb-1">Overdue</div>
+                          <div className="text-2xl font-black text-white">${invoicesData.overdue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                          <div className="text-[11px] text-red-100/80 mt-1 font-medium">Past due date threshold</div>
                         </div>
                       </div>
 
-                      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-                        <div className="flex justify-between items-center mb-4">
-                          <h3 className="font-semibold text-gray-800 text-lg">Payment Tracker</h3>
-                          <button
-                            onClick={() => setShowGenerateInvoiceModal(true)}
-                            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs rounded-xl flex items-center gap-2 shadow-sm transition-all cursor-pointer"
-                          >
-                            <i className="fa-solid fa-file-invoice"></i> Generate Invoice
-                          </button>
+                      {/* Payment Tracker Main Table Container */}
+                      <div className="bg-white rounded-3xl shadow-sm border border-purple-100 overflow-hidden">
+                        <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                          <div>
+                            <h3 className="font-extrabold text-gray-900 text-lg flex items-center gap-2">
+                              <i className="fa-solid fa-list-check text-[#77248c]"></i> Client Payment Directory & Statements
+                            </h3>
+                            <p className="text-xs text-gray-500 mt-0.5">Real-time status of all client invoices and payments</p>
+                          </div>
+                          <span className="text-xs font-bold px-3 py-1 bg-purple-50 text-[#77248c] border border-purple-200 rounded-full">
+                            {invoicesData.invoices.length} Total Invoices
+                          </span>
                         </div>
 
                         {invoicesData.invoices.length === 0 ? (
-                          <div className="text-center py-12"><p className="text-gray-400">No invoices generated yet</p></div>
+                          <div className="text-center py-16">
+                            <div className="w-12 h-12 rounded-full bg-purple-50 text-[#77248c] flex items-center justify-center mx-auto mb-3 text-xl">
+                              <i className="fa-solid fa-file-invoice-dollar"></i>
+                            </div>
+                            <p className="text-gray-500 font-semibold text-sm">No invoices generated yet</p>
+                            <p className="text-xs text-gray-400 mt-1">Click "Generate New Invoice" above to create billing for client completed shifts.</p>
+                          </div>
                         ) : (
                           <div className="overflow-x-auto">
-                            <table className="w-full text-sm">
+                            <table className="w-full text-left text-sm border-collapse">
                               <thead>
-                                <tr className="text-left text-xs text-gray-500 uppercase border-b border-gray-100">
-                                  <th className="pb-2 font-semibold">Invoice #</th>
-                                  <th className="pb-2 font-semibold">Client</th>
-                                  <th className="pb-2 font-semibold">Service Period</th>
-                                  <th className="pb-2 font-semibold">Amount Due</th>
-                                  <th className="pb-2 font-semibold">Paid</th>
-                                  <th className="pb-2 font-semibold">Balance</th>
-                                  <th className="pb-2 font-semibold">Due Date</th>
-                                  <th className="pb-2 font-semibold">Status</th>
-                                  <th className="pb-2 font-semibold"></th>
+                                <tr className="bg-[#77248c] text-white text-[11px] font-black uppercase tracking-wider">
+                                  <th className="py-3.5 px-4 rounded-tl-none">Invoice #</th>
+                                  <th className="py-3.5 px-4">Client Name</th>
+                                  <th className="py-3.5 px-4">Service Period</th>
+                                  <th className="py-3.5 px-4 text-right">Amount Due</th>
+                                  <th className="py-3.5 px-4 text-right">Amount Paid</th>
+                                  <th className="py-3.5 px-4 text-right">Balance</th>
+                                  <th className="py-3.5 px-4">Due Date</th>
+                                  <th className="py-3.5 px-4 text-center">Status</th>
+                                  <th className="py-3.5 px-4 text-right rounded-tr-none">Actions</th>
                                 </tr>
                               </thead>
-                              <tbody>
+                              <tbody className="divide-y divide-gray-100">
                                 {invoicesData.invoices.map((inv: any) => (
-                                  <tr key={inv.id} className="border-b border-gray-50">
-                                    <td className="py-3 font-mono text-xs text-gray-600">{inv.invoiceNumber}</td>
-                                    <td className="py-3 font-semibold text-gray-800">{inv.client.name}</td>
-                                    <td className="py-3 text-xs text-gray-500">{formatDate(inv.servicePeriodStart)} - {formatDate(inv.servicePeriodEnd)}</td>
-                                    <td className="py-3">${inv.totalDue.toFixed(2)}</td>
-                                    <td className="py-3">${inv.amountPaid.toFixed(2)}</td>
-                                    <td className="py-3 font-semibold">${inv.balance.toFixed(2)}</td>
-                                    <td className="py-3 text-xs text-gray-500">{formatDate(inv.dueDate)}</td>
-                                    <td className="py-3">
-                                      <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
-                                        inv.status === 'PAID' ? 'bg-green-100 text-green-700 border border-green-200' :
-                                        inv.status === 'PARTIAL' ? 'bg-amber-100 text-amber-700 border border-amber-200' :
-                                        inv.status === 'OVERDUE' ? 'bg-red-100 text-red-700 border border-red-200' :
-                                        'bg-teal-100 text-teal-700 border border-teal-200'
-                                      }`}>{inv.status}</span>
+                                  <tr key={inv.id} className="hover:bg-purple-50/40 transition-colors">
+                                    <td className="py-3.5 px-4 font-mono font-bold text-xs text-[#77248c]">
+                                      {inv.invoiceNumber}
                                     </td>
-                                    <td className="py-3 text-right">
+                                    <td className="py-3.5 px-4 font-extrabold text-gray-900">
+                                      {inv.client.name}
+                                    </td>
+                                    <td className="py-3.5 px-4 text-xs text-gray-600 font-medium">
+                                      {formatDate(inv.servicePeriodStart)} – {formatDate(inv.servicePeriodEnd)}
+                                    </td>
+                                    <td className="py-3.5 px-4 text-right font-mono font-bold text-gray-900">
+                                      ${inv.totalDue.toFixed(2)}
+                                    </td>
+                                    <td className="py-3.5 px-4 text-right font-mono font-bold text-emerald-600">
+                                      ${inv.amountPaid.toFixed(2)}
+                                    </td>
+                                    <td className="py-3.5 px-4 text-right font-mono font-extrabold text-gray-900">
+                                      ${inv.balance.toFixed(2)}
+                                    </td>
+                                    <td className="py-3.5 px-4 text-xs text-gray-600 font-medium">
+                                      {formatDate(inv.dueDate)}
+                                    </td>
+                                    <td className="py-3.5 px-4 text-center">
+                                      <span className={`inline-flex items-center justify-center gap-1 px-3 py-1 rounded-full text-[11px] font-black tracking-wider uppercase ${
+                                        inv.status === 'PAID' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
+                                        inv.status === 'PARTIAL' ? 'bg-amber-100 text-amber-800 border border-amber-300' :
+                                        inv.status === 'OVERDUE' ? 'bg-red-100 text-red-800 border border-red-300' :
+                                        'bg-cyan-100 text-cyan-800 border border-cyan-300'
+                                      }`}>
+                                        <span className={`w-1.5 h-1.5 rounded-full ${
+                                          inv.status === 'PAID' ? 'bg-emerald-600' :
+                                          inv.status === 'PARTIAL' ? 'bg-amber-600' :
+                                          inv.status === 'OVERDUE' ? 'bg-red-600' :
+                                          'bg-cyan-600'
+                                        }`}></span>
+                                        {inv.status}
+                                      </span>
+                                    </td>
+                                    <td className="py-3.5 px-4 text-right">
                                       <div className="flex gap-1.5 justify-end items-center">
                                         {recordingPaymentFor === inv.id ? (
-                                          <>
-                                            <span className="text-gray-400 text-xs">$</span>
+                                          <div className="flex items-center gap-1 bg-purple-50 p-1.5 rounded-xl border border-purple-200">
+                                            <span className="text-gray-400 text-xs font-bold">$</span>
                                             <input
                                               type="number"
                                               step="0.01"
@@ -7665,23 +7726,27 @@ export default function Home() {
                                               autoFocus
                                               value={paymentAmountInput}
                                               onChange={(e) => setPaymentAmountInput(e.target.value)}
-                                              className="w-20 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                              className="w-20 bg-white border border-gray-300 rounded-lg px-2 py-1 text-xs font-mono font-bold focus:outline-none focus:ring-2 focus:ring-purple-500"
                                             />
-                                            <select value={paymentMethodInput} onChange={(e) => setPaymentMethodInput(e.target.value)} className="bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500">
+                                            <select value={paymentMethodInput} onChange={(e) => setPaymentMethodInput(e.target.value)} className="bg-white border border-gray-300 rounded-lg px-2 py-1 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-purple-500">
                                               <option>ACH Transfer</option>
                                               <option>Credit Card</option>
                                               <option>Cash</option>
                                               <option>Check</option>
                                             </select>
-                                            <button onClick={() => handleRecordPayment(inv.id)} className="px-2 py-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs rounded-lg">Save</button>
-                                            <button onClick={() => { setRecordingPaymentFor(null); setPaymentAmountInput(''); }} className="px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-xs rounded-lg">Cancel</button>
-                                          </>
+                                            <button onClick={() => handleRecordPayment(inv.id)} className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg shadow-xs transition-all">Save</button>
+                                            <button onClick={() => { setRecordingPaymentFor(null); setPaymentAmountInput(''); }} className="px-2.5 py-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-xs rounded-lg transition-all">Cancel</button>
+                                          </div>
                                         ) : (
                                           <>
                                             {inv.status !== 'PAID' && (
-                                              <button onClick={() => { setRecordingPaymentFor(inv.id); setPaymentAmountInput(''); }} className="px-3 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold text-xs rounded-lg border border-emerald-200">Record Payment</button>
+                                              <button onClick={() => { setRecordingPaymentFor(inv.id); setPaymentAmountInput(''); }} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-2xs transition-all cursor-pointer">
+                                                <i className="fa-solid fa-plus-circle mr-1"></i> Record Payment
+                                              </button>
                                             )}
-                                            <button onClick={() => setViewingInvoice(inv)} className="px-3 py-1 bg-white hover:bg-purple-50 text-purple-600 font-semibold text-xs rounded-lg border border-gray-200 hover:border-purple-300">View / Print</button>
+                                            <button onClick={() => setViewingInvoice(inv)} className="px-3 py-1.5 bg-[#77248c] hover:bg-[#5a1a6b] text-white font-extrabold text-xs rounded-xl shadow-2xs transition-all cursor-pointer">
+                                              <i className="fa-solid fa-print mr-1"></i> View / Print
+                                            </button>
                                           </>
                                         )}
                                       </div>
@@ -7692,17 +7757,50 @@ export default function Home() {
                             </table>
                           </div>
                         )}
+
+                        {/* Status Legend Key (matching template footer) */}
+                        <div className="bg-purple-50/70 border-t border-purple-100 p-4 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs">
+                          <div className="flex items-center gap-4">
+                            <span className="font-black text-[#77248c] uppercase tracking-wider text-[10px]">STATUS KEY:</span>
+                            <div className="flex items-center gap-1.5 font-bold text-gray-700">
+                              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span>
+                              <span>Paid</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 font-bold text-gray-700">
+                              <span className="w-2.5 h-2.5 rounded-full bg-cyan-500 inline-block"></span>
+                              <span>Pending</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 font-bold text-gray-700">
+                              <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block"></span>
+                              <span>Partial</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 font-bold text-gray-700">
+                              <span className="w-2.5 h-2.5 rounded-full bg-red-500 inline-block"></span>
+                              <span>Overdue</span>
+                            </div>
+                          </div>
+                          <span className="text-gray-500 font-medium text-[11px]">
+                            Ensure all client payments and balances are tracked accurately.
+                          </span>
+                        </div>
                       </div>
 
-                      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-                        <h3 className="font-semibold text-gray-800 text-lg mb-4">Client Billing Record</h3>
+                      {/* Client Individual Billing Statement Lookup */}
+                      <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="w-8 h-8 rounded-xl bg-purple-100 text-[#77248c] flex items-center justify-center font-bold">
+                            <i className="fa-solid fa-user-gear"></i>
+                          </div>
+                          <h3 className="font-extrabold text-gray-900 text-base">Client Individual Billing Statement</h3>
+                        </div>
+                        <p className="text-xs text-gray-500 mb-4">Select a client below to generate their complete historical payment ledger and statement.</p>
                         <div className="flex gap-3">
                           <select
                             value={selectedBillingClientId}
                             onChange={(e) => setSelectedBillingClientId(e.target.value)}
-                            className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 font-medium"
                           >
-                            <option value="">Select a client</option>
+                            <option value="">Select a client...</option>
                             {clients.map((c: any) => (
                               <option key={c.id} value={c.id}>{c.name}</option>
                             ))}
@@ -7710,7 +7808,7 @@ export default function Home() {
                           <button
                             onClick={() => loadClientBillingRecord(selectedBillingClientId)}
                             disabled={!selectedBillingClientId || isLoadingBillingRecord}
-                            className="px-5 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-sm rounded-xl transition-all disabled:opacity-50"
+                            className="px-6 py-3 bg-[#77248c] hover:bg-[#5a1a6b] text-white font-extrabold text-sm rounded-xl transition-all disabled:opacity-50 cursor-pointer shadow-md"
                           >
                             {isLoadingBillingRecord ? 'Loading...' : 'View Statement'}
                           </button>

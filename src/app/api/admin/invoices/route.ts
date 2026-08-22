@@ -16,8 +16,8 @@ function computeStatus(totalDue: number, amountPaid: number, dueDate: Date, now:
 export async function GET() {
   try {
     const sessionUser = await getSessionUser();
-    if (!sessionUser || sessionUser.role !== 'ADMIN' || !isBusinessHubAuthorized(sessionUser.email)) {
-      return NextResponse.json({ error: 'Billing data is restricted to authorized senior business administrators (cathy@akirapahomecareus.com and info@akirapahomecareus.com).' }, { status: 403 });
+    if (!sessionUser || sessionUser.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Billing data is restricted to administrators.' }, { status: 403 });
     }
 
     const now = new Date();
@@ -55,8 +55,8 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const sessionUser = await getSessionUser();
-    if (!sessionUser || sessionUser.role !== 'ADMIN' || !isBusinessHubAuthorized(sessionUser.email)) {
-      return NextResponse.json({ error: 'Billing actions are restricted to authorized senior business administrators (cathy@akirapahomecareus.com and info@akirapahomecareus.com).' }, { status: 403 });
+    if (!sessionUser || sessionUser.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Billing actions are restricted to administrators.' }, { status: 403 });
     }
 
     const { clientId, servicePeriodStart, servicePeriodEnd, dueDate, taxRatePercent, discountAmount } = await request.json();

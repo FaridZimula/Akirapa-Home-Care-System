@@ -14,13 +14,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Client provisioning is restricted to administrators' }, { status: 403 });
     }
 
-    if (!isBusinessHubAuthorized(sessionUser.email)) {
-      return NextResponse.json(
-        { error: 'Client provisioning is restricted to authorized senior business administrators (cathy@akirapahomecareus.com and info@akirapahomecareus.com).' },
-        { status: 403 }
-      );
-    }
-
     const {
       name,
       email,

@@ -111,8 +111,8 @@ export function LocationAutocompleteInput({
       </div>
 
       {isOpen && suggestions.length > 0 && (
-        <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-purple-100 rounded-2xl shadow-xl z-50 overflow-hidden max-h-60 overflow-y-auto animate-fade-in">
-          <div className="px-3 py-1.5 bg-purple-50/60 border-b border-purple-100 flex items-center justify-between text-[10px] font-extrabold text-purple-700 uppercase tracking-wider">
+        <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-2xl shadow-xl z-50 overflow-hidden max-h-60 overflow-y-auto animate-fade-in">
+          <div className="px-3.5 py-2 bg-gray-50/80 border-b border-gray-100 flex items-center justify-between text-[10px] font-black text-gray-700 uppercase tracking-wider">
             <span>US Address Suggestions</span>
             <span className="text-gray-400 font-normal">Standard USA Format</span>
           </div>
@@ -121,16 +121,16 @@ export function LocationAutocompleteInput({
               key={item.id}
               type="button"
               onClick={() => handleSelect(item)}
-              className="w-full text-left px-3.5 py-2.5 hover:bg-purple-50 transition-colors border-b border-gray-50 last:border-none flex items-start gap-2.5 cursor-pointer group"
+              className="w-full text-left px-3.5 py-2.5 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-none flex items-start gap-2.5 cursor-pointer group"
             >
-              <i className="fa-solid fa-location-dot text-purple-600 text-xs mt-1 shrink-0 group-hover:scale-110 transition-transform"></i>
+              <i className="fa-solid fa-location-dot text-[#77248c] text-xs mt-1 shrink-0 group-hover:scale-110 transition-transform"></i>
               <div className="flex-1 min-w-0">
                 <div className="text-xs font-bold text-gray-800 truncate">
                   {item.street || item.full}
                 </div>
                 <div className="text-[11px] text-gray-500 flex items-center gap-1.5 mt-0.5">
                   {item.city && <span>{item.city}</span>}
-                  {item.state && <span className="font-semibold text-purple-700 bg-purple-100/70 px-1.5 py-0.2 rounded text-[10px]">{item.state}</span>}
+                  {item.state && <span className="font-bold text-[#77248c] text-[11px]">{item.state}</span>}
                   {item.zip && <span className="font-mono text-gray-400 text-[10px]">{item.zip}</span>}
                 </div>
               </div>

@@ -5,7 +5,6 @@ const prisma = new PrismaClient();
 
 const OFFICIAL_ADMIN_ACCOUNTS = [
   { email: 'info@akirapahomecareus.com', name: 'Info Admin' },
-  { email: 'alvinp@akirapahomecareus.com', name: 'Alvin P' },
   { email: 'andrew@akirapahomecareus.com', name: 'Andrew' },
   { email: 'cathy@akirapahomecareus.com', name: 'Cathy' },
   { email: 'farid@akirapahomecareus.com', name: 'Farid Admin' },

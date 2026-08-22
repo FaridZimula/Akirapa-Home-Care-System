@@ -17,13 +17,6 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!isCaregiverProvisioningAuthorized(sessionUser.email)) {
-      return NextResponse.json(
-        { error: 'Caregiver provisioning is restricted to authorized administrators (cathy@akirapahomecareus.com and info@akirapahomecareus.com).' },
-        { status: 403 }
-      );
-    }
-
     const { email, password, name, role, phoneNumber, payRate, latitude, longitude, profileMetadata, mustChangePassword } = await request.json();
 
     if (!email || !password || !name || !role) {
