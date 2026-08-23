@@ -9055,13 +9055,14 @@ export default function Home() {
                       </button>
                     )}
                   </div>
-                  {dbNotifications.length === 0 ? (
+                  {dbNotifications.filter(n => n.type !== 'NEW_MESSAGE').length === 0 ? (
                     <div className="text-center py-12"><p className="text-gray-400">No alerts yet</p></div>
                   ) : (
                     <div className="space-y-3">
-                      {dbNotifications.map((n) => {
+                      {dbNotifications.filter(n => n.type !== 'NEW_MESSAGE').map((n) => {
                         const isAlert = n.type === 'CLINICAL_ALERT' || n.type === 'SHIFT_CONFIRMATION_MISSED' || n.type === 'EXCEPTION_OVERRIDE' || n.type === 'SHIFT_DROPPED';
                         const isSuccess = n.type === 'SHIFT_CONFIRMED' || n.type === 'SHIFT_STARTED' || n.type === 'SHIFT_COMPLETED' || n.type === 'PAYMENT_RECEIVED';
+
                         const isFinancial = n.type === 'INVOICE_ISSUED';
                         const iconClass = n.type === 'CLINICAL_ALERT' ? 'fa-triangle-exclamation' :
                           n.type === 'EXCEPTION_OVERRIDE' ? 'fa-shield-halved' :
