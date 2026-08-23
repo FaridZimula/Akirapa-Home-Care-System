@@ -297,6 +297,64 @@ export default function Home() {
   const [isCreatingUser, setIsCreatingUser] = useState(false);
   const [addUserError, setAddUserError] = useState<string | null>(null);
 
+  // Caregiver Onboarding Worksheet & Fill Details Later Toggle
+  const [cgFillDetailsLater, setCgFillDetailsLater] = useState(false);
+  const [cgStartDate, setCgStartDate] = useState('');
+  const [cgSupervisor, setCgSupervisor] = useState('');
+  const [cgEmployeeId, setCgEmployeeId] = useState('');
+
+  // 2. Document Verification Tasks
+  const [cgDocIdVerification, setCgDocIdVerification] = useState(false);
+  const [cgDocIdInitials, setCgDocIdInitials] = useState('');
+  const [cgDocBackgroundCheck, setCgDocBackgroundCheck] = useState(false);
+  const [cgDocBackgroundInitials, setCgDocBackgroundInitials] = useState('');
+  const [cgDocReferenceCheck, setCgDocReferenceCheck] = useState(false);
+  const [cgDocReferenceInitials, setCgDocReferenceInitials] = useState('');
+  const [cgDocContractSigned, setCgDocContractSigned] = useState(false);
+  const [cgDocContractInitials, setCgDocContractInitials] = useState('');
+  const [cgDocTbScreen, setCgDocTbScreen] = useState(false);
+  const [cgDocTbInitials, setCgDocTbInitials] = useState('');
+
+  // 3. Training & Orientation Tasks
+  const [cgTrainAgencyOrientation, setCgTrainAgencyOrientation] = useState(false);
+  const [cgTrainAgencyInitials, setCgTrainAgencyInitials] = useState('');
+  const [cgTrainPoliciesReviewed, setCgTrainPoliciesReviewed] = useState(false);
+  const [cgTrainPoliciesInitials, setCgTrainPoliciesInitials] = useState('');
+  const [cgTrainSafetyTraining, setCgTrainSafetyTraining] = useState(false);
+  const [cgTrainSafetyInitials, setCgTrainSafetyInitials] = useState('');
+  const [cgTrainEmergencyProtocol, setCgTrainEmergencyProtocol] = useState(false);
+  const [cgTrainEmergencyInitials, setCgTrainEmergencyInitials] = useState('');
+  const [cgTrainCareGuidelines, setCgTrainCareGuidelines] = useState(false);
+  const [cgTrainCareInitials, setCgTrainCareInitials] = useState('');
+
+  // 4. Certifications
+  const [cgCertCpr, setCgCertCpr] = useState(false);
+  const [cgCertFirstAid, setCgCertFirstAid] = useState(false);
+  const [cgCertCaregiving, setCgCertCaregiving] = useState(false);
+  const [cgCertCnaHha, setCgCertCnaHha] = useState(false);
+  const [cgCertOther, setCgCertOther] = useState(false);
+  const [cgCertOtherText, setCgCertOtherText] = useState('');
+
+  // 5. System Access
+  const [cgSysLoginCredentials, setCgSysLoginCredentials] = useState(false);
+  const [cgSysLoginInitials, setCgSysLoginInitials] = useState('');
+  const [cgSysClientRecords, setCgSysClientRecords] = useState(false);
+  const [cgSysRecordsInitials, setCgSysRecordsInitials] = useState('');
+  const [cgSysCommTools, setCgSysCommTools] = useState(false);
+  const [cgSysCommInitials, setCgSysCommInitials] = useState('');
+  const [cgSysSchedulingApp, setCgSysSchedulingApp] = useState(false);
+  const [cgSysAppInitials, setCgSysAppInitials] = useState('');
+
+  // 6. First Assignment Prep
+  const [cgPrepAssignedClient, setCgPrepAssignedClient] = useState(false);
+  const [cgPrepClientInitials, setCgPrepClientInitials] = useState('');
+  const [cgPrepCarePlan, setCgPrepCarePlan] = useState(false);
+  const [cgPrepPlanInitials, setCgPrepPlanInitials] = useState('');
+  const [cgPrepScheduleConfirmed, setCgPrepScheduleConfirmed] = useState(false);
+  const [cgPrepScheduleInitials, setCgPrepScheduleInitials] = useState('');
+  const [cgPrepEquipment, setCgPrepEquipment] = useState(false);
+  const [cgPrepEquipmentInitials, setCgPrepEquipmentInitials] = useState('');
+
   // Signup States
   const [signupFirstName, setSignupFirstName] = useState('');
   const [signupLastName, setSignupLastName] = useState('');
@@ -1779,6 +1837,44 @@ export default function Home() {
           role: newUserRole,
           phoneNumber: newUserPhone,
           payRate: newUserRole === 'CAREGIVER' ? parseFloat(newUserPayRate) : null,
+          profileMetadata: newUserRole === 'CAREGIVER' ? JSON.stringify({
+            startDate: cgStartDate || null,
+            supervisor: cgSupervisor || null,
+            employeeId: cgEmployeeId || null,
+            documentVerification: {
+              idVerification: { done: cgDocIdVerification, initials: cgDocIdInitials },
+              backgroundCheck: { done: cgDocBackgroundCheck, initials: cgDocBackgroundInitials },
+              referenceCheck: { done: cgDocReferenceCheck, initials: cgDocReferenceInitials },
+              contractSigned: { done: cgDocContractSigned, initials: cgDocContractInitials },
+              tbScreen: { done: cgDocTbScreen, initials: cgDocTbInitials },
+            },
+            trainingOrientation: {
+              agencyOrientation: { done: cgTrainAgencyOrientation, initials: cgTrainAgencyInitials },
+              policiesReviewed: { done: cgTrainPoliciesReviewed, initials: cgTrainPoliciesInitials },
+              safetyTraining: { done: cgTrainSafetyTraining, initials: cgTrainSafetyInitials },
+              emergencyProtocol: { done: cgTrainEmergencyProtocol, initials: cgTrainEmergencyInitials },
+              careGuidelines: { done: cgTrainCareGuidelines, initials: cgTrainCareInitials },
+            },
+            certifications: {
+              cprCertified: cgCertCpr,
+              firstAid: cgCertFirstAid,
+              caregivingCertification: cgCertCaregiving,
+              cnaHhaLicense: cgCertCnaHha,
+              otherText: cgCertOther ? cgCertOtherText : null,
+            },
+            systemAccess: {
+              loginCredentials: { done: cgSysLoginCredentials, initials: cgSysLoginInitials },
+              clientRecords: { done: cgSysClientRecords, initials: cgSysRecordsInitials },
+              communicationTools: { done: cgSysCommTools, initials: cgSysCommInitials },
+              schedulingApp: { done: cgSysSchedulingApp, initials: cgSysAppInitials },
+            },
+            firstAssignmentPrep: {
+              assignedClient: { done: cgPrepAssignedClient, initials: cgPrepClientInitials },
+              carePlanReviewed: { done: cgPrepCarePlan, initials: cgPrepPlanInitials },
+              scheduleConfirmed: { done: cgPrepScheduleConfirmed, initials: cgPrepScheduleInitials },
+              equipmentProvided: { done: cgPrepEquipment, initials: cgPrepEquipmentInitials },
+            },
+          }) : null,
         }),
       });
 
@@ -6748,6 +6844,327 @@ export default function Home() {
                         </div>
                       </div>
 
+                      {/* FILL DETAILS LATER TOGGLE BANNER */}
+                      <div className="bg-[#77248c] rounded-2xl p-4.5 text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-white/20 text-white flex items-center justify-center shrink-0 shadow-xs aspect-square">
+                            <i className="fa-solid fa-clipboard-check text-white text-lg"></i>
+                          </div>
+                          <div>
+                            <div className="font-bold text-white text-xs">Caregiver Onboarding & Compliance Worksheet</div>
+                            <div className="text-[11px] text-purple-100/90">Document verification, training, certifications, system access, and first assignment prep.</div>
+                          </div>
+                        </div>
+                        <label className="flex items-center gap-2 px-4 py-2.5 bg-white text-[#77248c] rounded-xl shadow-sm cursor-pointer hover:bg-purple-50 transition-all shrink-0">
+                          <input
+                            type="checkbox"
+                            checked={cgFillDetailsLater}
+                            onChange={(e) => setCgFillDetailsLater(e.target.checked)}
+                            className="w-4 h-4 rounded text-[#77248c] focus:ring-[#77248c] cursor-pointer"
+                          />
+                          <span className="font-extrabold text-xs text-[#77248c]">Fill Details Later</span>
+                        </label>
+                      </div>
+
+                      {/* ONBOARDING WORKSHEET FORM (Hidden if Fill Later is checked) */}
+                      {!cgFillDetailsLater ? (
+                        <div className="space-y-6 animate-fade-up">
+                          {/* Header Banner */}
+                          <div className="bg-[#4cdbd5] text-white rounded-2xl p-4.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-xl bg-white/20 text-white flex items-center justify-center shrink-0 aspect-square shadow-xs">
+                                <i className="fa-solid fa-[#ffffff] fa-id-badge text-white text-xl"></i>
+                              </div>
+                              <div>
+                                <div className="font-extrabold text-sm uppercase tracking-wider text-white">Caregiver Onboarding Worksheet</div>
+                                <div className="text-[11px] text-white/95 font-medium">Compliance Verification & Staff Readiness Checklist</div>
+                              </div>
+                            </div>
+                            <span className="text-[10px] bg-white text-[#0e7490] font-black px-3 py-1.5 rounded-full uppercase shadow-xs shrink-0 tracking-wider">Live Onboarding Mode</span>
+                          </div>
+
+                          {/* Section 1: Employee Details */}
+                          <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-4 shadow-xs">
+                            <h4 className="font-bold text-sm text-[#77248c] flex items-center gap-2 border-b border-gray-100 pb-2">
+                              <span className="w-5 h-5 rounded-full bg-[#77248c] text-white text-[11px] flex items-center justify-center font-bold">1</span> Employee Details
+                            </h4>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                              <div>
+                                <label className="font-semibold text-gray-600 uppercase text-[10px]">Start Date</label>
+                                <input
+                                  type="date"
+                                  value={cgStartDate}
+                                  onChange={(e) => setCgStartDate(e.target.value)}
+                                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
+                                />
+                              </div>
+                              <div>
+                                <label className="font-semibold text-gray-600 uppercase text-[10px]">Supervisor / Manager</label>
+                                <input
+                                  type="text"
+                                  placeholder="e.g. Coordinator Admin"
+                                  value={cgSupervisor}
+                                  onChange={(e) => setCgSupervisor(e.target.value)}
+                                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
+                                />
+                              </div>
+                              <div>
+                                <label className="font-semibold text-gray-600 uppercase text-[10px]">Employee ID / Badge #</label>
+                                <input
+                                  type="text"
+                                  placeholder="e.g. AKR-2026-04"
+                                  value={cgEmployeeId}
+                                  onChange={(e) => setCgEmployeeId(e.target.value)}
+                                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1 font-mono"
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Section 2 & 3: Document Verification & Training */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* Section 2: Document Verification */}
+                            <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-3 shadow-xs">
+                              <h4 className="font-bold text-sm text-[#77248c] flex items-center gap-2 border-b border-gray-100 pb-2">
+                                <span className="w-5 h-5 rounded-full bg-[#77248c] text-white text-[11px] flex items-center justify-center font-bold">2</span> Document Verification
+                              </h4>
+                              <table className="w-full text-left text-xs">
+                                <thead>
+                                  <tr className="border-b border-gray-200 text-gray-400 font-bold uppercase text-[10px]">
+                                    <th className="pb-2">Task</th>
+                                    <th className="pb-2 text-center">Done</th>
+                                    <th className="pb-2 text-right">Initials</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                  {[
+                                    { label: 'ID Verification', done: cgDocIdVerification, setDone: setCgDocIdVerification, initials: cgDocIdInitials, setInitials: setCgDocIdInitials },
+                                    { label: 'Background Check', done: cgDocBackgroundCheck, setDone: setCgDocBackgroundCheck, initials: cgDocBackgroundInitials, setInitials: setCgDocBackgroundInitials },
+                                    { label: 'Reference Check', done: cgDocReferenceCheck, setDone: setCgDocReferenceCheck, initials: cgDocReferenceInitials, setInitials: setCgDocReferenceInitials },
+                                    { label: 'Contract Signed', done: cgDocContractSigned, setDone: setCgDocContractSigned, initials: cgDocContractInitials, setInitials: setCgDocContractInitials },
+                                    { label: 'TB / Health Screen', done: cgDocTbScreen, setDone: setCgDocTbScreen, initials: cgDocTbInitials, setInitials: setCgDocTbInitials },
+                                  ].map((item, idx) => (
+                                    <tr key={idx}>
+                                      <td className="py-2.5 font-medium text-gray-700">{item.label}</td>
+                                      <td className="py-2.5 text-center">
+                                        <input
+                                          type="checkbox"
+                                          checked={item.done}
+                                          onChange={(e) => item.setDone(e.target.checked)}
+                                          className="w-4 h-4 rounded text-[#77248c] focus:ring-[#77248c] cursor-pointer"
+                                        />
+                                      </td>
+                                      <td className="py-2.5 text-right">
+                                        <input
+                                          type="text"
+                                          maxLength={4}
+                                          placeholder="e.g. SA"
+                                          value={item.initials}
+                                          onChange={(e) => item.setInitials(e.target.value)}
+                                          className="w-16 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 text-center font-mono uppercase text-xs focus:outline-none focus:ring-1 focus:ring-purple-500"
+                                        />
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+
+                            {/* Section 3: Training & Orientation */}
+                            <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-3 shadow-xs">
+                              <h4 className="font-bold text-sm text-[#77248c] flex items-center gap-2 border-b border-gray-100 pb-2">
+                                <span className="w-5 h-5 rounded-full bg-[#77248c] text-white text-[11px] flex items-center justify-center font-bold">3</span> Training & Orientation
+                              </h4>
+                              <table className="w-full text-left text-xs">
+                                <thead>
+                                  <tr className="border-b border-gray-200 text-gray-400 font-bold uppercase text-[10px]">
+                                    <th className="pb-2">Task</th>
+                                    <th className="pb-2 text-center">Done</th>
+                                    <th className="pb-2 text-right">Initials</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                  {[
+                                    { label: 'Agency Orientation', done: cgTrainAgencyOrientation, setDone: setCgTrainAgencyOrientation, initials: cgTrainAgencyInitials, setInitials: setCgTrainAgencyInitials },
+                                    { label: 'Policies Reviewed', done: cgTrainPoliciesReviewed, setDone: setCgTrainPoliciesReviewed, initials: cgTrainPoliciesInitials, setInitials: setCgTrainPoliciesInitials },
+                                    { label: 'Safety Training', done: cgTrainSafetyTraining, setDone: setCgTrainSafetyTraining, initials: cgTrainSafetyInitials, setInitials: setCgTrainSafetyInitials },
+                                    { label: 'Emergency Protocol', done: cgTrainEmergencyProtocol, setDone: setCgTrainEmergencyProtocol, initials: cgTrainEmergencyInitials, setInitials: setCgTrainEmergencyInitials },
+                                    { label: 'Care Guidelines', done: cgTrainCareGuidelines, setDone: setCgTrainCareGuidelines, initials: cgTrainCareInitials, setInitials: setCgTrainCareInitials },
+                                  ].map((item, idx) => (
+                                    <tr key={idx}>
+                                      <td className="py-2.5 font-medium text-gray-700">{item.label}</td>
+                                      <td className="py-2.5 text-center">
+                                        <input
+                                          type="checkbox"
+                                          checked={item.done}
+                                          onChange={(e) => item.setDone(e.target.checked)}
+                                          className="w-4 h-4 rounded text-[#77248c] focus:ring-[#77248c] cursor-pointer"
+                                        />
+                                      </td>
+                                      <td className="py-2.5 text-right">
+                                        <input
+                                          type="text"
+                                          maxLength={4}
+                                          placeholder="e.g. SA"
+                                          value={item.initials}
+                                          onChange={(e) => item.setInitials(e.target.value)}
+                                          className="w-16 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 text-center font-mono uppercase text-xs focus:outline-none focus:ring-1 focus:ring-purple-500"
+                                        />
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+
+                          {/* Section 4: Certifications */}
+                          <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-3 shadow-xs">
+                            <h4 className="font-bold text-sm text-[#77248c] flex items-center gap-2 border-b border-gray-100 pb-2">
+                              <span className="w-5 h-5 rounded-full bg-[#77248c] text-white text-[11px] flex items-center justify-center font-bold">4</span> Certifications
+                            </h4>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+                              {[
+                                { label: 'CPR Certified', state: cgCertCpr, setState: setCgCertCpr },
+                                { label: 'First Aid', state: cgCertFirstAid, setState: setCgCertFirstAid },
+                                { label: 'Caregiving Certification', state: cgCertCaregiving, setState: setCgCertCaregiving },
+                                { label: 'CNA / HHA License', state: cgCertCnaHha, setState: setCgCertCnaHha },
+                              ].map((cert, idx) => (
+                                <label key={idx} className={`flex items-center gap-2 p-2.5 rounded-xl text-xs font-semibold border cursor-pointer transition-all ${cert.state ? 'bg-[#77248c] text-white border-[#77248c]' : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'}`}>
+                                  <input
+                                    type="checkbox"
+                                    checked={cert.state}
+                                    onChange={(e) => cert.setState(e.target.checked)}
+                                    className="rounded text-[#77248c] cursor-pointer"
+                                  />
+                                  <span>{cert.label}</span>
+                                </label>
+                              ))}
+
+                              <div className="col-span-2 sm:col-span-1 flex items-center gap-2">
+                                <label className={`flex items-center gap-2 p-2.5 rounded-xl text-xs font-semibold border cursor-pointer transition-all shrink-0 ${cgCertOther ? 'bg-[#77248c] text-white border-[#77248c]' : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'}`}>
+                                  <input
+                                    type="checkbox"
+                                    checked={cgCertOther}
+                                    onChange={(e) => setCgCertOther(e.target.checked)}
+                                    className="rounded text-[#77248c] cursor-pointer"
+                                  />
+                                  <span>Other:</span>
+                                </label>
+                                {cgCertOther && (
+                                  <input
+                                    type="text"
+                                    placeholder="Specify certification..."
+                                    value={cgCertOtherText}
+                                    onChange={(e) => setCgCertOtherText(e.target.value)}
+                                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-purple-500"
+                                  />
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Section 5 & 6: System Access & First Assignment Prep */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* Section 5: System Access */}
+                            <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-3 shadow-xs">
+                              <h4 className="font-bold text-sm text-[#77248c] flex items-center gap-2 border-b border-gray-100 pb-2">
+                                <span className="w-5 h-5 rounded-full bg-[#77248c] text-white text-[11px] flex items-center justify-center font-bold">5</span> System Access
+                              </h4>
+                              <table className="w-full text-left text-xs">
+                                <thead>
+                                  <tr className="border-b border-gray-200 text-gray-400 font-bold uppercase text-[10px]">
+                                    <th className="pb-2">Task</th>
+                                    <th className="pb-2 text-center">Done</th>
+                                    <th className="pb-2 text-right">Initials</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                  {[
+                                    { label: 'Login Credentials', done: cgSysLoginCredentials, setDone: setCgSysLoginCredentials, initials: cgSysLoginInitials, setInitials: setCgSysLoginInitials },
+                                    { label: 'Client Records Access', done: cgSysClientRecords, setDone: setCgSysClientRecords, initials: cgSysRecordsInitials, setInitials: setCgSysRecordsInitials },
+                                    { label: 'Communication Tools', done: cgSysCommTools, setDone: setCgSysCommTools, initials: cgSysCommInitials, setInitials: setCgSysCommInitials },
+                                    { label: 'Scheduling App Setup', done: cgSysSchedulingApp, setDone: setCgSysSchedulingApp, initials: cgSysAppInitials, setInitials: setCgSysAppInitials },
+                                  ].map((item, idx) => (
+                                    <tr key={idx}>
+                                      <td className="py-2.5 font-medium text-gray-700">{item.label}</td>
+                                      <td className="py-2.5 text-center">
+                                        <input
+                                          type="checkbox"
+                                          checked={item.done}
+                                          onChange={(e) => item.setDone(e.target.checked)}
+                                          className="w-4 h-4 rounded text-[#77248c] focus:ring-[#77248c] cursor-pointer"
+                                        />
+                                      </td>
+                                      <td className="py-2.5 text-right">
+                                        <input
+                                          type="text"
+                                          maxLength={4}
+                                          placeholder="e.g. SA"
+                                          value={item.initials}
+                                          onChange={(e) => item.setInitials(e.target.value)}
+                                          className="w-16 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 text-center font-mono uppercase text-xs focus:outline-none focus:ring-1 focus:ring-purple-500"
+                                        />
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+
+                            {/* Section 6: First Assignment Prep */}
+                            <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-3 shadow-xs">
+                              <h4 className="font-bold text-sm text-[#77248c] flex items-center gap-2 border-b border-gray-100 pb-2">
+                                <span className="w-5 h-5 rounded-full bg-[#77248c] text-white text-[11px] flex items-center justify-center font-bold">6</span> First Assignment Prep
+                              </h4>
+                              <table className="w-full text-left text-xs">
+                                <thead>
+                                  <tr className="border-b border-gray-200 text-gray-400 font-bold uppercase text-[10px]">
+                                    <th className="pb-2">Task</th>
+                                    <th className="pb-2 text-center">Done</th>
+                                    <th className="pb-2 text-right">Initials</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                  {[
+                                    { label: 'Assigned Client', done: cgPrepAssignedClient, setDone: setCgPrepAssignedClient, initials: cgPrepClientInitials, setInitials: setCgPrepClientInitials },
+                                    { label: 'Care Plan Reviewed', done: cgPrepCarePlan, setDone: setCgPrepCarePlan, initials: cgPrepPlanInitials, setInitials: setCgPrepPlanInitials },
+                                    { label: 'Schedule Confirmed', done: cgPrepScheduleConfirmed, setDone: setCgPrepScheduleConfirmed, initials: cgPrepScheduleInitials, setInitials: setCgPrepScheduleInitials },
+                                    { label: 'Equipment Provided', done: cgPrepEquipment, setDone: setCgPrepEquipment, initials: cgPrepEquipmentInitials, setInitials: setCgPrepEquipmentInitials },
+                                  ].map((item, idx) => (
+                                    <tr key={idx}>
+                                      <td className="py-2.5 font-medium text-gray-700">{item.label}</td>
+                                      <td className="py-2.5 text-center">
+                                        <input
+                                          type="checkbox"
+                                          checked={item.done}
+                                          onChange={(e) => item.setDone(e.target.checked)}
+                                          className="w-4 h-4 rounded text-[#77248c] focus:ring-[#77248c] cursor-pointer"
+                                        />
+                                      </td>
+                                      <td className="py-2.5 text-right">
+                                        <input
+                                          type="text"
+                                          maxLength={4}
+                                          placeholder="e.g. SA"
+                                          value={item.initials}
+                                          onChange={(e) => item.setInitials(e.target.value)}
+                                          className="w-16 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 text-center font-mono uppercase text-xs focus:outline-none focus:ring-1 focus:ring-purple-500"
+                                        />
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="bg-[#77248c] text-white rounded-2xl p-4.5 text-center text-xs font-semibold shadow-md">
+                          <i className="fa-solid fa-clock text-white text-base mr-2"></i> Caregiver onboarding worksheet skipped for now. You can complete compliance tasks anytime later.
+                        </div>
+                      )}
+
                       {addUserError && (
                         <div className="bg-red-50 text-red-600 p-3.5 rounded-xl text-xs font-semibold flex items-center gap-2">
                           <i className="fa-solid fa-triangle-exclamation"></i> {addUserError}
@@ -7701,7 +8118,30 @@ export default function Home() {
                       <div>
                         <label className="text-sm font-medium text-gray-600">Duration</label>
                         <select value={newShiftHours} onChange={(e) => setNewShiftHours(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
-                          <option value="4">4 Hours</option><option value="6">6 Hours</option><option value="8">8 Hours</option>
+                          <option value="1">1 Hour</option>
+                          <option value="2">2 Hours</option>
+                          <option value="3">3 Hours</option>
+                          <option value="4">4 Hours</option>
+                          <option value="5">5 Hours</option>
+                          <option value="6">6 Hours</option>
+                          <option value="7">7 Hours</option>
+                          <option value="8">8 Hours</option>
+                          <option value="9">9 Hours</option>
+                          <option value="10">10 Hours</option>
+                          <option value="11">11 Hours</option>
+                          <option value="12">12 Hours (Half Day)</option>
+                          <option value="13">13 Hours</option>
+                          <option value="14">14 Hours</option>
+                          <option value="15">15 Hours</option>
+                          <option value="16">16 Hours</option>
+                          <option value="17">17 Hours</option>
+                          <option value="18">18 Hours</option>
+                          <option value="19">19 Hours</option>
+                          <option value="20">20 Hours</option>
+                          <option value="21">21 Hours</option>
+                          <option value="22">22 Hours</option>
+                          <option value="23">23 Hours</option>
+                          <option value="24">24 Hours (Full Day / Live-in)</option>
                         </select>
                       </div>
                       <button type="submit" className="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-sm rounded-xl transition-all cursor-pointer">Create Shift</button>
