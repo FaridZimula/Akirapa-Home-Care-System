@@ -78,6 +78,11 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const sessionUser = await getSessionUser();
+    if (!sessionUser || (sessionUser.role !== 'ADMIN' && sessionUser.role !== 'CARE_COORDINATOR')) {
+      return NextResponse.json({ error: 'Shift creation & assignment is restricted to administrators' }, { status: 403 });
+    }
+
     const { clientId, caregiverId, scheduledStart, scheduledEnd, autoAssignPod } = await request.json();
 
     if (!clientId || !caregiverId || !scheduledStart || !scheduledEnd) {
@@ -200,13 +205,13 @@ export async function POST(request: Request) {
 
     // Write audit log
     await logAudit({
-      userId: 'SYSTEM_ADMIN', // In a full app, this would be the logged in admin user ID
+      userId: sessionUser.id,
       action: 'CREATE_SHIFT',
-      details: `Scheduled shift for client ${shift.client.name} with caregiver ${shift.caregiver.name} (Start: ${start.toISOString()})${warningAlert ? ' - WITH POD WARNING' : ''}`,
+      details: `Admin ${sessionUser.email} scheduled shift for client ${shift.client.name} with caregiver ${shift.caregiver.name} (Start: ${start.toISOString()})${warningAlert ? ' - WITH POD WARNING' : ''}`,
       outcome: 'SUCCESS',
     });
 
-    // 1. Notify Caregiver of new shift assignment
+    // 1. Notify Caregiver in real-time of new shift assignment
     await notifyCaregiver({
       caregiverId: shift.caregiverId,
       title: 'New Shift Assigned',
@@ -214,7 +219,7 @@ export async function POST(request: Request) {
       type: 'SHIFT_ASSIGNED',
     });
 
-    // 2. Notify Client / Linked Family Members of scheduled visit
+    // 2. Notify Client / Linked Family Members in real-time of scheduled visit
     await notifyClientFamily({
       clientId: shift.clientId,
       title: 'Care Visit Scheduled',
@@ -222,16 +227,23 @@ export async function POST(request: Request) {
       type: 'SHIFT_ASSIGNED',
     });
 
-    // 3. If pod consistency warning, notify Admins & Care Coordinators
-    if (warningAlert) {
-      await notifyAdmins({
-        title: '⚠️ Shift Pod Exception',
-        message: `Shift scheduled for ${shift.client.name} with caregiver ${shift.caregiver.name} on ${formatDate(start)} outside the client's primary pod.`,
-        type: 'SYSTEM_ALERT',
-      });
-    }
+    // 3. Real-Time Admin Notification confirmation
+    await notifyAdmins({
+      title: 'Shift Created & Assigned',
+      message: `Shift for client ${shift.client.name} on ${formatDate(start)} (${formatTime(start)} - ${formatTime(end)}) has been successfully created and assigned to caregiver ${shift.caregiver.name}.`,
+      type: 'SHIFT_ASSIGNED',
+    });
 
-    return NextResponse.json({ shift, warningAlert });
+    // 4. Generate short SMS text alert payload
+    const shortSmsMessage = `[SMS ALERT] Shift Assigned: You are scheduled to care for ${shift.client.name} on ${formatDate(start)} from ${formatTime(start)} to ${formatTime(end)}. Check Akirapa portal.`;
+
+    return NextResponse.json({
+      shift,
+      warningAlert,
+      shortSmsMessage,
+      caregiverPhone: shift.caregiver.phoneNumber || null,
+      message: `Shift created & assigned to caregiver ${shift.caregiver.name}! Short SMS alert & real-time notification sent.`,
+    });
   } catch (error) {
     console.error('Failed to create shift:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

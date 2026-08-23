@@ -1275,13 +1275,13 @@ export default function Home() {
 
   useEffect(() => { loadData(); }, []);
 
-  // Real-time notification background polling (every 20s) when session is active
+  // Real-time notification background polling (every 5s) when session is active
   useEffect(() => {
     if (!user) return;
     loadNotifications();
     const interval = setInterval(() => {
       loadNotifications();
-    }, 20000);
+    }, 5000);
     return () => clearInterval(interval);
   }, [user]);
 
@@ -1887,7 +1887,18 @@ export default function Home() {
         setShifts([data.shift, ...shifts]);
         setSchedulerWarning(data.warningAlert || null);
         setClientConflictAlert(null);
-        showNotification(data.warningAlert ? 'Shift Created with Warning' : 'Shift Created Successfully');
+        if (data.shortSmsMessage) {
+          setSmsAlerts(prev => [{
+            timestamp: new Date(),
+            to: data.caregiverPhone || data.shift?.caregiver?.phoneNumber || 'SMS Gateway',
+            message: data.shortSmsMessage,
+          }, ...prev]);
+        }
+        const assignedCgName = data.shift?.caregiver?.name || 'Caregiver';
+        showNotification(data.warningAlert
+          ? `Shift Created with Warning for ${assignedCgName}`
+          : `Shift assigned to ${assignedCgName}! Real-time notification & short SMS sent.`);
+        loadNotifications();
         loadData();
       } else {
         setClientConflictAlert(data.error || 'Booking Conflict: Shift could not be created.');
@@ -5661,28 +5672,35 @@ export default function Home() {
                           <h3 className="font-semibold text-gray-800">My Schedule</h3>
                           <button onClick={() => setCurrentView('listings')} className="text-xs font-semibold text-purple-600 hover:text-purple-700 cursor-pointer">View All</button>
                         </div>
-                        {shifts.filter(s => s.caregiverId === user.id && s.status !== 'COMPLETED' && s.status !== 'DROPPED').length === 0 ? (
-                          <p className="text-gray-400 text-sm text-center py-8">No upcoming shifts scheduled</p>
+                        {shifts.filter(s => s.caregiverId === user.id && s.status !== 'COMPLETED' && s.status !== 'DROPPED' && new Date(s.scheduledEnd || s.scheduledStart).getTime() >= Date.now()).length === 0 ? (
+                          <div className="text-center py-6">
+                            <p className="text-gray-400 text-sm font-medium">No upcoming active shifts scheduled</p>
+                            <p className="text-xs text-gray-400 mt-1">Past sessions are archived under View All listings.</p>
+                          </div>
                         ) : (
                           <div className="space-y-3">
                             {shifts
-                              .filter(s => s.caregiverId === user.id && s.status !== 'COMPLETED' && s.status !== 'DROPPED')
+                              .filter(s => s.caregiverId === user.id && s.status !== 'COMPLETED' && s.status !== 'DROPPED' && new Date(s.scheduledEnd || s.scheduledStart).getTime() >= Date.now())
                               .sort((a, b) => new Date(a.scheduledStart).getTime() - new Date(b.scheduledStart).getTime())
                               .slice(0, 5)
-                              .map(shift => (
-                                <div key={shift.id} className="flex items-center justify-between pb-3 border-b border-gray-100 last:border-0">
-                                  <div>
-                                    <div className="font-bold text-sm text-gray-800">{shift.client.name}</div>
-                                    <div className="text-xs text-gray-400 mt-0.5"><i className="fa-regular fa-clock mr-1"></i>{formatDateTime(shift.scheduledStart)}</div>
+                              .map(shift => {
+                                const isPast = new Date(shift.scheduledEnd || shift.scheduledStart).getTime() < Date.now();
+                                return (
+                                  <div key={shift.id} className="flex items-center justify-between pb-3 border-b border-gray-100 last:border-0">
+                                    <div>
+                                      <div className="font-bold text-sm text-gray-800">{shift.client.name}</div>
+                                      <div className="text-xs text-gray-400 mt-0.5"><i className="fa-regular fa-clock mr-1"></i>{formatDateTime(shift.scheduledStart)}</div>
+                                    </div>
+                                    <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
+                                      isPast ? 'bg-slate-200 text-slate-700 border border-slate-300' :
+                                      shift.status === 'IN_PROGRESS' ? 'bg-[#77248c] text-white font-bold' :
+                                      shift.status === 'UNCONFIRMED' ? 'bg-amber-500 text-white font-bold' :
+                                      shift.status === 'CONFIRMED' ? 'bg-[#4cdbd5] text-white' :
+                                      'bg-gray-100 text-gray-600'
+                                    }`}>{isPast ? 'PAST SESSION' : shift.status}</span>
                                   </div>
-                                  <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
-                                    shift.status === 'IN_PROGRESS' ? 'bg-[#77248c] text-white font-bold' :
-                                    shift.status === 'UNCONFIRMED' ? 'bg-amber-500 text-white font-bold' :
-                                    shift.status === 'CONFIRMED' ? 'bg-[#4cdbd5] text-white' :
-                                    'bg-gray-100 text-gray-600'
-                                  }`}>{shift.status}</span>
-                                </div>
-                              ))}
+                                );
+                              })}
                           </div>
                         )}
                       </div>
@@ -6345,13 +6363,26 @@ export default function Home() {
                                   <div>
                                     <div className="flex items-center gap-2 flex-wrap">
                                       <span className="font-bold text-base text-gray-800">{shift.client.name}</span>
-                                      <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
-                                        shift.status === 'COMPLETED' ? 'bg-[#4cdbd5] text-white shadow-2xs' :
-                                        shift.status === 'IN_PROGRESS' ? 'bg-[#77248c] text-white font-bold' :
-                                        shift.status === 'UNCONFIRMED' ? 'bg-amber-500 text-white font-bold' :
-                                        shift.status === 'CONFIRMED' ? 'bg-[#4cdbd5] text-white font-bold' :
-                                        'bg-gray-100 text-gray-600'
-                                      }`}>{shift.status}</span>
+                                      {(() => {
+                                        const isPast = new Date(shift.scheduledEnd || shift.scheduledStart).getTime() < Date.now() && shift.status !== 'IN_PROGRESS';
+                                        if (isPast) {
+                                          return (
+                                            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-200 text-slate-700 border border-slate-300 shadow-2xs">
+                                              <i className="fa-solid fa-clock-rotate-left mr-1 text-slate-500"></i>
+                                              PAST SESSION
+                                            </span>
+                                          );
+                                        }
+                                        return (
+                                          <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                                            shift.status === 'COMPLETED' ? 'bg-[#4cdbd5] text-white shadow-2xs' :
+                                            shift.status === 'IN_PROGRESS' ? 'bg-[#77248c] text-white font-bold' :
+                                            shift.status === 'UNCONFIRMED' ? 'bg-amber-500 text-white font-bold' :
+                                            shift.status === 'CONFIRMED' ? 'bg-[#4cdbd5] text-white font-bold' :
+                                            'bg-gray-100 text-gray-600'
+                                          }`}>{shift.status}</span>
+                                        );
+                                      })()}
                                       {shift.status === 'IN_PROGRESS' && (
                                         <span className="px-2.5 py-0.5 bg-emerald-500 text-white rounded-full text-[10px] font-bold flex items-center gap-1 animate-pulse">
                                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-ping inline-block shrink-0 aspect-square" />
