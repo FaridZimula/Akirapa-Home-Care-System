@@ -6132,15 +6132,15 @@ export default function Home() {
                       <i className="fa-solid fa-bell-concierge text-white"></i>
                     </div>
                     <div className="flex-1">
-                      <h3 className="font-extrabold text-xl text-white">Care Updates</h3>
-                      <p className="text-xs text-purple-100 mt-0.5">Real-time alerts, caregiver assignments, shift updates, and emergency notices for your loved one's care.</p>
+                      <h3 className="font-extrabold text-xl text-white tracking-wide">Care Updates</h3>
+                      <p className="text-xs text-white/90 font-medium mt-0.5">Real-time alerts, caregiver assignments, shift updates, and emergency notices for your loved one&apos;s care.</p>
                     </div>
                     {dbNotifications.filter(n => !n.isRead).length > 0 && (
                       <button
                         onClick={handleMarkAllNotificationsRead}
-                        className="shrink-0 px-4 py-2.5 bg-white text-[#77248c] font-bold text-xs rounded-xl shadow-xs hover:bg-purple-50 transition-all cursor-pointer"
+                        className="shrink-0 px-4 py-2.5 bg-white text-[#77248c] font-extrabold text-xs rounded-xl shadow-xs hover:bg-purple-50 transition-all cursor-pointer flex items-center gap-1.5"
                       >
-                        <i className="fa-solid fa-check-double mr-1.5"></i> Mark All Read
+                        <i className="fa-solid fa-check-double text-[#77248c]"></i> Mark All Read
                       </button>
                     )}
                   </div>
@@ -6149,7 +6149,7 @@ export default function Home() {
                   {dbNotifications.filter(n => !n.isRead).length > 0 && (
                     <div className="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-3.5 flex items-center gap-3 shadow-xs">
                       <div className="w-8 h-8 rounded-full bg-amber-400 text-white flex items-center justify-center shrink-0 aspect-square shadow-xs">
-                        <i className="fa-solid fa-bell text-sm"></i>
+                        <i className="fa-solid fa-bell text-sm text-white"></i>
                       </div>
                       <div>
                         <span className="font-bold text-amber-800 text-sm">
@@ -6167,7 +6167,7 @@ export default function Home() {
                         <i className="fa-solid fa-bell-slash"></i>
                       </div>
                       <p className="font-bold text-gray-500 text-sm">No care updates yet</p>
-                      <p className="text-xs text-gray-400">You'll be notified here when caregivers are assigned, shifts change, or there are any care alerts for your loved one.</p>
+                      <p className="text-xs text-gray-400">You&apos;ll be notified here when caregivers are assigned, shifts change, or there are any care alerts for your loved one.</p>
                     </div>
                   ) : (
                     <div className="space-y-3">
@@ -6179,40 +6179,22 @@ export default function Home() {
                         const msg = (notif.message || notif.title || '').toLowerCase();
                         let iconClass = 'fa-solid fa-bell';
                         let iconBg = 'bg-[#77248c]';
-                        let categoryLabel = 'Update';
-                        let categoryColor = 'text-[#77248c]';
-                        let badgeBg = 'bg-purple-100 text-purple-700';
 
                         if (msg.includes('assign') || msg.includes('caregiver')) {
                           iconClass = 'fa-solid fa-user-nurse';
                           iconBg = 'bg-teal-500';
-                          categoryLabel = 'Caregiver Assignment';
-                          categoryColor = 'text-teal-700';
-                          badgeBg = 'bg-teal-100 text-teal-700';
                         } else if (msg.includes('emergency') || msg.includes('urgent') || msg.includes('alert')) {
                           iconClass = 'fa-solid fa-triangle-exclamation';
                           iconBg = 'bg-red-500';
-                          categoryLabel = 'Emergency Alert';
-                          categoryColor = 'text-red-700';
-                          badgeBg = 'bg-red-100 text-red-700';
                         } else if (msg.includes('shift') || msg.includes('schedule') || msg.includes('start') || msg.includes('end')) {
                           iconClass = 'fa-solid fa-calendar-check';
                           iconBg = 'bg-blue-500';
-                          categoryLabel = 'Shift Update';
-                          categoryColor = 'text-blue-700';
-                          badgeBg = 'bg-blue-100 text-blue-700';
                         } else if (msg.includes('complet') || msg.includes('finish')) {
                           iconClass = 'fa-solid fa-circle-check';
                           iconBg = 'bg-emerald-500';
-                          categoryLabel = 'Care Completed';
-                          categoryColor = 'text-emerald-700';
-                          badgeBg = 'bg-emerald-100 text-emerald-700';
                         } else if (msg.includes('message') || msg.includes('note') || msg.includes('update')) {
                           iconClass = 'fa-solid fa-comment-medical';
                           iconBg = 'bg-[#4cdbd5]';
-                          categoryLabel = 'Care Note';
-                          categoryColor = 'text-teal-700';
-                          badgeBg = 'bg-teal-100 text-teal-700';
                         }
 
                         return (
@@ -6229,15 +6211,14 @@ export default function Home() {
 
                               {/* Content */}
                               <div className="flex-1 min-w-0 space-y-1">
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${badgeBg}`}>
-                                    {categoryLabel}
-                                  </span>
+                                <div className="flex items-center gap-2">
                                   {isUnread && (
-                                    <span className="w-2 h-2 rounded-full bg-red-500 shadow animate-pulse shrink-0"></span>
+                                    <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-red-100 text-red-700 shrink-0">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse"></span> NEW
+                                    </span>
                                   )}
                                 </div>
-                                <p className={`text-sm font-semibold ${isUnread ? 'text-gray-900' : 'text-gray-600'} leading-snug`}>
+                                <p className={`text-sm font-semibold ${isUnread ? 'text-gray-900 font-bold' : 'text-gray-600'} leading-snug`}>
                                   {notif.message || notif.title || 'Care update received'}
                                 </p>
                                 <div className="flex items-center gap-3 text-[11px] text-gray-400 mt-1">
