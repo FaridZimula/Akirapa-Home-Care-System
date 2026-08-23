@@ -509,6 +509,8 @@ export default function Home() {
   const [lastSentMessageId, setLastSentMessageId] = useState<string | null>(null);
   const [showUndoBanner, setShowUndoBanner] = useState(false);
   const [undoTimer, setUndoTimer] = useState<any>(null);
+  const [showShiftCreatedSplash, setShowShiftCreatedSplash] = useState(false);
+  const [createdShiftSplashData, setCreatedShiftSplashData] = useState<any>(null);
 
   const handleDeleteMessage = async (messageId: string) => {
     try {
@@ -2050,9 +2052,22 @@ export default function Home() {
           }, ...prev]);
         }
         const assignedCgName = data.shift?.caregiver?.name || 'Caregiver';
+        const assignedClientName = clients.find(c => c.id === newShiftClientId)?.name || 'Client';
+
         showNotification(data.warningAlert
           ? `Shift Created with Warning for ${assignedCgName}`
           : `Shift assigned to ${assignedCgName}! Real-time notification & short SMS sent.`);
+
+        setCreatedShiftSplashData({
+          shift: data.shift,
+          warning: data.warningAlert || null,
+          clientName: assignedClientName,
+          caregiverName: assignedCgName,
+          dateFormatted: start.toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' }),
+          hours: newShiftHours,
+        });
+        setShowShiftCreatedSplash(true);
+        setCurrentView('listings');
         loadNotifications();
         loadData();
       } else {
@@ -3668,93 +3683,111 @@ export default function Home() {
       {/* ===== Caregiver Profile Modal ===== */}
       {showCaregiverProfileModal && viewingCaregiverProfile && (
         <div
-          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/75 backdrop-blur-md z-50 flex items-center justify-center p-4"
           onClick={() => setShowCaregiverProfileModal(false)}
         >
           <div
-            className="max-w-md w-full bg-white rounded-3xl shadow-2xl overflow-hidden animate-fade-up"
+            className="max-w-md w-full bg-white rounded-3xl shadow-2xl overflow-hidden animate-fade-up border border-purple-100/50"
             onClick={e => e.stopPropagation()}
           >
-            {/* Purple header banner */}
-            <div className="bg-gradient-to-br from-[#77248c] to-[#4a1560] px-8 pt-8 pb-12 relative">
+            {/* Header Banner with Rich Brand Purple Gradient & Glow */}
+            <div className="bg-gradient-to-br from-[#77248c] via-[#611b73] to-[#431052] px-8 pt-9 pb-14 relative overflow-hidden shadow-inner">
+              <div className="absolute -top-12 -right-12 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none" />
+              <div className="absolute -bottom-10 -left-10 w-36 h-36 bg-[#4cdbd5]/20 rounded-full blur-xl pointer-events-none" />
+
               <button
                 onClick={() => setShowCaregiverProfileModal(false)}
-                className="absolute top-4 right-4 text-white/70 hover:text-white text-xl font-bold transition-colors"
+                className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/15 hover:bg-white/30 text-white flex items-center justify-center font-bold text-sm transition-all shadow-sm border border-white/20 active:scale-95 cursor-pointer"
+                title="Close modal"
               >
                 <i className="fa-solid fa-xmark"></i>
               </button>
-              <div className="flex flex-col items-center gap-3 text-center">
-                <div className="w-20 h-20 rounded-full bg-white border-4 border-white/30 shadow-xl flex items-center justify-center text-[#77248c] font-extrabold text-3xl">
-                  {viewingCaregiverProfile.name ? viewingCaregiverProfile.name.charAt(0).toUpperCase() : 'C'}
+
+              <div className="flex flex-col items-center gap-3 text-center relative z-10">
+                {/* Circular Boundary Avatar: White background with theme purple text/icon */}
+                <div className="relative group">
+                  <div className="w-22 h-22 rounded-full bg-white border-4 border-white shadow-2xl flex items-center justify-center text-[#77248c] font-black text-3xl transition-transform duration-300 group-hover:scale-105">
+                    {viewingCaregiverProfile.name ? viewingCaregiverProfile.name.charAt(0).toUpperCase() : 'C'}
+                  </div>
+                  <div className="absolute bottom-0 right-0 w-6 h-6 rounded-full bg-[#4cdbd5] border-2 border-white shadow-sm flex items-center justify-center text-white text-[10px]">
+                    <i className="fa-solid fa-check"></i>
+                  </div>
                 </div>
+
                 <div>
-                  <h2 className="text-white font-extrabold text-xl">{viewingCaregiverProfile.name}</h2>
-                  <span className="inline-block mt-1 px-3 py-0.5 rounded-full bg-white/20 text-white text-[11px] font-bold tracking-wider uppercase">
-                    Caregiver
-                  </span>
+                  <h2 className="text-white font-black text-2xl tracking-tight drop-shadow-xs">{viewingCaregiverProfile.name}</h2>
+                  <div className="mt-1.5 inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white text-[#77248c] border border-white font-extrabold text-[10px] tracking-wider uppercase shadow-md">
+                    <i className="fa-solid fa-user-md text-[#77248c] text-[11px]"></i> Caregiver
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Info card — pulls up over the banner */}
-            <div className="px-6 -mt-6 pb-6 space-y-3">
-              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-5 space-y-3.5">
+            {/* Info Card - Floating Elevated Container */}
+            <div className="px-6 -mt-8 pb-7 space-y-4 relative z-20">
+              <div className="bg-white rounded-2xl shadow-xl border border-gray-100/90 p-5 space-y-4">
 
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-purple-50 flex items-center justify-center shrink-0">
-                    <i className="fa-solid fa-envelope text-[#77248c] text-sm"></i>
+                {/* Email Row */}
+                <div className="flex items-center gap-3.5">
+                  <div className="w-10 h-10 rounded-xl bg-[#77248c]/10 border border-[#77248c]/20 flex items-center justify-center shrink-0 shadow-2xs">
+                    <i className="fa-solid fa-envelope text-[#77248c] text-base"></i>
                   </div>
-                  <div>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Email</p>
-                    <p className="text-sm font-semibold text-gray-800 font-mono">{viewingCaregiverProfile.email}</p>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">Email Address</p>
+                    <p className="text-xs font-bold text-gray-900 font-mono truncate mt-0.5">{viewingCaregiverProfile.email}</p>
                   </div>
                 </div>
 
-                <div className="border-t border-gray-50"></div>
+                <div className="border-t border-gray-100/80"></div>
 
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-purple-50 flex items-center justify-center shrink-0">
-                    <i className="fa-solid fa-phone text-[#77248c] text-sm"></i>
+                {/* Phone Row */}
+                <div className="flex items-center gap-3.5">
+                  <div className="w-10 h-10 rounded-xl bg-[#77248c]/10 border border-[#77248c]/20 flex items-center justify-center shrink-0 shadow-2xs">
+                    <i className="fa-solid fa-phone text-[#77248c] text-base"></i>
                   </div>
-                  <div>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Phone</p>
-                    <p className="text-sm font-semibold text-gray-800">
-                      {viewingCaregiverProfile.phoneNumber ? formatUSPhoneDisplay(viewingCaregiverProfile.phoneNumber) : <span className="text-gray-400 italic font-normal text-xs">Not saved</span>}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">Phone Number</p>
+                    <p className="text-xs font-bold text-gray-900 mt-0.5">
+                      {viewingCaregiverProfile.phoneNumber ? formatUSPhoneDisplay(viewingCaregiverProfile.phoneNumber) : <span className="text-gray-400 italic font-normal">Not saved</span>}
                     </p>
                   </div>
                 </div>
 
-                <div className="border-t border-gray-50"></div>
+                <div className="border-t border-gray-100/80"></div>
 
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-purple-50 flex items-center justify-center shrink-0">
-                    <i className="fa-solid fa-dollar-sign text-[#77248c] text-sm"></i>
+                {/* Hourly Rate Row */}
+                <div className="flex items-center gap-3.5">
+                  <div className="w-10 h-10 rounded-xl bg-[#4cdbd5]/15 border border-[#4cdbd5]/30 flex items-center justify-center shrink-0 shadow-2xs">
+                    <i className="fa-solid fa-dollar-sign text-[#0d9488] text-base"></i>
                   </div>
-                  <div>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Hourly Rate</p>
-                    <p className="text-sm font-semibold text-emerald-600">
-                      ${viewingCaregiverProfile.payRate ? viewingCaregiverProfile.payRate.toFixed(2) : '28.00'}/hr
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">Hourly Pay Rate</p>
+                    <p className="text-sm font-extrabold text-emerald-600 mt-0.5">
+                      ${viewingCaregiverProfile.payRate ? viewingCaregiverProfile.payRate.toFixed(2) : '28.00'}<span className="text-xs font-medium text-gray-500"> / hr</span>
                     </p>
                   </div>
                 </div>
 
                 {getInitialPassword(viewingCaregiverProfile) && (
                   <>
-                    <div className="border-t border-gray-50"></div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-xl bg-purple-50 flex items-center justify-center shrink-0">
-                        <i className="fa-solid fa-key text-[#77248c] text-sm"></i>
+                    <div className="border-t border-gray-100/80"></div>
+                    {/* Initial Password Row */}
+                    <div className="flex items-center gap-3.5">
+                      <div className="w-10 h-10 rounded-xl bg-[#77248c]/10 border border-[#77248c]/20 flex items-center justify-center shrink-0 shadow-2xs">
+                        <i className="fa-solid fa-key text-[#77248c] text-base"></i>
                       </div>
-                      <div>
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Initial Password</p>
-                        <p className="text-sm font-mono font-bold text-[#77248c]">{getInitialPassword(viewingCaregiverProfile)}</p>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">First-Time Password</p>
+                        <p className="text-xs font-mono font-black text-[#77248c] bg-[#77248c]/5 px-2.5 py-1 rounded-lg border border-[#77248c]/20 w-fit mt-0.5">
+                          {getInitialPassword(viewingCaregiverProfile)}
+                        </p>
                       </div>
                     </div>
                   </>
                 )}
               </div>
 
-              {/* Action buttons */}
+              {/* Action Buttons styled according to user branding rules */}
               {user && isCaregiverProvisioningAuthorized(user.email) && (
                 <div className="flex gap-3 pt-1">
                   <button
@@ -3762,9 +3795,9 @@ export default function Home() {
                       setShowCaregiverProfileModal(false);
                       handleOpenEditCaregiverModal(viewingCaregiverProfile);
                     }}
-                    className="flex-1 px-4 py-2.5 bg-[#4cdbd5] hover:bg-[#34b8b2] text-teal-950 font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5"
+                    className="flex-1 py-3 px-4 bg-[#4cdbd5] hover:bg-[#3acac4] text-white font-extrabold text-xs rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95 border-2 border-white"
                   >
-                    <i className="fa-solid fa-pen-to-square"></i> Edit Name
+                    <i className="fa-solid fa-pen-to-square text-white text-sm"></i> Edit Name
                   </button>
                   <button
                     onClick={() => {
@@ -3773,9 +3806,9 @@ export default function Home() {
                       setAdminNewPasswordInput('');
                       setShowAdminPasswordModal(true);
                     }}
-                    className="flex-1 px-4 py-2.5 bg-[#77248c] hover:bg-[#5a1a6b] text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5"
+                    className="flex-1 py-3 px-4 bg-[#77248c] hover:bg-[#601c71] text-white font-extrabold text-xs rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95 border-2 border-white"
                   >
-                    <i className="fa-solid fa-key"></i> Set Password
+                    <i className="fa-solid fa-key text-white text-sm"></i> Set Password
                   </button>
                 </div>
               )}
@@ -3786,22 +3819,21 @@ export default function Home() {
 
       {/* ===== Edit Caregiver Name Modal ===== */}
       {showEditCaregiverModal && editingCaregiverUser && (
-
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="max-w-sm w-full bg-white rounded-3xl shadow-2xl p-8 animate-fade-up">
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="max-w-sm w-full bg-white rounded-3xl shadow-2xl p-7 animate-fade-up border border-purple-100/50">
             <div className="flex justify-between items-center border-b border-gray-100 pb-4 mb-5">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 bg-[#77248c] text-white rounded-xl flex items-center justify-center font-bold shadow-xs">
-                  <i className="fa-solid fa-pen-to-square text-white"></i>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-[#77248c] text-white rounded-2xl flex items-center justify-center font-bold shadow-sm">
+                  <i className="fa-solid fa-pen-to-square text-white text-base"></i>
                 </div>
                 <div>
-                  <h3 className="font-bold text-gray-900 text-sm">Edit Caregiver Name</h3>
-                  <p className="text-[11px] text-gray-400">{editingCaregiverUser.email}</p>
+                  <h3 className="font-extrabold text-gray-900 text-base">Edit Caregiver Name</h3>
+                  <p className="text-[11px] text-gray-400 font-mono">{editingCaregiverUser.email}</p>
                 </div>
               </div>
               <button
                 onClick={() => { setShowEditCaregiverModal(false); setEditingCaregiverUser(null); }}
-                className="text-gray-400 hover:text-gray-600 text-lg font-bold"
+                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-800 flex items-center justify-center font-bold text-sm transition-all cursor-pointer"
               >
                 <i className="fa-solid fa-xmark"></i>
               </button>
@@ -3809,37 +3841,39 @@ export default function Home() {
 
             <form onSubmit={handleSaveCaregiverName} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1.5">Full Name</label>
+                <label className="block text-[11px] font-extrabold text-gray-500 uppercase tracking-wider mb-1.5">Full Name</label>
                 <input
                   type="text"
                   value={editCaregiverNameInput}
                   onChange={e => setEditCaregiverNameInput(e.target.value)}
                   placeholder="e.g. Janet Nakamya"
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#77248c]/40 focus:border-[#77248c]"
+                  className="w-full px-4 py-3 bg-gray-50/80 border border-gray-200 rounded-xl text-sm font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#77248c]/30 focus:border-[#77248c] transition-all"
                   autoFocus
                 />
                 {editCaregiverNameError && (
-                  <p className="mt-1.5 text-xs text-red-500">{editCaregiverNameError}</p>
+                  <p className="mt-1.5 text-xs text-red-500 font-medium flex items-center gap-1">
+                    <i className="fa-solid fa-circle-exclamation"></i> {editCaregiverNameError}
+                  </p>
                 )}
               </div>
 
-              <div className="flex gap-3 pt-1">
+              <div className="flex gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => { setShowEditCaregiverModal(false); setEditingCaregiverUser(null); }}
-                  className="flex-1 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-sm rounded-xl transition-all"
+                  className="flex-1 px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs rounded-xl transition-all cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSavingCaregiverName}
-                  className="flex-1 px-4 py-2.5 bg-[#77248c] hover:bg-[#5a1a6b] text-white font-bold text-sm rounded-xl shadow-sm hover:shadow-md transition-all disabled:opacity-60 flex items-center justify-center gap-2"
+                  className="flex-1 px-4 py-3 bg-[#4cdbd5] hover:bg-[#3acac4] text-white font-extrabold text-xs rounded-xl shadow-md hover:shadow-lg transition-all disabled:opacity-60 flex items-center justify-center gap-2 cursor-pointer border-2 border-white active:scale-95"
                 >
                   {isSavingCaregiverName ? (
                     <><i className="fa-solid fa-circle-notch animate-spin"></i> Saving…</>
                   ) : (
-                    <><i className="fa-solid fa-check"></i> Save Name</>
+                    <><i className="fa-solid fa-check text-white"></i> Save Name</>
                   )}
                 </button>
               </div>
@@ -3850,60 +3884,73 @@ export default function Home() {
 
       {/* Admin Set First-Time Caregiver Password Modal */}
       {showAdminPasswordModal && targetPasswordUser && (
-
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl p-8 animate-fade-up">
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl p-7 animate-fade-up border border-purple-100/50">
             <div className="flex justify-between items-center border-b border-gray-100 pb-4 mb-4">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 bg-[#77248c] text-white rounded-xl flex items-center justify-center font-bold shadow-xs">
-                  <i className="fa-solid fa-key text-white"></i>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-[#77248c] text-white rounded-2xl flex items-center justify-center font-bold shadow-sm">
+                  <i className="fa-solid fa-key text-white text-base"></i>
                 </div>
                 <div>
-                  <h3 className="font-bold text-gray-800 text-base">Set First-Time Password</h3>
-                  <p className="text-xs text-gray-400">Target Caregiver: {targetPasswordUser.name}</p>
+                  <h3 className="font-extrabold text-gray-900 text-base">Set First-Time Password</h3>
+                  <p className="text-xs font-semibold text-gray-500">Target Caregiver: <span className="text-[#77248c]">{targetPasswordUser.name}</span></p>
                 </div>
               </div>
-              <button onClick={() => { setShowAdminPasswordModal(false); setTargetPasswordUser(null); }} className="text-gray-400 hover:text-gray-600 font-bold">
-                <i className="fa-solid fa-xmark text-lg"></i>
+              <button
+                onClick={() => { setShowAdminPasswordModal(false); setTargetPasswordUser(null); }}
+                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-800 flex items-center justify-center font-bold text-sm transition-all cursor-pointer"
+              >
+                <i className="fa-solid fa-xmark"></i>
               </button>
             </div>
 
             <form onSubmit={handleAdminSetCaregiverPassword} className="space-y-4 text-xs">
-              <div className="bg-purple-50 border border-purple-100 rounded-xl p-3 text-purple-900">
-                <div className="font-bold text-xs mb-1"><i className="fa-solid fa-envelope mr-1"></i> Caregiver Email:</div>
-                <div className="font-mono text-xs font-bold">{targetPasswordUser.email}</div>
-                <div className="text-[11px] text-purple-700 mt-1">This email will be automatically addressed by the database and restricted to the Caregiver Portal.</div>
+              <div className="bg-[#77248c]/5 border border-[#77248c]/20 rounded-2xl p-4 text-gray-900 space-y-1">
+                <div className="font-extrabold text-xs text-[#77248c] flex items-center gap-1.5">
+                  <i className="fa-solid fa-envelope"></i> Caregiver Email:
+                </div>
+                <div className="font-mono text-xs font-bold text-gray-900">{targetPasswordUser.email}</div>
+                <div className="text-[11px] text-gray-500">The assigned password allows immediate login to the Caregiver Portal.</div>
               </div>
 
               <div>
-                <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">First-Time Password</label>
+                <label className="font-extrabold text-gray-500 uppercase tracking-wider text-[10px]">First-Time Password</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. CaregiverTemp2026!"
                   value={adminNewPasswordInput}
                   onChange={(e) => setAdminNewPasswordInput(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
+                  className="w-full bg-gray-50/80 border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#77248c]/30 focus:border-[#77248c] transition-all mt-1"
                 />
               </div>
 
               {adminPasswordError && (
-                <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-xl text-xs flex items-center gap-2 font-semibold">
+                <div className="bg-red-50 border border-red-200 text-red-700 p-3.5 rounded-xl text-xs flex items-center gap-2 font-semibold">
                   <i className="fa-solid fa-triangle-exclamation"></i> {adminPasswordError}
                 </div>
               )}
 
-              <div className="flex justify-end gap-2 pt-2">
+              <div className="flex justify-end gap-2.5 pt-2">
                 <button
                   type="button"
                   onClick={() => { setShowAdminPasswordModal(false); setTargetPasswordUser(null); }}
-                  className="px-4 py-2.5 border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 font-semibold cursor-pointer"
+                  className="px-5 py-3 border border-gray-200 rounded-xl text-gray-700 hover:bg-gray-100 font-bold cursor-pointer text-xs transition-all"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isAdminSettingPassword || !adminNewPasswordInput}
+                  className="px-6 py-3 bg-[#77248c] hover:bg-[#601c71] text-white rounded-xl font-extrabold transition-all disabled:opacity-50 cursor-pointer flex items-center gap-2 text-xs shadow-md border-2 border-white active:scale-95"
+                >
+                  {isAdminSettingPassword ? <><i className="fa-solid fa-spinner animate-spin"></i> Saving...</> : <><i className="fa-solid fa-check text-white"></i> Assign Password</>}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
                   className="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold transition-all disabled:opacity-50 cursor-pointer flex items-center gap-2"
                 >
                   {isAdminSettingPassword ? <><i className="fa-solid fa-spinner animate-spin"></i> Saving...</> : <><i className="fa-solid fa-check"></i> Assign Password</>}
@@ -5369,7 +5416,7 @@ export default function Home() {
               <button onClick={() => { setCurrentView('messages'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all relative ${currentView === 'messages' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                 <i className="fa-solid fa-comments w-4 text-center"></i> Messages
                 {messageConversations.some(c => (c.unreadCount || 0) > 0) && (
-                  <span className="ml-auto w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center shadow shrink-0 aspect-square">
+                  <span className="ml-auto w-4 h-4 rounded-full bg-[#4cdbd5] text-[#2d0936] text-[9px] font-black flex items-center justify-center shadow shrink-0 aspect-square">
                     {messageConversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0) > 9 ? '9+' : messageConversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0)}
                   </span>
                 )}
@@ -5394,7 +5441,7 @@ export default function Home() {
               <button onClick={() => { setCurrentView('messages'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all relative ${currentView === 'messages' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                 <i className="fa-solid fa-comments w-4 text-center"></i> Messages
                 {messageConversations.some(c => (c.unreadCount || 0) > 0) && (
-                  <span className="ml-auto w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center shadow shrink-0 aspect-square">
+                  <span className="ml-auto w-4 h-4 rounded-full bg-[#4cdbd5] text-[#2d0936] text-[9px] font-black flex items-center justify-center shadow shrink-0 aspect-square">
                     {messageConversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0) > 9 ? '9+' : messageConversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0)}
                   </span>
                 )}
@@ -5414,7 +5461,7 @@ export default function Home() {
               <button onClick={() => { setCurrentView('messages'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all relative ${currentView === 'messages' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                 <i className="fa-solid fa-comments w-4 text-center"></i> Messages
                 {messageConversations.some(c => (c.unreadCount || 0) > 0) && (
-                  <span className="ml-auto w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center shadow shrink-0 aspect-square">
+                  <span className="ml-auto w-4 h-4 rounded-full bg-[#4cdbd5] text-[#2d0936] text-[9px] font-black flex items-center justify-center shadow shrink-0 aspect-square">
                     {messageConversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0) > 9 ? '9+' : messageConversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0)}
                   </span>
                 )}
@@ -5425,7 +5472,7 @@ export default function Home() {
               <button onClick={() => { setCurrentView('care_updates'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all relative ${currentView === 'care_updates' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                 <i className="fa-solid fa-bell-concierge w-4 text-center"></i> Care Updates
                 {dbNotifications.filter(n => !n.isRead && n.type !== 'NEW_MESSAGE').length > 0 && (
-                  <span className="ml-auto w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center shadow shrink-0">
+                  <span className="ml-auto w-4 h-4 rounded-full bg-[#4cdbd5] text-[#2d0936] text-[9px] font-black flex items-center justify-center shadow shrink-0">
                     {dbNotifications.filter(n => !n.isRead && n.type !== 'NEW_MESSAGE').length > 9 ? '9+' : dbNotifications.filter(n => !n.isRead && n.type !== 'NEW_MESSAGE').length}
                   </span>
                 )}
@@ -6365,14 +6412,14 @@ export default function Home() {
                         </div>
                         <div className="space-y-3 text-sm">
                           <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                            <i className="fa-solid fa-user text-purple-400 w-4 text-center"></i>
+                            <i className="fa-solid fa-user text-[#77248c] w-4 text-center"></i>
                             <div>
                               <div className="text-[10px] text-gray-400 uppercase font-semibold">Full Name</div>
                               <div className="font-semibold text-gray-800">{user.name}</div>
                             </div>
                           </div>
                           <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                            <i className="fa-solid fa-envelope text-purple-400 w-4 text-center"></i>
+                            <i className="fa-solid fa-envelope text-[#77248c] w-4 text-center"></i>
                             <div>
                               <div className="text-[10px] text-gray-400 uppercase font-semibold">Email Address</div>
                               <div className="font-semibold text-gray-800 font-mono text-xs">{user.email}</div>
@@ -6380,7 +6427,7 @@ export default function Home() {
                           </div>
                           {user.phoneNumber && (
                             <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                              <i className="fa-solid fa-phone text-purple-400 w-4 text-center"></i>
+                              <i className="fa-solid fa-phone text-[#77248c] w-4 text-center"></i>
                               <div>
                                 <div className="text-[10px] text-gray-400 uppercase font-semibold">Phone Number</div>
                                 <div className="font-semibold text-gray-800 font-mono text-xs">{formatUSPhoneDisplay(user.phoneNumber)}</div>
@@ -6444,17 +6491,17 @@ export default function Home() {
                     )}
                   </div>
 
-                  {/* Unread Count Badge */}
+                  {/* Unread Count Badge (Vibrant Orange with White Text & White Icon) */}
                   {dbNotifications.filter(n => !n.isRead && n.type !== 'NEW_MESSAGE').length > 0 && (
-                    <div className="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-3.5 flex items-center gap-3 shadow-xs">
-                      <div className="w-8 h-8 rounded-full bg-amber-400 text-white flex items-center justify-center shrink-0 aspect-square shadow-xs">
+                    <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-orange-600 text-white rounded-2xl px-5 py-3.5 flex items-center gap-3 shadow-md border border-orange-400/40">
+                      <div className="w-9 h-9 rounded-full bg-white/20 backdrop-blur-md text-white flex items-center justify-center shrink-0 aspect-square shadow-xs border border-white/30">
                         <i className="fa-solid fa-bell text-sm text-white"></i>
                       </div>
                       <div>
-                        <span className="font-bold text-amber-800 text-sm">
+                        <span className="font-extrabold !text-white text-sm">
                           {dbNotifications.filter(n => !n.isRead && n.type !== 'NEW_MESSAGE').length} unread update{dbNotifications.filter(n => !n.isRead && n.type !== 'NEW_MESSAGE').length !== 1 ? 's' : ''}
                         </span>
-                        <p className="text-xs text-amber-600">Tap any update to mark it as read.</p>
+                        <p className="text-xs text-orange-100 font-medium">Tap any update to mark it as read.</p>
                       </div>
                     </div>
                   )}
@@ -6512,8 +6559,8 @@ export default function Home() {
                               <div className="flex-1 min-w-0 space-y-1">
                                 <div className="flex items-center gap-2">
                                   {isUnread && (
-                                    <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-red-100 text-red-700 shrink-0">
-                                      <span className="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse"></span> NEW
+                                    <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-[#4cdbd5] !text-white shrink-0 shadow-2xs">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span> NEW
                                     </span>
                                   )}
                                 </div>
@@ -8803,50 +8850,58 @@ export default function Home() {
                         <>
                           {/* MONTHLY BUSINESS KPI METRICS GRID */}
                           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                            <div className="bg-purple-50/70 border-2 border-purple-200 rounded-2xl p-5 hover-lift shadow-2xs">
+                            {/* Revenue Card */}
+                            <div className="relative overflow-hidden bg-gradient-to-br from-[#77248c] via-[#5e1970] to-[#3f0f4b] text-white rounded-2xl p-5 hover-lift shadow-lg border border-purple-500/30">
+                              <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-white/5 rounded-full blur-xl pointer-events-none" />
                               <div className="flex items-center justify-between mb-2">
-                                <span className="text-xs font-extrabold text-purple-800 uppercase tracking-wider">Gross Monthly Revenue</span>
-                                <div className="w-9 h-9 bg-[#77248c] text-white rounded-xl flex items-center justify-center text-sm shadow-xs">
+                                <span className="text-xs font-extrabold text-purple-200 uppercase tracking-wider">Gross Monthly Revenue</span>
+                                <div className="w-9 h-9 bg-white/20 backdrop-blur-md text-white rounded-xl flex items-center justify-center text-sm shadow-xs border border-white/20">
                                   <i className="fa-solid fa-dollar-sign text-white"></i>
                                 </div>
                               </div>
-                              <div className="text-2xl font-black text-purple-950">${businessStats?.summary?.totalRevenue?.toLocaleString() || '0'}</div>
-                              <div className="text-[11px] text-purple-700 font-semibold mt-1">Calculated from client billing rates</div>
+                              <div className="text-3xl font-black !text-white tracking-tight">${businessStats?.summary?.totalRevenue?.toLocaleString() || '0'}</div>
+                              <div className="text-[11px] text-purple-200/90 font-medium mt-1">Calculated from client billing rates</div>
                             </div>
 
-                            <div className="bg-cyan-50/70 border-2 border-cyan-200 rounded-2xl p-5 hover-lift shadow-2xs">
+                            {/* Caregiver Payroll Card */}
+                            <div className="relative overflow-hidden bg-gradient-to-br from-[#0f766e] via-[#0d6b63] to-[#043e39] text-white rounded-2xl p-5 hover-lift shadow-lg border border-teal-500/30">
+                              <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-white/5 rounded-full blur-xl pointer-events-none" />
                               <div className="flex items-center justify-between mb-2">
-                                <span className="text-xs font-extrabold text-teal-800 uppercase tracking-wider">Caregiver Payroll</span>
-                                <div className="w-9 h-9 bg-teal-600 text-white rounded-xl flex items-center justify-center text-sm shadow-xs">
+                                <span className="text-xs font-extrabold text-teal-100 uppercase tracking-wider">Caregiver Payroll</span>
+                                <div className="w-9 h-9 bg-white/20 backdrop-blur-md text-white rounded-xl flex items-center justify-center text-sm shadow-xs border border-white/20">
                                   <i className="fa-solid fa-wallet text-white"></i>
                                 </div>
                               </div>
-                              <div className="text-2xl font-black text-teal-950">${businessStats?.summary?.totalPayroll?.toLocaleString() || '0'}</div>
-                              <div className="text-[11px] text-teal-700 font-semibold mt-1">Staff wages & overtime compensation</div>
+                              <div className="text-3xl font-black !text-white tracking-tight">${businessStats?.summary?.totalPayroll?.toLocaleString() || '0'}</div>
+                              <div className="text-[11px] text-teal-100/90 font-medium mt-1">Staff wages & overtime compensation</div>
                             </div>
 
-                            <div className="bg-emerald-50/70 border-2 border-emerald-200 rounded-2xl p-5 hover-lift shadow-2xs">
+                            {/* Net Operating Profit Card */}
+                            <div className="relative overflow-hidden bg-gradient-to-br from-[#059669] via-[#047857] to-[#064e3b] text-white rounded-2xl p-5 hover-lift shadow-lg border border-emerald-500/30">
+                              <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-white/5 rounded-full blur-xl pointer-events-none" />
                               <div className="flex items-center justify-between mb-2">
-                                <span className="text-xs font-extrabold text-emerald-800 uppercase tracking-wider">Net Operating Profit</span>
-                                <div className="w-9 h-9 bg-emerald-600 text-white rounded-xl flex items-center justify-center text-sm shadow-xs">
+                                <span className="text-xs font-extrabold text-emerald-100 uppercase tracking-wider">Net Operating Profit</span>
+                                <div className="w-9 h-9 bg-white/20 backdrop-blur-md text-white rounded-xl flex items-center justify-center text-sm shadow-xs border border-white/20">
                                   <i className="fa-solid fa-chart-line text-white"></i>
                                 </div>
                               </div>
-                              <div className="text-2xl font-black text-emerald-950">${businessStats?.summary?.netProfit?.toLocaleString() || '0'}</div>
-                              <div className="text-[11px] text-emerald-700 font-extrabold mt-1">
-                                Margin: <span className="bg-emerald-200 px-1.5 py-0.5 rounded text-emerald-900">{businessStats?.summary?.profitMarginPercent || 0}%</span>
+                              <div className="text-3xl font-black !text-white tracking-tight">${businessStats?.summary?.netProfit?.toLocaleString() || '0'}</div>
+                              <div className="text-[11px] text-emerald-100 font-extrabold mt-1 flex items-center gap-1.5">
+                                Margin: <span className="bg-white/20 backdrop-blur-md px-2 py-0.5 rounded-md !text-white font-bold">{businessStats?.summary?.profitMarginPercent || 0}%</span>
                               </div>
                             </div>
 
-                            <div className="bg-amber-50/70 border-2 border-amber-300 rounded-2xl p-5 hover-lift shadow-2xs">
+                            {/* Care Hours Delivered Card */}
+                            <div className="relative overflow-hidden bg-gradient-to-br from-[#d97706] via-[#b45309] to-[#78350f] text-white rounded-2xl p-5 hover-lift shadow-lg border border-amber-500/30">
+                              <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-white/5 rounded-full blur-xl pointer-events-none" />
                               <div className="flex items-center justify-between mb-2">
-                                <span className="text-xs font-extrabold text-amber-800 uppercase tracking-wider">Care Hours Delivered</span>
-                                <div className="w-9 h-9 bg-orange-500 text-white rounded-xl flex items-center justify-center text-sm shadow-xs">
+                                <span className="text-xs font-extrabold text-amber-100 uppercase tracking-wider">Care Hours Delivered</span>
+                                <div className="w-9 h-9 bg-white/20 backdrop-blur-md text-white rounded-xl flex items-center justify-center text-sm shadow-xs border border-white/20">
                                   <i className="fa-solid fa-clock text-white"></i>
                                 </div>
                               </div>
-                              <div className="text-2xl font-black text-amber-950">{businessStats?.summary?.totalCareHours || 0} hrs</div>
-                              <div className="text-[11px] text-amber-700 font-semibold mt-1">Avg shift: {businessStats?.summary?.avgShiftDuration || 0} hrs</div>
+                              <div className="text-3xl font-black !text-white tracking-tight">{businessStats?.summary?.totalCareHours || 0} hrs</div>
+                              <div className="text-[11px] text-amber-100/90 font-medium mt-1">Avg shift: {businessStats?.summary?.avgShiftDuration || 0} hrs</div>
                             </div>
                           </div>
 
@@ -8856,19 +8911,19 @@ export default function Home() {
                             <div className="lg:col-span-2 bg-[#1a1024] text-white rounded-3xl p-6 shadow-xl border border-purple-900/40">
                               <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
                                 <div className="flex items-center gap-3">
-                                  <div className="w-10 h-10 rounded-2xl bg-[#77248c] text-white flex items-center justify-center font-bold shadow-md">
+                                  <div className="w-10 h-10 rounded-2xl bg-[#77248c] text-white flex items-center justify-center font-bold shadow-md shrink-0">
                                     <i className="fa-solid fa-chart-column text-lg text-white"></i>
                                   </div>
                                   <div>
-                                    <h4 className="font-extrabold text-base text-white">
+                                    <h4 className="font-extrabold text-base !text-white tracking-tight">
                                       Monthly Financial Trends & Weekly Breakdown
                                     </h4>
-                                    <p className="text-xs text-purple-200/80 mt-0.5">Comparison of Gross Revenue vs Caregiver Payroll across weeks</p>
+                                    <p className="text-xs text-[#4cdbd5] font-semibold mt-0.5">Comparison of Gross Revenue vs Caregiver Payroll across weeks</p>
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-4 text-[11px] font-bold">
-                                  <div className="flex items-center gap-1.5"><span className="w-3 h-3 bg-purple-500 rounded-sm shadow-xs"></span><span className="text-white">Revenue</span></div>
-                                  <div className="flex items-center gap-1.5"><span className="w-3 h-3 bg-white rounded-sm shadow-xs"></span><span className="text-white">Payroll</span></div>
+                                  <div className="flex items-center gap-1.5"><span className="w-3 h-3 bg-[#77248c] rounded-sm shadow-xs"></span><span className="!text-white">Revenue</span></div>
+                                  <div className="flex items-center gap-1.5"><span className="w-3 h-3 bg-[#4cdbd5] rounded-sm shadow-xs"></span><span className="!text-white">Payroll</span></div>
                                 </div>
                               </div>
 
@@ -8881,8 +8936,8 @@ export default function Home() {
                                   return (
                                     <div key={idx} className="bg-[#271738]/90 rounded-2xl p-4 border border-purple-800/40 shadow-xs">
                                       <div className="flex justify-between items-center text-xs font-extrabold mb-3">
-                                        <span className="text-white font-bold">{w.weekLabel}</span>
-                                        <span className="text-purple-200 font-mono text-[11px]">{w.shifts} completed shifts ({w.hours} care hrs)</span>
+                                        <span className="!text-white font-bold">{w.weekLabel}</span>
+                                        <span className="text-[#4cdbd5] font-mono text-[11px]">{w.shifts} completed shifts ({w.hours} care hrs)</span>
                                       </div>
                                       <div className="space-y-2.5">
                                         {/* Revenue Bar */}
@@ -8895,11 +8950,11 @@ export default function Home() {
                                         </div>
                                         {/* Payroll Bar */}
                                         <div className="flex items-center gap-3 text-xs">
-                                          <span className="w-16 text-[10px] font-extrabold text-white uppercase tracking-wider">Payroll</span>
+                                          <span className="w-16 text-[10px] font-extrabold text-[#4cdbd5] uppercase tracking-wider">Payroll</span>
                                           <div className="flex-1 bg-[#150b1f] rounded-full h-3 overflow-hidden p-0.5 border border-purple-900/30">
-                                            <div className="bg-gradient-to-r from-purple-300 to-white h-full rounded-full transition-all duration-500 shadow-xs" style={{ width: `${Math.max(5, payPct)}%` }}></div>
+                                            <div className="bg-gradient-to-r from-[#4cdbd5] to-cyan-200 h-full rounded-full transition-all duration-500 shadow-xs" style={{ width: `${Math.max(5, payPct)}%` }}></div>
                                           </div>
-                                          <span className="w-16 text-right font-mono font-extrabold text-white">${w.payroll.toLocaleString()}</span>
+                                          <span className="w-16 text-right font-mono font-extrabold text-[#4cdbd5]">${w.payroll.toLocaleString()}</span>
                                         </div>
                                       </div>
                                     </div>
@@ -9250,8 +9305,7 @@ export default function Home() {
                         <div className="absolute -bottom-16 left-1/3 w-64 h-64 bg-purple-500/20 rounded-full blur-3xl pointer-events-none shrink-0 aspect-square" />
 
                         <div className="relative z-10 space-y-2 flex-1 min-w-0 pr-4">
-                          <div className="flex items-center gap-2 text-xs font-extrabold text-[#4cdbd5] uppercase tracking-widest">
-                            <span className="w-2.5 h-2.5 rounded-full bg-[#4cdbd5] inline-block animate-pulse shadow-xs shrink-0 aspect-square"></span>
+                          <div className="flex items-center gap-2 text-xs font-extrabold text-white uppercase tracking-widest">
                             <span>Akirapa Home Care Agency • Financial Intelligence</span>
                           </div>
                           <h2 className="text-3xl md:text-4xl font-black text-white tracking-tight leading-tight drop-shadow-sm">PAYMENT TRACKER</h2>
@@ -10511,6 +10565,75 @@ export default function Home() {
 
               <div className="text-center text-xs text-gray-400 pt-4 border-t border-gray-100">
                 Maintain accurate billing records for every client account.
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ===== SHIFT CREATED SPLASH SUCCESS MODAL ===== */}
+      {showShiftCreatedSplash && createdShiftSplashData && (
+        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden border border-purple-100 transform transition-all animate-fade-up">
+            {/* Splash Header Banner */}
+            <div className="bg-gradient-to-br from-[#77248c] via-[#5e1970] to-[#3f0f4b] p-8 text-center text-white relative overflow-hidden">
+              <div className="absolute -top-12 -right-12 w-36 h-36 bg-[#4cdbd5]/20 rounded-full blur-2xl pointer-events-none" />
+              <div className="w-16 h-16 bg-[#4cdbd5] text-[#2d0936] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg text-2xl font-black shrink-0 aspect-square">
+                <i className="fa-solid fa-check text-2xl"></i>
+              </div>
+              <h3 className="text-2xl font-black text-white tracking-tight">Shift Created!</h3>
+              <p className="text-xs text-purple-100/90 font-medium mt-1">Form closed & shift successfully scheduled into system.</p>
+            </div>
+
+            {/* Shift Summary Content */}
+            <div className="p-6 space-y-4">
+              <div className="bg-purple-50/60 rounded-2xl p-4 border border-purple-100 space-y-2.5 text-xs">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-500 font-medium uppercase tracking-wider text-[10px]">Client</span>
+                  <span className="font-extrabold text-gray-900 text-sm">{createdShiftSplashData.clientName}</span>
+                </div>
+                <div className="border-t border-purple-100/80"></div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-500 font-medium uppercase tracking-wider text-[10px]">Assigned Caregiver</span>
+                  <span className="font-extrabold text-[#77248c] text-xs">{createdShiftSplashData.caregiverName}</span>
+                </div>
+                <div className="border-t border-purple-100/80"></div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-500 font-medium uppercase tracking-wider text-[10px]">Scheduled Start</span>
+                  <span className="font-bold text-gray-700">{createdShiftSplashData.dateFormatted}</span>
+                </div>
+                <div className="border-t border-purple-100/80"></div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-500 font-medium uppercase tracking-wider text-[10px]">Duration</span>
+                  <span className="font-extrabold text-teal-700">{createdShiftSplashData.hours} Hours</span>
+                </div>
+              </div>
+
+              {createdShiftSplashData.warning && (
+                <div className="bg-amber-50 border border-amber-200 text-amber-900 rounded-xl p-3 text-xs flex items-start gap-2 font-medium">
+                  <i className="fa-solid fa-triangle-exclamation text-amber-600 text-sm mt-0.5 shrink-0"></i>
+                  <div>{createdShiftSplashData.warning}</div>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex flex-col sm:flex-row gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowShiftCreatedSplash(false)}
+                  className="flex-1 px-4 py-3 bg-[#77248c] hover:bg-[#5a1a6b] text-white font-extrabold text-xs rounded-xl shadow-md transition-all cursor-pointer text-center"
+                >
+                  View Shifts Schedule
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowShiftCreatedSplash(false);
+                    setCurrentView('create');
+                  }}
+                  className="px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs rounded-xl transition-all cursor-pointer text-center"
+                >
+                  Create Another
+                </button>
               </div>
             </div>
           </div>
