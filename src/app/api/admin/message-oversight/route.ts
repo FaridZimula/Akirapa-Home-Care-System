@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { decrypt } from '@/lib/crypto';
 import { getSessionUser } from '@/lib/session';
 import { logAudit } from '@/lib/audit';
+import { supabaseAdmin, MESSAGE_MEDIA_BUCKET } from '@/lib/supabaseStorage';
 
 // System-wide message oversight for ADMIN / CARE_COORDINATOR.
 //
@@ -91,6 +92,26 @@ export async function GET(request: Request) {
         outcome: 'SUCCESS',
       });
 
+      // Resolve signed URLs for media attachments
+      const mediaPaths = rows.filter(m => m.mediaUrl).map(m => m.mediaUrl as string);
+      const signedUrlByPath = new Map<string, string>();
+      if (mediaPaths.length > 0) {
+        try {
+          const { data: signedUrls, error } = await supabaseAdmin.storage
+            .from(MESSAGE_MEDIA_BUCKET)
+            .createSignedUrls(mediaPaths, 60 * 60);
+          if (!error && signedUrls) {
+            signedUrls.forEach(item => {
+              if (item.path && item.signedUrl) {
+                signedUrlByPath.set(item.path, item.signedUrl);
+              }
+            });
+          }
+        } catch (e) {
+          console.error('Failed to create signed URLs in oversight API:', e);
+        }
+      }
+
       return NextResponse.json({
         threadKey,
         messages: rows.map(m => ({
@@ -101,6 +122,7 @@ export async function GET(request: Request) {
           recipientName: m.recipientId ? recipientNameById.get(m.recipientId) ?? null : null,
           clientName: m.client.name,
           text: m.encryptedText ? decrypt(m.encryptedText) : null,
+          mediaUrl: m.mediaUrl ? (signedUrlByPath.get(m.mediaUrl) || null) : null,
           mediaType: m.mediaType,
           mediaName: m.mediaName,
           hasAttachment: Boolean(m.mediaUrl),

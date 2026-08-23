@@ -9504,7 +9504,7 @@ export default function Home() {
                                         </div>
                                       </td>
                                       <td className="py-3 pr-3">
-                                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${t.type === 'DIRECT' ? 'bg-purple-100 text-purple-700 border border-purple-200' : 'bg-teal-100 text-teal-700 border border-teal-200'}`}>
+                                        <span className={`px-2.5 py-0.5 rounded-full text-[9px] uppercase tracking-wider font-extrabold shadow-2xs ${t.type === 'DIRECT' ? 'bg-[#77248c] text-white border border-[#77248c]' : 'bg-[#4cdbd5] text-white border border-[#4cdbd5]'}`}>
                                           {t.type === 'DIRECT' ? 'PRIVATE DM' : 'CARE TEAM'}
                                         </span>
                                       </td>
@@ -10168,10 +10168,47 @@ export default function Home() {
                     </div>
                     {m.text && <p className="text-sm text-gray-800 whitespace-pre-wrap">{m.text}</p>}
                     {m.hasAttachment && (
-                      <div className="mt-1.5 text-xs text-gray-500 italic flex items-center gap-1.5">
-                        <i className="fa-solid fa-paperclip"></i>
-                        {m.mediaType === 'audio' ? 'Voice note' : m.mediaType === 'video' ? 'Video' : 'Photo'}
-                        {m.mediaName ? ` — ${m.mediaName}` : ''}
+                      <div className="mt-2.5">
+                        {m.mediaType === 'audio' ? (
+                          <div className="p-3 bg-[#77248c]/5 border border-[#77248c]/20 rounded-xl space-y-1.5 max-w-md">
+                            <div className="flex items-center gap-2 text-xs font-bold text-[#77248c]">
+                              <i className="fa-solid fa-microphone-lines text-sm animate-pulse text-[#77248c]"></i>
+                              <span>Voice Note ({m.mediaName || 'voice_note.webm'})</span>
+                            </div>
+                            {m.mediaUrl ? (
+                              <audio src={m.mediaUrl} controls className="w-full h-8 scale-95 opacity-90 rounded-lg" />
+                            ) : (
+                              <span className="text-[11px] text-gray-400 italic">Voice note audio file loading...</span>
+                            )}
+                          </div>
+                        ) : m.mediaType === 'video' ? (
+                          <div className="max-w-sm rounded-xl overflow-hidden border border-gray-200 shadow-2xs bg-black">
+                            {m.mediaUrl ? (
+                              <video src={m.mediaUrl} controls className="w-full max-h-64 object-cover" />
+                            ) : (
+                              <div className="p-4 text-white text-xs text-center">Video file loading...</div>
+                            )}
+                            {m.mediaName && <div className="p-1.5 bg-gray-900 text-white text-[10px] font-mono truncate">{m.mediaName}</div>}
+                          </div>
+                        ) : (
+                          <div className="space-y-1">
+                            {m.mediaUrl ? (
+                              <div
+                                onClick={() => setActiveMediaModal({ url: m.mediaUrl, type: 'image/png', caption: m.mediaName || 'Photo Attachment', createdAt: m.createdAt })}
+                                className="relative max-w-sm rounded-xl overflow-hidden border border-gray-200 shadow-2xs group cursor-pointer"
+                              >
+                                <img src={m.mediaUrl} alt={m.mediaName || 'Photo Attachment'} className="w-full max-h-64 object-cover group-hover:scale-102 transition-transform duration-300" />
+                                <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white font-bold text-xs gap-1.5 backdrop-blur-[2px]">
+                                  <i className="fa-solid fa-magnifying-glass-plus text-base"></i> Click to View Full Image
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="p-3 bg-gray-100 rounded-xl text-xs text-gray-500 italic">
+                                <i className="fa-solid fa-image mr-1.5"></i> Photo attachment: {m.mediaName || 'photo.jpg'}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
