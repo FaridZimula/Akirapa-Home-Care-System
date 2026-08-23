@@ -207,6 +207,9 @@ export default function Home() {
   // Add Client Provisioning State
   const [newClientFirstName, setNewClientFirstName] = useState('');
   const [newClientLastName, setNewClientLastName] = useState('');
+  const [newFamilyMemberFirstName, setNewFamilyMemberFirstName] = useState('');
+  const [newFamilyMemberLastName, setNewFamilyMemberLastName] = useState('');
+  const [newFamilyMemberRelationship, setNewFamilyMemberRelationship] = useState('Son');
   const [newClientEmail, setNewClientEmail] = useState('');
   const [newClientPassword, setNewClientPassword] = useState('');
   const [newClientAddress, setNewClientAddress] = useState('');
@@ -765,6 +768,8 @@ export default function Home() {
           name: newClientName,
           email: newClientEmail,
           password: newClientPassword,
+          familyMemberName: `${newFamilyMemberFirstName.trim()} ${newFamilyMemberLastName.trim()}`.trim(),
+          familyMemberRelationship: newFamilyMemberRelationship,
           address: newClientAddress,
           city: newClientCity,
           state: newClientState,
@@ -5642,17 +5647,46 @@ export default function Home() {
                           {clients.length === 0 ? (
                             <div className="col-span-full text-center py-8 text-gray-400 text-xs">No registered clients found.</div>
                           ) : (
-                            clients.map((c: any) => (
-                              <div key={c.id} className="p-4 rounded-2xl border border-gray-100 hover:border-purple-200 bg-gray-50/50 space-y-2">
-                                <div className="flex justify-between items-start">
-                                  <div className="font-bold text-gray-900 text-sm">{c.name}</div>
-                                  <span className="px-2 py-0.5 rounded-md bg-purple-100 text-purple-700 text-[10px] font-bold">CLIENT</span>
+                            clients.map((c: any) => {
+                              let meta: any = {};
+                              try { meta = c.profileMetadata ? (typeof c.profileMetadata === 'string' ? JSON.parse(c.profileMetadata) : c.profileMetadata) : {}; } catch {}
+                              const sponsor = meta.familySponsor || {};
+                              return (
+                                <div key={c.id} className="p-4 rounded-2xl border border-gray-200 hover:border-purple-300 bg-white space-y-3 shadow-xs">
+                                  <div className="flex justify-between items-start border-b border-gray-100 pb-2">
+                                    <div>
+                                      <div className="font-extrabold text-gray-900 text-base flex items-center gap-1.5">
+                                        <i className="fa-solid fa-heart text-red-500 text-xs"></i> {c.name}
+                                      </div>
+                                      <div className="text-[11px] text-gray-500 font-medium">{c.address || 'Address on file'}</div>
+                                    </div>
+                                    <span className="px-2.5 py-0.5 rounded-full bg-[#77248c] text-white text-[10px] font-bold uppercase shrink-0">
+                                      {meta.careTier || 'Standard'}
+                                    </span>
+                                  </div>
+
+                                  {/* Family Sponsor Info */}
+                                  <div className="bg-purple-50/60 rounded-xl p-2.5 text-xs space-y-1 border border-purple-100">
+                                    <div className="text-[10px] font-bold uppercase text-[#77248c] tracking-wider flex items-center gap-1">
+                                      <i className="fa-solid fa-house-medical"></i> Linked Family Member / Sponsor:
+                                    </div>
+                                    <div className="font-bold text-gray-800 flex items-center gap-1.5">
+                                      {sponsor.name || c.name} 
+                                      {sponsor.relationship && (
+                                        <span className="px-1.5 py-0.2 rounded bg-purple-200 text-[#77248c] text-[10px] font-black uppercase">
+                                          {sponsor.relationship}
+                                        </span>
+                                      )}
+                                    </div>
+                                    {sponsor.email && (
+                                      <div className="text-[11px] font-mono text-gray-600 truncate">
+                                        <i className="fa-solid fa-envelope text-purple-400 mr-1"></i> {sponsor.email}
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
-                                <div className="text-xs text-gray-500 flex items-center gap-1.5">
-                                  <i className="fa-solid fa-location-dot text-purple-500"></i> {c.address}
-                                </div>
-                              </div>
-                            ))
+                              );
+                            })
                           )}
                         </div>
                       )}
@@ -7501,22 +7535,22 @@ export default function Home() {
 
                                         {/* Provisioning Form */}
                     <form onSubmit={handleProvisionClient} className="space-y-6 text-xs">
-                      {/* Basic Client Account Details */}
+                      {/* SECTION 1: LOVED ONE RECEIVING CARE (CLIENT DETAILS) */}
                       <div className="bg-gray-50/70 border border-gray-200 rounded-2xl p-5 space-y-4">
                         <div className="flex justify-between items-center border-b border-gray-200 pb-3">
                           <h4 className="font-extrabold text-sm text-[#77248c] flex items-center gap-2">
-                            <i className="fa-solid fa-user text-[#77248c]"></i> 1. Client Account Credentials & Basic Info
+                            <i className="fa-solid fa-heart text-[#77248c]"></i> 1. Loved One Receiving Care (Client Person)
                           </h4>
-                          <span className="text-[10px] font-bold bg-[#77248c] text-white px-2.5 py-0.5 rounded-full">Required</span>
+                          <span className="text-[10px] font-bold bg-[#77248c] text-white px-2.5 py-0.5 rounded-full">Receiving Care</span>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
-                            <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Client First Name <span className="text-red-500">*</span></label>
+                            <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Loved One First Name (Client) <span className="text-red-500">*</span></label>
                             <input
                               type="text"
                               required
-                              placeholder="e.g. Robert"
+                              placeholder="e.g. Mary"
                               value={newClientFirstName}
                               onChange={(e) => setNewClientFirstName(e.target.value)}
                               className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
@@ -7524,11 +7558,11 @@ export default function Home() {
                           </div>
 
                           <div>
-                            <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Client Last Name <span className="text-red-500">*</span></label>
+                            <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Loved One Last Name (Client) <span className="text-red-500">*</span></label>
                             <input
                               type="text"
                               required
-                              placeholder="e.g. Smith"
+                              placeholder="e.g. Kakade"
                               value={newClientLastName}
                               onChange={(e) => setNewClientLastName(e.target.value)}
                               className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
@@ -7536,56 +7570,31 @@ export default function Home() {
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="md:col-span-2">
-                            <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Client / Family Email (Normal Email) <span className="text-red-500">*</span></label>
-                            <input
-                              type="email"
-                              required
-                              placeholder="robert.smith@gmail.com"
-                              value={newClientEmail}
-                              onChange={(e) => setNewClientEmail(e.target.value)}
-                              className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1 font-mono"
-                            />
-                          </div>
-                        </div>
-
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           <div>
-                            <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">First-Time Temporary Password <span className="text-red-500">*</span></label>
+                            <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Date of Birth (DOB)</label>
                             <input
-                              type="text"
-                              required
-                              placeholder="e.g. AkirapaClient2026!"
-                              value={newClientPassword}
-                              onChange={(e) => setNewClientPassword(e.target.value)}
-                              className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1 font-mono"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Phone Number</label>
-                            <PhoneInput
-                              value={newClientPhone}
-                              onChange={(val) => setNewClientPhone(val)}
-                              className="mt-1"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Hourly Billing Rate ($/hr)</label>
-                            <input
-                              type="number"
-                              step="1.00"
-                              value={newClientBillingRate}
-                              onChange={(e) => setNewClientBillingRate(e.target.value)}
+                              type="date"
+                              value={newClientDob}
+                              onChange={(e) => setNewClientDob(e.target.value)}
                               className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
                             />
                           </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          <div className="md:col-span-1">
+                          <div>
+                            <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Gender</label>
+                            <select
+                              value={newClientGender}
+                              onChange={(e) => setNewClientGender(e.target.value)}
+                              className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
+                            >
+                              <option value="">Select Gender</option>
+                              <option value="Female">Female</option>
+                              <option value="Male">Male</option>
+                              <option value="Non-Binary">Non-Binary</option>
+                              <option value="Prefer not to say">Prefer not to say</option>
+                            </select>
+                          </div>
+                          <div>
                             <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Care Tier</label>
                             <select
                               value={newClientCareTier}
@@ -7598,31 +7607,140 @@ export default function Home() {
                               <option value="Hospice">Hospice Care</option>
                             </select>
                           </div>
+                        </div>
 
-                          <div className="md:col-span-2">
-                            <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Street Address <span className="text-red-500">*</span></label>
-                            <LocationAutocompleteInput
-                              value={newClientAddress}
-                              onChange={(val) => setNewClientAddress(val)}
-                              onSelectLocation={(loc) => {
-                                setNewClientAddress(loc.street || loc.full);
-                                if (loc.city) setNewClientCity(loc.city);
-                                if (loc.state) setNewClientState(loc.state);
-                                if (loc.zip) setNewClientZip(loc.zip);
-                              }}
-                              placeholder="1234 West 4th Ave..."
-                              className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
+                        <div>
+                          <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Care Service Address <span className="text-red-500">*</span></label>
+                          <LocationAutocompleteInput
+                            value={newClientAddress}
+                            onChange={(val) => setNewClientAddress(val)}
+                            onSelectLocation={(loc) => {
+                              setNewClientAddress(loc.street || loc.full);
+                              if (loc.city) setNewClientCity(loc.city);
+                              if (loc.state) setNewClientState(loc.state);
+                              if (loc.zip) setNewClientZip(loc.zip);
+                            }}
+                            placeholder="1234 West 4th Ave..."
+                            className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
+                          />
+                        </div>
+                      </div>
+
+                      {/* SECTION 2: PRIMARY FAMILY MEMBER & PORTAL ACCOUNT (FAMILY SPONSOR IDENTITY) */}
+                      <div className="bg-purple-50/50 border border-purple-200 rounded-2xl p-5 space-y-4">
+                        <div className="flex justify-between items-center border-b border-purple-200 pb-3">
+                          <h4 className="font-extrabold text-sm text-[#77248c] flex items-center gap-2">
+                            <i className="fa-solid fa-house-medical text-[#77248c]"></i> 2. Family Member & Portal Login Account (Sponsor Identity)
+                          </h4>
+                          <span className="text-[10px] font-bold bg-[#77248c] text-white px-2.5 py-0.5 rounded-full">Portal User</span>
+                        </div>
+                        <p className="text-[11px] text-purple-900/80">
+                          This is the family member (relative/sponsor) who will log into the portal to communicate with caregivers, view real-time updates, and manage care for their loved one.
+                        </p>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div>
+                            <label className="font-bold text-gray-700 uppercase tracking-wider text-[10px]">Family Member First Name <span className="text-red-500">*</span></label>
+                            <input
+                              type="text"
+                              required
+                              placeholder="e.g. Micheal"
+                              value={newFamilyMemberFirstName}
+                              onChange={(e) => setNewFamilyMemberFirstName(e.target.value)}
+                              className="w-full bg-white border border-purple-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="font-bold text-gray-700 uppercase tracking-wider text-[10px]">Family Member Last Name <span className="text-red-500">*</span></label>
+                            <input
+                              type="text"
+                              required
+                              placeholder="e.g. Kakade"
+                              value={newFamilyMemberLastName}
+                              onChange={(e) => setNewFamilyMemberLastName(e.target.value)}
+                              className="w-full bg-white border border-purple-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="font-bold text-gray-700 uppercase tracking-wider text-[10px]">Relationship to Client <span className="text-red-500">*</span></label>
+                            <select
+                              value={newFamilyMemberRelationship}
+                              onChange={(e) => setNewFamilyMemberRelationship(e.target.value)}
+                              className="w-full bg-white border border-purple-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1 font-semibold text-gray-800"
+                            >
+                              <option value="Son">Son</option>
+                              <option value="Daughter">Daughter</option>
+                              <option value="Spouse">Spouse / Partner</option>
+                              <option value="Parent">Parent / Guardian</option>
+                              <option value="Sibling">Sibling (Brother / Sister)</option>
+                              <option value="Grandchild">Grandchild</option>
+                              <option value="Legal Guardian">Legal Guardian</option>
+                              <option value="Other Relative">Other Relative</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="font-bold text-gray-700 uppercase tracking-wider text-[10px]">Family Member Login Email <span className="text-red-500">*</span></label>
+                            <input
+                              type="email"
+                              required
+                              placeholder="micheal.kakade@gmail.com"
+                              value={newClientEmail}
+                              onChange={(e) => setNewClientEmail(e.target.value)}
+                              className="w-full bg-white border border-purple-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1 font-mono"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="font-bold text-gray-700 uppercase tracking-wider text-[10px]">First-Time Temporary Password <span className="text-red-500">*</span></label>
+                            <input
+                              type="text"
+                              required
+                              placeholder="e.g. AkirapaFamily2026!"
+                              value={newClientPassword}
+                              onChange={(e) => setNewClientPassword(e.target.value)}
+                              className="w-full bg-white border border-purple-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1 font-mono"
                             />
                           </div>
                         </div>
 
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="font-bold text-gray-700 uppercase tracking-wider text-[10px]">Family Member Direct Phone</label>
+                            <PhoneInput
+                              value={newClientPhone}
+                              onChange={(val) => setNewClientPhone(val)}
+                              className="mt-1"
+                            />
+                          </div>
+                          <div>
+                            <label className="font-bold text-gray-700 uppercase tracking-wider text-[10px]">Hourly Billing Rate ($/hr)</label>
+                            <input
+                              type="number"
+                              step="1.00"
+                              value={newClientBillingRate}
+                              onChange={(e) => setNewClientBillingRate(e.target.value)}
+                              className="w-full bg-white border border-purple-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* SECTION 3: SECONDARY EMERGENCY CONTACT (OPTIONAL) */}
+                      <div className="bg-gray-50/70 border border-gray-200 rounded-2xl p-5 space-y-4">
+                        <h4 className="font-bold text-xs text-gray-600 uppercase tracking-wider border-b border-gray-200 pb-2">
+                          3. Secondary Emergency Contact (Optional)
+                        </h4>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           <div>
-                            <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Emergency Contact First Name <span className="text-red-500">*</span></label>
+                            <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Emergency Contact First Name</label>
                             <input
                               type="text"
-                              required
-                              placeholder="e.g. Mary"
+                              placeholder="e.g. Sarah"
                               value={newClientEmergencyFirstName}
                               onChange={(e) => setNewClientEmergencyFirstName(e.target.value)}
                               className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
@@ -7630,11 +7748,10 @@ export default function Home() {
                           </div>
 
                           <div>
-                            <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Emergency Contact Last Name <span className="text-red-500">*</span></label>
+                            <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Emergency Contact Last Name</label>
                             <input
                               type="text"
-                              required
-                              placeholder="e.g. Smith"
+                              placeholder="e.g. Kakade"
                               value={newClientEmergencyLastName}
                               onChange={(e) => setNewClientEmergencyLastName(e.target.value)}
                               className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"

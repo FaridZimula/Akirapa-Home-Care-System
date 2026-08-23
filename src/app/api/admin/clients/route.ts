@@ -18,6 +18,8 @@ export async function POST(request: Request) {
       name,
       email,
       password,
+      familyMemberName,
+      familyMemberRelationship,
       address,
       city,
       state,
@@ -74,15 +76,21 @@ export async function POST(request: Request) {
 
     const hashedPassword = await hashPassword(password);
 
+    const familySponsorDisplayName = familyMemberName ? familyMemberName.trim() : name;
+
     if (!user) {
       user = await prisma.user.create({
         data: {
           email: normalizedEmail,
           passwordHash: hashedPassword,
-          name,
+          name: familySponsorDisplayName,
           role: UserRole.FAMILY_MEMBER,
           phoneNumber: formattedPhone,
-          profileMetadata: JSON.stringify({ initialPassword: password }),
+          profileMetadata: JSON.stringify({
+            initialPassword: password,
+            familyRelationship: familyMemberRelationship || 'Family Member',
+            clientName: name,
+          }),
           mustChangePassword: true,
         },
       });
@@ -91,12 +99,14 @@ export async function POST(request: Request) {
       let existingUserMeta: any = {};
       try { existingUserMeta = user.profileMetadata ? JSON.parse(user.profileMetadata) : {}; } catch {}
       existingUserMeta.initialPassword = password;
+      existingUserMeta.familyRelationship = familyMemberRelationship || existingUserMeta.familyRelationship || 'Family Member';
+      existingUserMeta.clientName = name;
 
       user = await prisma.user.update({
         where: { id: user.id },
         data: {
           passwordHash: hashedPassword,
-          name: name || user.name,
+          name: familySponsorDisplayName || user.name,
           phoneNumber: formattedPhone || user.phoneNumber,
           profileMetadata: JSON.stringify(existingUserMeta),
           mustChangePassword: true,
@@ -127,6 +137,12 @@ export async function POST(request: Request) {
         billingRatePerHour: parsedBillingRate,
         profileMetadata: JSON.stringify({
           careTier: careTier || 'Standard',
+          familySponsor: {
+            name: familyMemberName ? familyMemberName.trim() : (emergencyContactName || 'Family Representative'),
+            relationship: familyMemberRelationship || emergencyContactRelationship || 'Family Member',
+            email: normalizedEmail,
+            phone: formattedPhone || formattedEmergencyPhone,
+          },
           city: city || null,
           state: state || null,
           zip: zip || null,
