@@ -9570,14 +9570,13 @@ export default function Home() {
 
                           const pillLabel =
                             badgeType === 'admin' ? (c.roleLabel === 'CARE_COORDINATOR' ? 'Coordinator' : 'ADMIN') :
-                            badgeType === 'caregiver' ? 'Caregiver' :
-                            badgeType === 'family' ? 'FAMILY' : '';
+                            badgeType === 'caregiver' ? 'CAREGIVER' :
+                            badgeType === 'family' ? 'FAMILY' : (c.roleLabel || 'USER');
 
                           const badgeStyle =
-                            badgeType === 'admin' ? 'bg-[#77248c] text-white border border-[#77248c] shadow-2xs font-extrabold' :
-                            badgeType === 'caregiver' ? 'bg-teal-600 text-white border border-teal-600 shadow-2xs font-extrabold' :
-                            badgeType === 'family' ? 'bg-[#4cdbd5] text-white border border-[#4cdbd5] shadow-2xs font-black' :
-                            'bg-gray-200 text-gray-700 font-bold';
+                            badgeType === 'admin'
+                              ? 'bg-[#77248c] text-white !text-white border border-[#77248c] shadow-2xs font-extrabold'
+                              : 'bg-[#4cdbd5] text-white !text-white border border-[#4cdbd5] shadow-2xs font-black';
 
                           return (
                             <button
@@ -9590,15 +9589,21 @@ export default function Home() {
                               className={`w-full text-left px-3 py-3 rounded-xl transition-all flex items-center gap-3 group ${isSelected ? 'bg-[#77248c] shadow-md' : 'hover:bg-gray-50 border border-transparent hover:border-gray-100'}`}
                             >
                               {/* Avatar */}
-                              <div className={`w-9 h-9 rounded-full ${isSelected ? 'bg-white/25' : avatarBg} text-white flex items-center justify-center shrink-0 aspect-square shadow-xs`}>
-                                <i className={`fa-solid ${avatarIcon} text-xs text-white`}></i>
+                              <div className={`w-9 h-9 rounded-full ${isSelected ? 'bg-white text-[#77248c]' : avatarBg} flex items-center justify-center shrink-0 aspect-square shadow-xs`}>
+                                <i className={`fa-solid ${avatarIcon} text-xs ${isSelected ? 'text-[#77248c] !text-[#77248c]' : 'text-white'}`}></i>
                               </div>
                               {/* Name & subtitle */}
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-1.5 flex-wrap">
                                   <span className={`font-bold text-sm leading-tight truncate ${isSelected ? 'text-white' : 'text-gray-800'}`}>{c.name}</span>
                                   {pillLabel && (
-                                    <span className={`text-[9px] uppercase px-2 py-0.5 rounded-full shrink-0 tracking-wider ${isSelected ? 'bg-white/20 text-white border border-white/40 font-extrabold' : badgeStyle}`}>
+                                    <span className={`text-[9px] uppercase px-2.5 py-0.5 rounded-full shrink-0 tracking-wider ${
+                                      isSelected
+                                        ? 'bg-white text-[#77248c] !text-[#77248c] border border-white shadow-2xs font-black'
+                                        : (badgeType === 'admin'
+                                            ? 'bg-[#77248c] text-white !text-white border border-[#77248c] shadow-2xs font-extrabold'
+                                            : 'bg-[#4cdbd5] text-white !text-white border border-[#4cdbd5] shadow-2xs font-black')
+                                    }`}>
                                       {pillLabel}
                                     </span>
                                   )}
