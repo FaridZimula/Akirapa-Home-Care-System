@@ -526,6 +526,16 @@ export default function Home() {
   const [isSavingCaregiverName, setIsSavingCaregiverName] = useState(false);
   const [editCaregiverNameError, setEditCaregiverNameError] = useState<string | null>(null);
 
+  // Caregiver Profile View Modal State
+  const [showCaregiverProfileModal, setShowCaregiverProfileModal] = useState(false);
+  const [viewingCaregiverProfile, setViewingCaregiverProfile] = useState<any>(null);
+
+  const handleOpenCaregiverProfile = (cgUser: any) => {
+    if (!cgUser) return;
+    setViewingCaregiverProfile(cgUser);
+    setShowCaregiverProfileModal(true);
+  };
+
   const handleOpenEditCaregiverModal = (userObj: any) => {
     setEditingCaregiverUser(userObj);
     setEditCaregiverNameInput(userObj.name || '');
@@ -5480,11 +5490,21 @@ export default function Home() {
                               <tbody className="divide-y divide-gray-50">
                                 {caregivers.map((cg: any) => (
                                   <tr key={cg.id} className="hover:bg-purple-50/40 transition-colors">
-                                    <td className="py-3 px-2 font-bold text-gray-800 flex items-center gap-2">
-                                      <div className="w-7 h-7 rounded-full bg-teal-500 text-white font-bold flex items-center justify-center text-xs shrink-0 aspect-square">
-                                        {cg.name ? cg.name.charAt(0).toUpperCase() : 'C'}
-                                      </div>
-                                      {cg.name}
+                                    <td className="py-3 px-2 font-bold text-gray-800">
+                                      <button
+                                        type="button"
+                                        onClick={() => handleOpenCaregiverProfile(cg)}
+                                        className="flex items-center gap-2 hover:text-[#77248c] text-left group cursor-pointer"
+                                        title="Click to view caregiver profile"
+                                      >
+                                        <div className="w-7 h-7 rounded-full bg-teal-500 text-white font-bold flex items-center justify-center text-xs shrink-0 aspect-square group-hover:scale-105 transition-transform shadow-xs">
+                                          {cg.name ? cg.name.charAt(0).toUpperCase() : 'C'}
+                                        </div>
+                                        <span className="group-hover:underline font-bold text-gray-900 group-hover:text-[#77248c] flex items-center gap-1">
+                                          {cg.name}
+                                          <i className="fa-solid fa-address-card text-[11px] text-purple-400 group-hover:text-[#77248c] opacity-0 group-hover:opacity-100 transition-opacity"></i>
+                                        </span>
+                                      </button>
                                     </td>
                                     <td className="py-3 px-2 text-gray-600 font-mono text-[11px]">{cg.email}</td>
                                     <td className="py-3 px-2 text-gray-500">{formatUSPhoneDisplay(cg.phoneNumber)}</td>
@@ -6390,7 +6410,17 @@ export default function Home() {
                                         </span>
                                       )}
                                     </div>
-                                    <div className="text-xs text-gray-500 font-medium mt-0.5">Caregiver: {shift.caregiver.name}</div>
+                                    <div className="text-xs text-gray-500 font-medium mt-0.5 flex items-center gap-1">
+                                      Caregiver: 
+                                      <button
+                                        type="button"
+                                        onClick={(e) => { e.stopPropagation(); handleOpenCaregiverProfile(shift.caregiver); }}
+                                        className="font-bold text-[#77248c] hover:underline cursor-pointer flex items-center gap-1 ml-0.5"
+                                        title="View caregiver profile"
+                                      >
+                                        {shift.caregiver.name} <i className="fa-solid fa-id-badge text-[11px] text-[#77248c]"></i>
+                                      </button>
+                                    </div>
                                     <div className="text-xs text-gray-400 mt-0.5 flex items-center gap-1"><i className="fa-regular fa-clock"></i>{formatDateTime(shift.scheduledStart)}</div>
                                   </div>
 
@@ -6770,11 +6800,21 @@ export default function Home() {
                               const isPassVisible = Boolean(visiblePasswords[cg.id]);
                               return (
                                 <tr key={cg.id} className="hover:bg-purple-50/40 transition-colors">
-                                  <td className="py-3.5 px-2 font-bold text-gray-800 flex items-center gap-2">
-                                    <div className="w-7 h-7 rounded-full bg-teal-500 text-white font-bold flex items-center justify-center text-xs shrink-0 aspect-square">
-                                      {cg.name ? cg.name.charAt(0).toUpperCase() : 'C'}
-                                    </div>
-                                    {cg.name}
+                                  <td className="py-3.5 px-2 font-bold text-gray-800">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenCaregiverProfile(cg)}
+                                      className="flex items-center gap-2 hover:text-[#77248c] text-left group cursor-pointer"
+                                      title="Click to view caregiver profile"
+                                    >
+                                      <div className="w-7 h-7 rounded-full bg-teal-500 text-white font-bold flex items-center justify-center text-xs shrink-0 aspect-square group-hover:scale-105 transition-transform shadow-xs">
+                                        {cg.name ? cg.name.charAt(0).toUpperCase() : 'C'}
+                                      </div>
+                                      <span className="group-hover:underline underline-offset-2 flex items-center gap-1 font-bold text-gray-900 group-hover:text-[#77248c]">
+                                        {cg.name}
+                                        <i className="fa-solid fa-address-card text-[11px] text-purple-400 group-hover:text-[#77248c] ml-0.5 opacity-0 group-hover:opacity-100 transition-opacity"></i>
+                                      </span>
+                                    </button>
                                   </td>
                                   <td className="py-3.5 px-2 text-gray-600 font-mono text-[11px]">{cg.email}</td>
                                   <td className="py-3.5 px-2">
