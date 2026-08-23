@@ -249,3 +249,93 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+
+
+export async function DELETE(request: Request) {
+  try {
+    let sessionUser = await getSessionUser();
+    if (!sessionUser) {
+      const adminHeaderEmail = request.headers.get('x-admin-email') || request.headers.get('x-user-email');
+      if (adminHeaderEmail) {
+        const adminDbUser = await prisma.user.findUnique({
+          where: { email: adminHeaderEmail.trim().toLowerCase() },
+        });
+        if (adminDbUser) {
+          sessionUser = {
+            id: adminDbUser.id,
+            email: adminDbUser.email,
+            name: adminDbUser.name,
+            role: adminDbUser.role,
+            phoneNumber: adminDbUser.phoneNumber,
+            latitude: adminDbUser.latitude,
+            longitude: adminDbUser.longitude,
+            mustChangePassword: adminDbUser.mustChangePassword,
+          };
+        }
+      }
+    }
+
+    if (!sessionUser || (sessionUser.role !== 'ADMIN' && sessionUser.role !== 'CARE_COORDINATOR')) {
+      return NextResponse.json({ error: 'Shift cancellation is restricted to administrators' }, { status: 403 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const shiftId = searchParams.get('shiftId');
+    if (!shiftId) {
+      return NextResponse.json({ error: 'Shift ID is required' }, { status: 400 });
+    }
+
+    const shift = await prisma.shift.findUnique({
+      where: { id: shiftId },
+      include: { client: true, caregiver: true },
+    });
+
+    if (!shift) {
+      return NextResponse.json({ error: 'Shift not found' }, { status: 404 });
+    }
+
+    // Update status to DROPPED (cancelled)
+    await prisma.shift.update({
+      where: { id: shiftId },
+      data: { status: ShiftStatus.DROPPED },
+    });
+
+    await logAudit({
+      userId: sessionUser.id,
+      action: 'CANCEL_SHIFT',
+      details: `Admin ${sessionUser.email} cancelled shift for client ${shift.client.name} with caregiver ${shift.caregiver.name} (Scheduled: ${shift.scheduledStart.toISOString()}).`,
+      outcome: 'SUCCESS',
+    });
+
+    // 1. REAL-TIME NOTIFICATION TO LINKED FAMILY MEMBERS / CLIENT PORTAL
+    await notifyClientFamily({
+      clientId: shift.clientId,
+      title: '🚨 Care Visit Cancelled',
+      message: `The scheduled care visit for ${shift.client.name} on ${formatDate(shift.scheduledStart)} at ${formatTime(shift.scheduledStart)} has been cancelled by care administration.`,
+      type: 'SHIFT_DROPPED',
+    });
+
+    // 2. REAL-TIME NOTIFICATION TO CAREGIVER
+    await notifyCaregiver({
+      caregiverId: shift.caregiverId,
+      title: 'Shift Cancelled by Admin',
+      message: `Your shift for ${shift.client.name} on ${formatDate(shift.scheduledStart)} at ${formatTime(shift.scheduledStart)} has been cancelled by care administration.`,
+      type: 'SHIFT_DROPPED',
+    });
+
+    // 3. NOTIFY OTHER ADMINS
+    await notifyAdmins({
+      title: 'Shift Cancelled by Admin',
+      message: `Shift for client ${shift.client.name} on ${formatDate(shift.scheduledStart)} was cancelled by ${sessionUser.name}.`,
+      type: 'SHIFT_DROPPED',
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: `Shift for ${shift.client.name} cancelled successfully. Family member and caregiver have been notified in real time.`,
+    });
+  } catch (error) {
+    console.error('Failed to cancel shift:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}

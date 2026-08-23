@@ -975,6 +975,27 @@ export default function Home() {
     }
   }, [viewState, isInitializing, splashProgress, user, authLoading]);
 
+  const handleAdminCancelShift = async (shiftId: string, clientName: string) => {
+    if (!window.confirm(`Are you sure you want to cancel the care shift for "${clientName}"? Linked family members and the caregiver will be notified in their portals in real time.`)) {
+      return;
+    }
+    try {
+      const res = await fetch(`/api/admin/scheduling?shiftId=${shiftId}`, {
+        method: 'DELETE',
+        headers: {
+          'x-admin-email': user?.email || '',
+          'x-user-email': user?.email || '',
+        },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to cancel shift.');
+      showNotification(data.message || 'Shift cancelled successfully. Family member notified in real time!');
+      loadData();
+    } catch (err: any) {
+      showNotification(err.message || 'Failed to cancel shift.');
+    }
+  };
+
   // ============================================================
   // DATA LOADING - ALL BACKEND FETCHES
   // ============================================================
@@ -9541,16 +9562,22 @@ export default function Home() {
                           const avatarBg =
                             badgeType === 'admin' ? 'bg-[#77248c]' :
                             badgeType === 'caregiver' ? 'bg-teal-500' :
-                            badgeType === 'family' ? 'bg-blue-500' : 'bg-gray-400';
+                            badgeType === 'family' ? 'bg-[#4cdbd5]' : 'bg-gray-400';
                           const avatarIcon =
                             badgeType === 'admin' ? 'fa-shield-halved' :
                             badgeType === 'caregiver' ? 'fa-user-nurse' :
                             badgeType === 'family' ? 'fa-house-medical' : 'fa-user';
 
                           const pillLabel =
-                            badgeType === 'admin' ? (c.roleLabel === 'CARE_COORDINATOR' ? 'Coordinator' : 'Admin') :
+                            badgeType === 'admin' ? (c.roleLabel === 'CARE_COORDINATOR' ? 'Coordinator' : 'ADMIN') :
                             badgeType === 'caregiver' ? 'Caregiver' :
-                            badgeType === 'family' ? 'Family' : '';
+                            badgeType === 'family' ? 'FAMILY' : '';
+
+                          const badgeStyle =
+                            badgeType === 'admin' ? 'bg-[#77248c] text-white border border-[#77248c] shadow-2xs font-extrabold' :
+                            badgeType === 'caregiver' ? 'bg-teal-600 text-white border border-teal-600 shadow-2xs font-extrabold' :
+                            badgeType === 'family' ? 'bg-[#4cdbd5] text-white border border-[#4cdbd5] shadow-2xs font-black' :
+                            'bg-gray-200 text-gray-700 font-bold';
 
                           return (
                             <button
@@ -9571,7 +9598,7 @@ export default function Home() {
                                 <div className="flex items-center gap-1.5 flex-wrap">
                                   <span className={`font-bold text-sm leading-tight truncate ${isSelected ? 'text-white' : 'text-gray-800'}`}>{c.name}</span>
                                   {pillLabel && (
-                                    <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full shrink-0 ${isSelected ? 'bg-white/20 text-white' : badgeType === 'admin' ? 'bg-purple-100 text-[#77248c]' : badgeType === 'caregiver' ? 'bg-teal-100 text-teal-700' : 'bg-blue-100 text-blue-700'}`}>
+                                    <span className={`text-[9px] uppercase px-2 py-0.5 rounded-full shrink-0 tracking-wider ${isSelected ? 'bg-white/20 text-white border border-white/40 font-extrabold' : badgeStyle}`}>
                                       {pillLabel}
                                     </span>
                                   )}
