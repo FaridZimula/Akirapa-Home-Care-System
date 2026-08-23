@@ -9302,11 +9302,11 @@ export default function Home() {
                         <div className="absolute -bottom-16 left-1/3 w-64 h-64 bg-purple-500/20 rounded-full blur-3xl pointer-events-none shrink-0 aspect-square" />
 
                         <div className="relative z-10 space-y-2 flex-1 min-w-0 pr-4">
-                          <div className="flex items-center gap-2 text-xs font-extrabold text-white uppercase tracking-widest">
-                            <span>Akirapa Home Care Agency • Financial Intelligence</span>
+                          <div className="flex items-center gap-2 text-xs font-extrabold text-white !text-white uppercase tracking-widest" style={{ color: '#ffffff' }}>
+                            <span style={{ color: '#ffffff' }}>Akirapa Home Care Agency • Financial Intelligence</span>
                           </div>
-                          <h2 className="text-3xl md:text-4xl font-black text-white tracking-tight leading-tight drop-shadow-sm">PAYMENT TRACKER</h2>
-                          <p className="text-xs md:text-sm text-purple-100 font-medium leading-relaxed max-w-2xl">
+                          <h2 className="text-3xl md:text-4xl font-black text-white !text-white tracking-tight leading-tight drop-shadow-sm" style={{ color: '#ffffff' }}>PAYMENT TRACKER</h2>
+                          <p className="text-xs md:text-sm text-white !text-white font-medium leading-relaxed max-w-2xl" style={{ color: 'rgba(255, 255, 255, 0.95)' }}>
                             Track client invoices, payments, remaining balances, and overdue accounts at a glance.
                           </p>
                         </div>
@@ -9356,17 +9356,17 @@ export default function Home() {
                             </h3>
                             <p className="text-xs text-gray-500 mt-0.5">Real-time status of all client invoices and payments</p>
                           </div>
-                          <span className="text-xs font-bold px-3 py-1 bg-purple-50 text-[#77248c] border border-purple-200 rounded-full">
+                          <span className="text-xs font-extrabold px-3 py-1 bg-[#77248c] !text-white text-white border border-purple-600 rounded-full shadow-xs" style={{ color: '#ffffff' }}>
                             {invoicesData.invoices.length} Total Invoices
                           </span>
                         </div>
 
                         {invoicesData.invoices.length === 0 ? (
                           <div className="text-center py-16">
-                            <div className="w-12 h-12 rounded-full bg-purple-50 text-[#77248c] flex items-center justify-center mx-auto mb-3 text-xl shrink-0 aspect-square">
-                              <i className="fa-solid fa-file-invoice-dollar"></i>
+                            <div className="w-12 h-12 rounded-full bg-[#77248c] text-white flex items-center justify-center mx-auto mb-3 text-xl shrink-0 aspect-square shadow-md">
+                              <i className="fa-solid fa-file-invoice-dollar text-white"></i>
                             </div>
-                            <p className="text-gray-500 font-semibold text-sm">No invoices generated yet</p>
+                            <p className="text-gray-700 font-bold text-sm">No invoices generated yet</p>
                             <p className="text-xs text-gray-400 mt-1">Click "Generate New Invoice" above to create billing for client completed shifts.</p>
                           </div>
                         ) : (
@@ -9470,27 +9470,27 @@ export default function Home() {
                         )}
 
                         {/* Status Legend Key (matching template footer) */}
-                        <div className="bg-purple-50/70 border-t border-purple-100 p-4 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs">
+                        <div className="bg-[#77248c] text-white p-4 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs">
                           <div className="flex items-center gap-4">
-                            <span className="font-black text-[#77248c] uppercase tracking-wider text-[10px]">STATUS KEY:</span>
-                            <div className="flex items-center gap-1.5 font-bold text-gray-700">
-                              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block shrink-0 aspect-square"></span>
+                            <span className="font-black text-white uppercase tracking-wider text-[10px]" style={{ color: '#ffffff' }}>STATUS KEY:</span>
+                            <div className="flex items-center gap-1.5 font-bold text-white" style={{ color: '#ffffff' }}>
+                              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block shrink-0 aspect-square"></span>
                               <span>Paid</span>
                             </div>
-                            <div className="flex items-center gap-1.5 font-bold text-gray-700">
-                              <span className="w-2.5 h-2.5 rounded-full bg-cyan-500 inline-block shrink-0 aspect-square"></span>
-                              <span>Pending</span>
-                            </div>
-                            <div className="flex items-center gap-1.5 font-bold text-gray-700">
-                              <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block shrink-0 aspect-square"></span>
+                            <div className="flex items-center gap-1.5 font-bold text-white" style={{ color: '#ffffff' }}>
+                              <span className="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block shrink-0 aspect-square"></span>
                               <span>Partial</span>
                             </div>
-                            <div className="flex items-center gap-1.5 font-bold text-gray-700">
-                              <span className="w-2.5 h-2.5 rounded-full bg-red-500 inline-block shrink-0 aspect-square"></span>
+                            <div className="flex items-center gap-1.5 font-bold text-white" style={{ color: '#ffffff' }}>
+                              <span className="w-2.5 h-2.5 rounded-full bg-cyan-300 inline-block shrink-0 aspect-square"></span>
+                              <span>Active / Issued</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 font-bold text-white" style={{ color: '#ffffff' }}>
+                              <span className="w-2.5 h-2.5 rounded-full bg-red-400 inline-block shrink-0 aspect-square"></span>
                               <span>Overdue</span>
                             </div>
                           </div>
-                          <span className="text-gray-500 font-medium text-[11px]">
+                          <span className="text-gray-200 font-medium text-[11px]">
                             Ensure all client payments and balances are tracked accurately.
                           </span>
                         </div>
