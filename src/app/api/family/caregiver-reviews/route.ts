@@ -4,6 +4,7 @@ import { logAudit } from '@/lib/audit';
 import { getSessionUser } from '@/lib/session';
 import { getCurrentWeekStart } from '@/lib/weekBounds';
 import { ShiftStatus } from '@prisma/client';
+import { notifyAdmins, notifyCaregiver } from '@/lib/notifications';
 
 async function verifyFamilyLink(userId: string, clientId: string) {
   return prisma.linkedFamilyMember.findUnique({
@@ -120,6 +121,23 @@ export async function POST(request: Request) {
       action: 'SUBMIT_CAREGIVER_REVIEW',
       details: `${sessionUser.name} submitted a weekly review for caregiver ${caregiver?.name} on behalf of client ${client?.name}. Would continue: ${wouldContinue ? 'Yes' : 'No'}.`,
       outcome: 'SUCCESS',
+    });
+
+    const isNegativeReview = wouldContinue === false || (typeof rating === 'number' && rating <= 2);
+
+    // 1. Notify Admins
+    await notifyAdmins({
+      title: isNegativeReview ? `⚠️ Review Concern — ${caregiver?.name}` : `Caregiver Review — ${caregiver?.name}`,
+      message: `${sessionUser.name} reviewed caregiver ${caregiver?.name} for client ${client?.name}. (Would continue: ${wouldContinue ? 'Yes' : 'No'}${rating ? `, Rating: ${rating}/5` : ''}).`,
+      type: 'REVIEW_SUBMITTED',
+    });
+
+    // 2. Notify Caregiver
+    await notifyCaregiver({
+      caregiverId,
+      title: 'Weekly Review Received',
+      message: `You received a weekly client review from ${sessionUser.name} for your care with ${client?.name}.`,
+      type: 'REVIEW_SUBMITTED',
     });
 
     return NextResponse.json({ success: true, review });

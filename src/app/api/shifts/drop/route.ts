@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { logAudit } from '@/lib/audit';
 import { ShiftStatus, PodRole } from '@prisma/client';
-import { formatDate, formatTime } from '@/lib/dateFormat';
+import { formatDate, formatTime, formatDateTime } from '@/lib/dateFormat';
+import { createNotification, notifyAdmins, notifyClientFamily, notifyCaregiver } from '@/lib/notifications';
 
 export async function POST(request: Request) {
   try {
@@ -79,6 +80,7 @@ export async function POST(request: Request) {
           escalated: true,
           droppedShift,
           escalatedShift,
+          backupCaregiverId: backupAssignment.caregiverId,
           backupCaregiverName: backupAssignment.caregiver.name,
           backupPhoneNumber: backupAssignment.caregiver.phoneNumber,
         };
@@ -115,12 +117,67 @@ export async function POST(request: Request) {
         details: `Shift escalated and reassigned to backup caregiver ${result.backupCaregiverName} for client ${shift.client.name}. Mock SMS alert routed.`,
         outcome: 'SUCCESS',
       });
+
+      // MULTI-PARTY NOTIFICATIONS:
+      // (a) Notify Backup Caregiver
+      await notifyCaregiver({
+        caregiverId: result.backupCaregiverId!,
+        title: '🚨 Urgent Shift Coverage Assignment',
+        message: `You have been reassigned to cover client ${shift.client.name} on ${formatDate(shift.scheduledStart)} at ${formatTime(shift.scheduledStart)} after the shift was dropped. Please confirm before ${formatDateTime(result.escalatedShift.confirmationDeadline)}.`,
+        type: 'SHIFT_ASSIGNED',
+      });
+
+      // (b) Notify Client / Linked Family Members
+      await notifyClientFamily({
+        clientId: shift.clientId,
+        title: 'Caregiver Update',
+        message: `Caregiver ${previousCaregiverName} was unable to fulfill the visit on ${formatDate(shift.scheduledStart)}. Backup caregiver ${result.backupCaregiverName} has been assigned to cover ${shift.client.name}.`,
+        type: 'SHIFT_DROPPED',
+      });
+
+      // (c) Notify Admins
+      await notifyAdmins({
+        title: 'Shift Dropped & Escalated',
+        message: `Caregiver ${previousCaregiverName} dropped shift for ${shift.client.name} on ${formatDate(shift.scheduledStart)} (Reason: ${reason || 'None provided'}). Auto-reassigned to backup caregiver ${result.backupCaregiverName}.`,
+        type: 'SHIFT_DROPPED',
+      });
+
+      // (d) Confirm to Dropping Caregiver
+      await notifyCaregiver({
+        caregiverId: previousCaregiverId,
+        title: 'Shift Drop Processed',
+        message: `Your drop request for shift with ${shift.client.name} on ${formatDate(shift.scheduledStart)} has been processed and reassigned.`,
+        type: 'SHIFT_DROPPED',
+      });
     } else {
       await logAudit({
         userId: 'SYSTEM',
         action: 'ESCALATE_ALERT_FAIL',
         details: `Shift dropped for client ${shift.client.name} but no backup caregiver was available in their pod. Agency admin notification triggered.`,
         outcome: 'FAILURE',
+      });
+
+      // (a) Notify Admins (CRITICAL)
+      await notifyAdmins({
+        title: '🚨 CRITICAL: Shift Dropped - No Backup Available',
+        message: `Caregiver ${previousCaregiverName} dropped shift for ${shift.client.name} on ${formatDate(shift.scheduledStart)} (Reason: ${reason || 'None provided'}). NO backup caregiver was found in the pod. Manual coverage required immediately!`,
+        type: 'SYSTEM_ALERT',
+      });
+
+      // (b) Notify Client / Family
+      await notifyClientFamily({
+        clientId: shift.clientId,
+        title: 'Care Schedule Notice',
+        message: `Caregiver ${previousCaregiverName} is unable to attend the visit on ${formatDate(shift.scheduledStart)}. Our care coordination team is actively working on securing replacement coverage for ${shift.client.name}.`,
+        type: 'SHIFT_DROPPED',
+      });
+
+      // (c) Notify Dropping Caregiver
+      await notifyCaregiver({
+        caregiverId: previousCaregiverId,
+        title: 'Shift Dropped (Uncovered)',
+        message: `You dropped your shift for ${shift.client.name} on ${formatDate(shift.scheduledStart)}. No automatic backup was available; please contact your coordinator immediately.`,
+        type: 'SHIFT_DROPPED',
       });
     }
 

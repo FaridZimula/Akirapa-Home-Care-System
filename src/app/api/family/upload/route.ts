@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { logAudit } from '@/lib/audit';
 import { encrypt } from '@/lib/crypto';
 import { getSessionUser } from '@/lib/session';
+import { notifyAdmins, notifyClientFamily } from '@/lib/notifications';
 
 export async function POST(request: Request) {
   try {
@@ -132,6 +133,20 @@ export async function POST(request: Request) {
         action: 'CLINICAL_RED_FLAG_ALERT',
         details: `CLINICAL ALERT: Red flags raised for client ${clientName} during caregiver ${caregiverName} update. Flags: ${activeRedFlags.join(', ')}.`,
         outcome: 'SUCCESS',
+      });
+
+      // Dispatch urgent notifications to Admins and Client Family
+      await notifyAdmins({
+        title: `🚨 Clinical Alert — ${clientName}`,
+        message: `Clinical red flags reported by ${caregiverName} for ${clientName}: ${activeRedFlags.join(', ')}. Notes: ${notes || 'See media upload.'}`,
+        type: 'CLINICAL_ALERT',
+      });
+
+      await notifyClientFamily({
+        clientId,
+        title: `🚨 Health Alert — ${clientName}`,
+        message: `Clinical observations noted during care update for ${clientName}: ${activeRedFlags.join(', ')}.`,
+        type: 'CLINICAL_ALERT',
       });
     }
 

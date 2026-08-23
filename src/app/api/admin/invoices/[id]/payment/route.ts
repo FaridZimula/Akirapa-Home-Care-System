@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { logAudit } from '@/lib/audit';
 import { getSessionUser } from '@/lib/session';
+import { notifyClientFamily, notifyAdmins } from '@/lib/notifications';
 
 export async function POST(
   request: Request,
@@ -26,6 +27,7 @@ export async function POST(
     }
 
     const newAmountPaid = Math.min(invoice.totalDue, Math.round((invoice.amountPaid + amount) * 100) / 100);
+    const remainingBalance = Math.max(0, Math.round((invoice.totalDue - newAmountPaid) * 100) / 100);
 
     const [, updated] = await prisma.$transaction([
       prisma.payment.create({
@@ -48,6 +50,22 @@ export async function POST(
       action: 'RECORD_INVOICE_PAYMENT',
       details: `Recorded payment of $${amount.toFixed(2)}${method ? ` (${method})` : ''} on invoice ${invoice.invoiceNumber} for ${invoice.client.name}. New balance paid: $${newAmountPaid.toFixed(2)} of $${invoice.totalDue.toFixed(2)}.`,
       outcome: 'SUCCESS',
+    });
+
+    // 1. Notify Client / Linked Family Members
+    await notifyClientFamily({
+      clientId: invoice.clientId,
+      title: `Payment Receipt (${invoice.invoiceNumber})`,
+      message: `A payment of $${amount.toFixed(2)}${method ? ` via ${method}` : ''} was recorded for invoice ${invoice.invoiceNumber}. Remaining balance: $${remainingBalance.toFixed(2)}.`,
+      type: 'PAYMENT_RECEIVED',
+    });
+
+    // 2. Notify Admins
+    await notifyAdmins({
+      title: 'Payment Recorded',
+      message: `Admin ${sessionUser.name} recorded payment of $${amount.toFixed(2)} on invoice ${invoice.invoiceNumber} (${invoice.client.name}).`,
+      type: 'PAYMENT_RECEIVED',
+      excludeUserId: sessionUser.id,
     });
 
     return NextResponse.json({ success: true, invoice: updated });

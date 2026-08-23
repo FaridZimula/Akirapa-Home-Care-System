@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma';
 import { logAudit } from '@/lib/audit';
 import { getSessionUser } from '@/lib/session';
 import { ShiftStatus, PodRole } from '@prisma/client';
+import { createNotification, notifyAdmins, notifyClientFamily, notifyCaregiver } from '@/lib/notifications';
+import { formatDate, formatTime, formatDateTime } from '@/lib/dateFormat';
 
 const clientInclude = {
   caregiverPods: {
@@ -203,6 +205,31 @@ export async function POST(request: Request) {
       details: `Scheduled shift for client ${shift.client.name} with caregiver ${shift.caregiver.name} (Start: ${start.toISOString()})${warningAlert ? ' - WITH POD WARNING' : ''}`,
       outcome: 'SUCCESS',
     });
+
+    // 1. Notify Caregiver of new shift assignment
+    await notifyCaregiver({
+      caregiverId: shift.caregiverId,
+      title: 'New Shift Assigned',
+      message: `You have been assigned to care for ${shift.client.name} on ${formatDate(start)} (${formatTime(start)} - ${formatTime(end)}). Please confirm availability before ${formatDateTime(confirmationDeadline)}.`,
+      type: 'SHIFT_ASSIGNED',
+    });
+
+    // 2. Notify Client / Linked Family Members of scheduled visit
+    await notifyClientFamily({
+      clientId: shift.clientId,
+      title: 'Care Visit Scheduled',
+      message: `A care visit has been scheduled for ${shift.client.name} with caregiver ${shift.caregiver.name} on ${formatDate(start)} at ${formatTime(start)}.`,
+      type: 'SHIFT_ASSIGNED',
+    });
+
+    // 3. If pod consistency warning, notify Admins & Care Coordinators
+    if (warningAlert) {
+      await notifyAdmins({
+        title: '⚠️ Shift Pod Exception',
+        message: `Shift scheduled for ${shift.client.name} with caregiver ${shift.caregiver.name} on ${formatDate(start)} outside the client's primary pod.`,
+        type: 'SYSTEM_ALERT',
+      });
+    }
 
     return NextResponse.json({ shift, warningAlert });
   } catch (error) {

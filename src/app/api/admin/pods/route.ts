@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { logAudit } from '@/lib/audit';
 import { PodRole } from '@prisma/client';
+import { notifyCaregiver, notifyClientFamily } from '@/lib/notifications';
 
 export async function POST(request: Request) {
   try {
@@ -46,6 +47,22 @@ export async function POST(request: Request) {
       action: 'UPDATE_POD',
       details: `Assigned caregiver ${podAssignment.caregiver.name} to ${role} role for client ${podAssignment.client.name}`,
       outcome: 'SUCCESS',
+    });
+
+    // 1. Notify Caregiver
+    await notifyCaregiver({
+      caregiverId,
+      title: 'Care Pod Assignment',
+      message: `You have been assigned to ${podAssignment.client.name}'s care pod as ${role} caregiver.`,
+      type: 'SYSTEM_ALERT',
+    });
+
+    // 2. Notify Client / Linked Family Members
+    await notifyClientFamily({
+      clientId,
+      title: 'Care Team Updated',
+      message: `${podAssignment.caregiver.name} has been assigned to ${podAssignment.client.name}'s care team as ${role} caregiver.`,
+      type: 'SYSTEM_ALERT',
     });
 
     return NextResponse.json({ podAssignment });

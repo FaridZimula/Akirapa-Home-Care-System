@@ -1176,6 +1176,16 @@ export default function Home() {
 
   useEffect(() => { loadData(); }, []);
 
+  // Real-time notification background polling (every 20s) when session is active
+  useEffect(() => {
+    if (!user) return;
+    loadNotifications();
+    const interval = setInterval(() => {
+      loadNotifications();
+    }, 20000);
+    return () => clearInterval(interval);
+  }, [user]);
+
   // Keep the family "About Me" editor in sync with whichever client is selected
   useEffect(() => {
     if (user?.role !== 'FAMILY_MEMBER') return;
@@ -7450,26 +7460,41 @@ export default function Home() {
                     <div className="text-center py-12"><p className="text-gray-400">No alerts yet</p></div>
                   ) : (
                     <div className="space-y-3">
-                      {dbNotifications.map((n) => (
-                        <div
-                          key={n.id}
-                          onClick={() => !n.isRead && handleMarkNotificationRead(n.id)}
-                          className={`flex items-start gap-3 border-b border-gray-100 pb-3 rounded-lg p-2 -m-2 transition-all ${!n.isRead ? 'bg-purple-50/40 cursor-pointer hover:bg-purple-50' : ''}`}
-                        >
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                            n.type === 'SHIFT_CONFIRMATION_MISSED' ? 'bg-red-100 text-red-600' :
-                            n.type === 'CLINICAL_ALERT' ? 'bg-red-100 text-red-600' :
-                            n.type === 'SYSTEM_ALERT' ? 'bg-amber-100 text-amber-600' :
-                            'bg-purple-100 text-purple-600'
-                          }`}><i className="fa-solid fa-bell"></i></div>
-                          <div className="flex-1">
-                            <div className="text-sm font-semibold text-gray-800">{n.title}</div>
-                            <div className="text-sm text-gray-600">{n.message}</div>
-                            <div className="text-xs text-gray-400 mt-1">{formatDateTime(n.createdAt)}</div>
+                      {dbNotifications.map((n) => {
+                        const isAlert = n.type === 'CLINICAL_ALERT' || n.type === 'SHIFT_CONFIRMATION_MISSED' || n.type === 'EXCEPTION_OVERRIDE' || n.type === 'SHIFT_DROPPED';
+                        const isSuccess = n.type === 'SHIFT_CONFIRMED' || n.type === 'SHIFT_STARTED' || n.type === 'SHIFT_COMPLETED' || n.type === 'PAYMENT_RECEIVED';
+                        const isFinancial = n.type === 'INVOICE_ISSUED';
+                        const iconClass = n.type === 'CLINICAL_ALERT' ? 'fa-triangle-exclamation' :
+                          n.type === 'EXCEPTION_OVERRIDE' ? 'fa-shield-halved' :
+                          n.type === 'SHIFT_DROPPED' || n.type === 'SHIFT_CONFIRMATION_MISSED' ? 'fa-circle-exclamation' :
+                          n.type === 'INVOICE_ISSUED' || n.type === 'PAYMENT_RECEIVED' ? 'fa-file-invoice-dollar' :
+                          n.type === 'REVIEW_SUBMITTED' ? 'fa-star' :
+                          n.type === 'CARE_PLAN_UPDATED' ? 'fa-clipboard-list' :
+                          n.type === 'NEW_MESSAGE' ? 'fa-message' : 'fa-bell';
+
+                        const colorClass = isAlert ? 'bg-red-100 text-red-600' :
+                          isSuccess ? 'bg-emerald-100 text-emerald-600' :
+                          isFinancial ? 'bg-blue-100 text-blue-600' :
+                          'bg-purple-100 text-purple-600';
+
+                        return (
+                          <div
+                            key={n.id}
+                            onClick={() => !n.isRead && handleMarkNotificationRead(n.id)}
+                            className={`flex items-start gap-3 border-b border-gray-100 pb-3 rounded-lg p-2 -m-2 transition-all ${!n.isRead ? 'bg-purple-50/40 cursor-pointer hover:bg-purple-50' : ''}`}
+                          >
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${colorClass}`}>
+                              <i className={`fa-solid ${iconClass}`}></i>
+                            </div>
+                            <div className="flex-1">
+                              <div className="text-sm font-semibold text-gray-800">{n.title}</div>
+                              <div className="text-sm text-gray-600">{n.message}</div>
+                              <div className="text-xs text-gray-400 mt-1">{formatDateTime(n.createdAt)}</div>
+                            </div>
+                            {!n.isRead && <div className="w-2 h-2 rounded-full bg-purple-600 mt-2 flex-shrink-0" />}
                           </div>
-                          {!n.isRead && <div className="w-2 h-2 rounded-full bg-purple-600 mt-2 flex-shrink-0" />}
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </div>

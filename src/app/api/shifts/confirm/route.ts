@@ -5,6 +5,7 @@ import { getSessionUser } from '@/lib/session';
 import { ShiftStatus } from '@prisma/client';
 import { encrypt } from '@/lib/crypto';
 import { formatDate, formatTime } from '@/lib/dateFormat';
+import { createNotification, notifyAdmins, notifyClientFamily, notifyCaregiver } from '@/lib/notifications';
 
 export async function POST(request: Request) {
   try {
@@ -43,6 +44,21 @@ export async function POST(request: Request) {
         action: 'CAREGIVER_PRESENCE_CONFIRMED',
         details: `Caregiver ${shift.caregiver.name} confirmed pre-shift presence and readiness for visit with client ${shift.client.name}.`,
         outcome: 'SUCCESS',
+      });
+
+      // Notify Client / Family
+      await notifyClientFamily({
+        clientId: shift.clientId,
+        title: 'Caregiver En Route / Ready',
+        message: `Caregiver ${shift.caregiver.name} has checked in and verified readiness for the visit with ${shift.client.name} today.`,
+        type: 'SHIFT_CONFIRMED',
+      });
+
+      // Notify Admins
+      await notifyAdmins({
+        title: 'Pre-Shift Presence Confirmed',
+        message: `Caregiver ${shift.caregiver.name} confirmed pre-shift readiness for client ${shift.client.name} (${formatTime(shift.scheduledStart)}).`,
+        type: 'SHIFT_CONFIRMED',
       });
 
       return NextResponse.json({
@@ -87,6 +103,57 @@ export async function POST(request: Request) {
         : `Caregiver ${shift.caregiver.name} confirmed scheduled visit on ${formatDate(shift.scheduledStart)} starting at ${formatTime(shift.scheduledStart)} (Client: ${shift.client.name}).`,
       outcome: 'SUCCESS',
     });
+
+    // MULTI-PARTY NOTIFICATIONS:
+    if (confirmedByAdmin) {
+      // 3-Party Notification when Admin Approves:
+      // (a) Caregiver is notified
+      await notifyCaregiver({
+        caregiverId: shift.caregiverId,
+        title: 'Shift Approved by Admin',
+        message: `Your shift for ${shift.client.name} on ${formatDate(shift.scheduledStart)} at ${formatTime(shift.scheduledStart)} has been approved and confirmed by administration.`,
+        type: 'SHIFT_CONFIRMED',
+      });
+
+      // (b) Client / Family is notified
+      await notifyClientFamily({
+        clientId: shift.clientId,
+        title: 'Shift Confirmed by Administration',
+        message: `The care visit for ${shift.client.name} with caregiver ${shift.caregiver.name} on ${formatDate(shift.scheduledStart)} at ${formatTime(shift.scheduledStart)} has been confirmed by administration.`,
+        type: 'SHIFT_CONFIRMED',
+      });
+
+      // (c) Admins receive confirmation record
+      await notifyAdmins({
+        title: 'Shift Approved & Confirmed',
+        message: `Admin ${sessionUser.name} confirmed shift for caregiver ${shift.caregiver.name} with client ${shift.client.name} (${formatDate(shift.scheduledStart)}).`,
+        type: 'SHIFT_CONFIRMED',
+      });
+    } else {
+      // 2-Party / 3-Party Notification when Caregiver Confirms:
+      // (a) Client / Family is notified
+      await notifyClientFamily({
+        clientId: shift.clientId,
+        title: 'Caregiver Confirmed Visit',
+        message: `Caregiver ${shift.caregiver.name} has confirmed attendance for the care visit on ${formatDate(shift.scheduledStart)} at ${formatTime(shift.scheduledStart)}.`,
+        type: 'SHIFT_CONFIRMED',
+      });
+
+      // (b) Admins are notified
+      await notifyAdmins({
+        title: 'Shift Confirmed by Caregiver',
+        message: `Caregiver ${shift.caregiver.name} confirmed their shift for ${shift.client.name} on ${formatDate(shift.scheduledStart)} at ${formatTime(shift.scheduledStart)}.`,
+        type: 'SHIFT_CONFIRMED',
+      });
+
+      // (c) Caregiver confirmation receipt
+      await notifyCaregiver({
+        caregiverId: shift.caregiverId,
+        title: 'Shift Confirmed',
+        message: `You successfully confirmed your shift for ${shift.client.name} on ${formatDate(shift.scheduledStart)} at ${formatTime(shift.scheduledStart)}.`,
+        type: 'SHIFT_CONFIRMED',
+      });
+    }
 
     return NextResponse.json({ success: true, shift: updatedShift, confirmedByAdmin: Boolean(confirmedByAdmin) });
   } catch (error) {

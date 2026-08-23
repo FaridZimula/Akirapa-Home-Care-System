@@ -5,6 +5,7 @@ import { getSessionUser } from '@/lib/session';
 import { computeHaversineDistance } from '@/lib/geo';
 import { ShiftStatus } from '@prisma/client';
 import { encrypt } from '@/lib/crypto';
+import { createNotification, notifyAdmins, notifyClientFamily } from '@/lib/notifications';
 
 export async function POST(request: Request) {
   try {
@@ -170,7 +171,36 @@ export async function POST(request: Request) {
           details: `CLINICAL ALERT: Red flags raised for client ${shift.client.name} during caregiver ${shift.caregiver.name} shift. Flags: ${activeRedFlags.join(', ')}.`,
           outcome: 'SUCCESS',
         });
+
+        // NOTIFY ADMINS & CLIENT FAMILY OF CLINICAL RED FLAGS
+        await notifyAdmins({
+          title: `🚨 Clinical Alert — ${shift.client.name}`,
+          message: `Caregiver ${shift.caregiver.name} reported red flags for ${shift.client.name}: ${activeRedFlags.join(', ')}. Details: ${notes || 'See care report.'}`,
+          type: 'CLINICAL_ALERT',
+        });
+
+        await notifyClientFamily({
+          clientId: shift.clientId,
+          title: `🚨 Health Observation Alert — ${shift.client.name}`,
+          message: `Observations were noted during ${shift.client.name}'s care visit by ${shift.caregiver.name}: ${activeRedFlags.join(', ')}. Check your activity feed for full notes.`,
+          type: 'CLINICAL_ALERT',
+        });
       }
+
+      // Notify Admins of Override & Overtime if applicable
+      await notifyAdmins({
+        title: '⚠️ Clock-Out Override & Completion',
+        message: `Caregiver ${shift.caregiver.name} completed visit for ${shift.client.name} via manual override. Reason: "${overrideReason}".${isOvertime ? ` Overtime: ${overtimeReason}` : ''}`,
+        type: 'EXCEPTION_OVERRIDE',
+      });
+
+      // Notify Client / Family of Shift Completion
+      await notifyClientFamily({
+        clientId: shift.clientId,
+        title: 'Care Visit Completed',
+        message: `Caregiver ${shift.caregiver.name} completed today's visit for ${shift.client.name} (${logDetails.completedTaskCount} tasks completed). Activity log is available in your portal.`,
+        type: 'SHIFT_COMPLETED',
+      });
 
       return NextResponse.json({
         success: true,
@@ -265,7 +295,44 @@ export async function POST(request: Request) {
         details: `CLINICAL ALERT: Red flags raised for client ${shift.client.name} during caregiver ${shift.caregiver.name} shift. Flags: ${activeRedFlags.join(', ')}.`,
         outcome: 'SUCCESS',
       });
+
+      // NOTIFY ADMINS & CLIENT FAMILY OF CLINICAL RED FLAGS
+      await notifyAdmins({
+        title: `🚨 Clinical Alert — ${shift.client.name}`,
+        message: `Caregiver ${shift.caregiver.name} reported red flags for ${shift.client.name}: ${activeRedFlags.join(', ')}. Notes: ${notes || 'See care report.'}`,
+        type: 'CLINICAL_ALERT',
+      });
+
+      await notifyClientFamily({
+        clientId: shift.clientId,
+        title: `🚨 Health Observation Alert — ${shift.client.name}`,
+        message: `Observations were noted during ${shift.client.name}'s care visit by ${shift.caregiver.name}: ${activeRedFlags.join(', ')}. Check your activity feed for full notes.`,
+        type: 'CLINICAL_ALERT',
+      });
     }
+
+    if (isOvertime) {
+      await notifyAdmins({
+        title: `Overtime Logged — ${shift.client.name}`,
+        message: `Caregiver ${shift.caregiver.name} logged overtime for ${shift.client.name}. Reason: "${overtimeReason}".`,
+        type: 'SYSTEM_ALERT',
+      });
+    }
+
+    // Notify Client / Family of Shift Completion
+    await notifyClientFamily({
+      clientId: shift.clientId,
+      title: 'Care Visit Completed',
+      message: `Caregiver ${shift.caregiver.name} completed the visit for ${shift.client.name} (${logDetails.completedTaskCount} tasks completed). Full notes are available in your portal.`,
+      type: 'SHIFT_COMPLETED',
+    });
+
+    // Notify Admins of Shift Completion
+    await notifyAdmins({
+      title: 'Shift Completed',
+      message: `Caregiver ${shift.caregiver.name} completed shift for ${shift.client.name} (${logDetails.completedTaskCount} tasks).`,
+      type: 'SHIFT_COMPLETED',
+    });
 
     await prisma.caregiverLocationHistory.create({
       data: {

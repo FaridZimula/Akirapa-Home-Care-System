@@ -4,6 +4,8 @@ import { logAudit } from '@/lib/audit';
 import { getSessionUser, createSessionCookie, sessionCookieOptions } from '@/lib/session';
 import { computeHaversineDistance } from '@/lib/geo';
 import { ShiftStatus } from '@prisma/client';
+import { createNotification, notifyAdmins, notifyClientFamily } from '@/lib/notifications';
+import { formatTime } from '@/lib/dateFormat';
 
 // Grace period added past the shift's scheduled end so the caregiver's session
 // survives long enough to complete the mandatory clock-out questionnaire even
@@ -82,6 +84,21 @@ export async function POST(request: Request) {
         outcome: 'SUCCESS',
       });
 
+      // Notify Admins of Override Request
+      await notifyAdmins({
+        title: '⚠️ Clock-In Exception Override',
+        message: `Caregiver ${shift.caregiver.name} clocked in for client ${shift.client.name} via manual override. Reason: "${overrideReason}".`,
+        type: 'EXCEPTION_OVERRIDE',
+      });
+
+      // Notify Client / Family of Shift Start
+      await notifyClientFamily({
+        clientId: shift.clientId,
+        title: 'Caregiver Arrived',
+        message: `Caregiver ${shift.caregiver.name} has arrived and started the care visit for ${shift.client.name}.`,
+        type: 'SHIFT_STARTED',
+      });
+
       const overrideResponse = NextResponse.json({
         success: true,
         shift: updatedShift,
@@ -154,6 +171,21 @@ export async function POST(request: Request) {
         longitude,
         timestamp: now,
       },
+    });
+
+    // Notify Client / Family
+    await notifyClientFamily({
+      clientId: shift.clientId,
+      title: 'Caregiver Arrived',
+      message: `Caregiver ${shift.caregiver.name} has arrived on-site and clocked in for ${shift.client.name}'s care visit at ${formatTime(now)}.`,
+      type: 'SHIFT_STARTED',
+    });
+
+    // Notify Admins
+    await notifyAdmins({
+      title: 'Shift Started',
+      message: `Caregiver ${shift.caregiver.name} clocked in for ${shift.client.name} at ${formatTime(now)} (Validated inside geofence).`,
+      type: 'SHIFT_STARTED',
     });
 
     const response = NextResponse.json({

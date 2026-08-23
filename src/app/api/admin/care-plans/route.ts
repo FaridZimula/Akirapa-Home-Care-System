@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { logAudit } from '@/lib/audit';
+import { notifyClientFamily, notifyCaregiver } from '@/lib/notifications';
 
 export async function POST(request: Request) {
   try {
@@ -9,6 +10,13 @@ export async function POST(request: Request) {
     if (!clientId) {
       return NextResponse.json({ error: 'Client ID is required' }, { status: 400 });
     }
+
+    const client = await prisma.client.findUnique({
+      where: { id: clientId },
+      select: { id: true, name: true },
+    });
+
+    const clientName = client?.name || 'Client';
 
     // 1. Find or create CarePlan for client
     let carePlan = await prisma.carePlan.findFirst({
@@ -43,6 +51,31 @@ export async function POST(request: Request) {
         details: `Added task "${description}" (${scheduledTime || '09:00 AM'}) to Care Plan for client: ${clientId}`,
         outcome: 'SUCCESS',
       });
+
+      // 1. Notify Client / Linked Family Members
+      await notifyClientFamily({
+        clientId,
+        title: 'Care Plan Updated',
+        message: `New task "${taskName || description}" (${scheduledTime || '09:00 AM'}) added to ${clientName}'s care plan.`,
+        type: 'CARE_PLAN_UPDATED',
+      });
+
+      // 2. Notify assigned Pod Caregivers
+      const podCaregivers = await prisma.caregiverPod.findMany({
+        where: { clientId },
+        select: { caregiverId: true },
+      });
+
+      await Promise.all(
+        podCaregivers.map(p =>
+          notifyCaregiver({
+            caregiverId: p.caregiverId,
+            title: `Care Plan Updated — ${clientName}`,
+            message: `New mandatory care routine added for ${clientName}: "${taskName || description}" at ${scheduledTime || '09:00 AM'}.`,
+            type: 'CARE_PLAN_UPDATED',
+          })
+        )
+      );
 
       return NextResponse.json({ success: true, task: newTask, carePlanId: carePlan.id });
     }

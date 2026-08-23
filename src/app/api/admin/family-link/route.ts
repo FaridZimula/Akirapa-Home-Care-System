@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { logAudit } from '@/lib/audit';
+import { createNotification } from '@/lib/notifications';
 
 export async function GET(request: Request) {
   try {
@@ -73,6 +74,13 @@ export async function POST(request: Request) {
       action: 'LINK_FAMILY_MEMBER',
       details: `Linked family member ${link.user.name} (${link.user.email}) to client ${link.client.name}`,
       outcome: 'SUCCESS',
+    });
+
+    await createNotification({
+      userId,
+      title: 'Family Profile Linked',
+      message: `Your account has been successfully linked to ${link.client.name}'s care dashboard.`,
+      type: 'SYSTEM_ALERT',
     });
 
     return NextResponse.json({ success: true, link });

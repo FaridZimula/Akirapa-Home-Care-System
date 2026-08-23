@@ -5,6 +5,7 @@ import { getSessionUser } from '@/lib/session';
 import { formatDate } from '@/lib/dateFormat';
 import { ShiftStatus } from '@prisma/client';
 import { isBusinessHubAuthorized } from '@/lib/adminAllowlist';
+import { notifyClientFamily } from '@/lib/notifications';
 
 function computeStatus(totalDue: number, amountPaid: number, dueDate: Date, now: Date): 'PAID' | 'OVERDUE' | 'PARTIAL' | 'PENDING' {
   if (amountPaid >= totalDue) return 'PAID';
@@ -136,6 +137,14 @@ export async function POST(request: Request) {
       action: 'GENERATE_INVOICE',
       details: `Generated invoice ${invoiceNumber} for ${client.name} (${formatDate(periodStart)} - ${formatDate(periodEnd)}), total $${totalDue.toFixed(2)}.`,
       outcome: 'SUCCESS',
+    });
+
+    // Notify Client / Linked Family Members
+    await notifyClientFamily({
+      clientId,
+      title: `New Invoice Issued (${invoiceNumber})`,
+      message: `An invoice of $${totalDue.toFixed(2)} has been issued for ${client.name} for the care period ${formatDate(periodStart)} - ${formatDate(periodEnd)}. Payment is due by ${formatDate(invoice.dueDate)}.`,
+      type: 'INVOICE_ISSUED',
     });
 
     return NextResponse.json({ success: true, invoice: { ...invoice, lineItems, balance: totalDue, status: 'PENDING' } });
