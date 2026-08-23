@@ -2724,8 +2724,8 @@ export default function Home() {
     return (
       <div className="relative min-h-screen bg-purple-50/40 text-slate-800 flex items-center justify-center p-6 overflow-hidden selection:bg-purple-500 selection:text-white">
         {/* Animated Ambient Light Blobs */}
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-300/30 rounded-full blur-3xl pointer-events-none animate-blob-1" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-cyan-300/30 rounded-full blur-3xl pointer-events-none animate-blob-2" />
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-300/30 rounded-full blur-3xl pointer-events-none animate-blob-1 shrink-0 aspect-square" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-cyan-300/30 rounded-full blur-3xl pointer-events-none animate-blob-2 shrink-0 aspect-square" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-purple-400/15 rounded-full blur-3xl pointer-events-none" />
 
         {/* Bright Modern Glassmorphic Central Card */}
@@ -2866,7 +2866,7 @@ export default function Home() {
                 className="w-full flex items-center justify-between p-3.5 bg-gray-50 hover:bg-purple-50 border border-gray-200 rounded-2xl transition-all text-left cursor-pointer group"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-[#77248c] text-white rounded-full flex items-center justify-center font-bold text-sm">A</div>
+                  <div className="w-10 h-10 bg-[#77248c] text-white rounded-full flex items-center justify-center font-bold text-sm shrink-0 aspect-square">A</div>
                   <div>
                     <div className="font-bold text-gray-900 text-xs">Senior Admin Account</div>
                     <div className="text-[11px] text-[#77248c] font-mono">info@akirapahomecareus.com</div>
@@ -2881,7 +2881,7 @@ export default function Home() {
                 className="w-full flex items-center justify-between p-3.5 bg-gray-50 hover:bg-purple-50 border border-gray-200 rounded-2xl transition-all text-left cursor-pointer group"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-[#77248c] text-white rounded-full flex items-center justify-center font-bold text-sm">C</div>
+                  <div className="w-10 h-10 bg-[#77248c] text-white rounded-full flex items-center justify-center font-bold text-sm shrink-0 aspect-square">C</div>
                   <div>
                     <div className="font-bold text-gray-900 text-xs">Cathy Admin Account</div>
                     <div className="text-[11px] text-[#77248c] font-mono">cathy@akirapahomecareus.com</div>
@@ -3017,7 +3017,7 @@ export default function Home() {
             <>
               <div className="pt-3 border-t border-gray-100">
                 <div className="flex flex-col items-center mb-4">
-                  <div className="w-11 h-11 bg-[#77248c] text-white rounded-full flex items-center justify-center mb-2 shadow-xs"><i className="fa-solid fa-id-card text-white text-base"></i></div>
+                  <div className="w-11 h-11 bg-[#77248c] text-white rounded-full flex items-center justify-center mb-2 shadow-xs shrink-0 aspect-square"><i className="fa-solid fa-id-card text-white text-base"></i></div>
                   <h3 className="text-xs font-bold text-teal-700 uppercase tracking-wider">Caregiver Details</h3>
                 </div>
                 <div className="grid grid-cols-3 gap-3">
@@ -3081,7 +3081,7 @@ export default function Home() {
 
               <div className="pt-3 border-t border-gray-100">
                 <div className="flex flex-col items-center mb-4">
-                  <div className="w-11 h-11 bg-[#77248c] text-white rounded-full flex items-center justify-center mb-2 shadow-xs"><i className="fa-solid fa-briefcase text-white text-base"></i></div>
+                  <div className="w-11 h-11 bg-[#77248c] text-white rounded-full flex items-center justify-center mb-2 shadow-xs shrink-0 aspect-square"><i className="fa-solid fa-briefcase text-white text-base"></i></div>
                   <h3 className="text-xs font-bold text-teal-700 uppercase tracking-wider">Position Details</h3>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -3160,7 +3160,7 @@ export default function Home() {
             <>
               <div className="pt-3 border-t border-gray-100">
                 <div className="flex flex-col items-center mb-4">
-                  <div className="w-11 h-11 bg-[#77248c] text-white rounded-full flex items-center justify-center mb-2 shadow-xs"><i className="fa-solid fa-user text-white text-base"></i></div>
+                  <div className="w-11 h-11 bg-[#77248c] text-white rounded-full flex items-center justify-center mb-2 shadow-xs shrink-0 aspect-square"><i className="fa-solid fa-user text-white text-base"></i></div>
                   <h3 className="text-xs font-bold text-teal-700 uppercase tracking-wider">Client Details</h3>
                 </div>
                 <div className="grid grid-cols-3 gap-3">
@@ -3232,7 +3232,7 @@ export default function Home() {
 
               <div className="pt-3 border-t border-gray-100">
                 <div className="flex flex-col items-center mb-4">
-                  <div className="w-11 h-11 bg-[#77248c] text-white rounded-full flex items-center justify-center mb-2 shadow-xs"><i className="fa-solid fa-notes-medical text-white text-base"></i></div>
+                  <div className="w-11 h-11 bg-[#77248c] text-white rounded-full flex items-center justify-center mb-2 shadow-xs shrink-0 aspect-square"><i className="fa-solid fa-notes-medical text-white text-base"></i></div>
                   <h3 className="text-xs font-bold text-teal-700 uppercase tracking-wider">Health & Care Notes</h3>
                   <p className="text-[11px] text-gray-400 mt-1 text-center">Helps caregivers prepare properly and stay alert to what matters.</p>
                 </div>
@@ -3250,7 +3250,7 @@ export default function Home() {
 
               <div className="pt-3 border-t border-gray-100">
                 <div className="flex flex-col items-center mb-4">
-                  <div className="w-11 h-11 bg-[#77248c] text-white rounded-full flex items-center justify-center mb-2 shadow-xs"><i className="fa-solid fa-phone text-white text-base"></i></div>
+                  <div className="w-11 h-11 bg-[#77248c] text-white rounded-full flex items-center justify-center mb-2 shadow-xs shrink-0 aspect-square"><i className="fa-solid fa-phone text-white text-base"></i></div>
                   <h3 className="text-xs font-bold text-teal-700 uppercase tracking-wider">Emergency Contact</h3>
                 </div>
                 <div className="space-y-4">
@@ -3309,7 +3309,7 @@ export default function Home() {
 
               <div className="pt-3 border-t border-gray-100">
                 <div className="flex flex-col items-center mb-4">
-                  <div className="w-11 h-11 bg-[#77248c] text-white rounded-full flex items-center justify-center mb-2 shadow-xs"><i className="fa-solid fa-heart text-white text-base"></i></div>
+                  <div className="w-11 h-11 bg-[#77248c] text-white rounded-full flex items-center justify-center mb-2 shadow-xs shrink-0 aspect-square"><i className="fa-solid fa-heart text-white text-base"></i></div>
                   <h3 className="text-xs font-bold text-teal-700 uppercase tracking-wider">Care Preferences</h3>
                   <p className="text-[11px] text-gray-400 mt-1 text-center">What kind of care & comfort services would you like? This helps us match the right caregiver.</p>
                 </div>
@@ -3334,7 +3334,7 @@ export default function Home() {
 
               <div className="pt-3 border-t border-gray-100">
                 <div className="flex flex-col items-center mb-4">
-                  <div className="w-11 h-11 bg-[#77248c] text-white rounded-full flex items-center justify-center mb-2 shadow-xs"><i className="fa-solid fa-comment-dots text-white text-base"></i></div>
+                  <div className="w-11 h-11 bg-[#77248c] text-white rounded-full flex items-center justify-center mb-2 shadow-xs shrink-0 aspect-square"><i className="fa-solid fa-comment-dots text-white text-base"></i></div>
                   <h3 className="text-xs font-bold text-teal-700 uppercase tracking-wider">About Me</h3>
                   <p className="text-[11px] text-gray-400 mt-1 text-center">Help your care team get to know you. You (or your family) can update these anytime later.</p>
                 </div>
@@ -3445,7 +3445,7 @@ export default function Home() {
   if (!user) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center"><div className="w-10 h-10 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto" /><p className="text-sm text-gray-400 mt-4">Verifying session...</p></div>
+        <div className="text-center"><div className="w-10 h-10 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto shrink-0 aspect-square" /><p className="text-sm text-gray-400 mt-4">Verifying session...</p></div>
       </div>
     );
   }
@@ -3887,7 +3887,7 @@ export default function Home() {
                             <button
                               type="button"
                               onClick={() => handleRemoveMedia(idx)}
-                              className="absolute top-1 right-1 bg-red-600 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] shadow-md hover:scale-110 transition-all z-20"
+                              className="absolute top-1 right-1 bg-red-600 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] shadow-md hover:scale-110 transition-all z-20 shrink-0 aspect-square"
                             >
                               <i className="fa-solid fa-xmark text-[10px]"></i>
                             </button>
@@ -3993,7 +3993,7 @@ export default function Home() {
                             <button
                               type="button"
                               onClick={() => handleRemoveMedia(idx)}
-                              className="absolute top-1 right-1 bg-red-600 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] shadow-md hover:scale-110 transition-all z-20"
+                              className="absolute top-1 right-1 bg-red-600 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] shadow-md hover:scale-110 transition-all z-20 shrink-0 aspect-square"
                             >
                               <i className="fa-solid fa-xmark text-[10px]"></i>
                             </button>
@@ -4179,7 +4179,7 @@ export default function Home() {
                           <button
                             type="button"
                             onClick={() => handleRemoveMedia(idx)}
-                            className="absolute top-1 right-1 bg-red-600 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] shadow-md hover:scale-110 transition-all z-20"
+                            className="absolute top-1 right-1 bg-red-600 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] shadow-md hover:scale-110 transition-all z-20 shrink-0 aspect-square"
                           >
                             <i className="fa-solid fa-xmark text-[10px]"></i>
                           </button>
@@ -4310,7 +4310,7 @@ export default function Home() {
           <div className="relative max-w-4xl w-full bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="p-4 bg-slate-950/80 border-b border-slate-800 flex justify-between items-center">
               <div className="flex items-center gap-2">
-                <span className="w-8 h-8 rounded-full bg-purple-600 text-white font-bold text-xs flex items-center justify-center">
+                <span className="w-8 h-8 rounded-full bg-purple-600 text-white font-bold text-xs flex items-center justify-center shrink-0 aspect-square">
                   {activeMediaModal.caregiverName?.charAt(0) || 'C'}
                 </span>
                 <div>
@@ -4357,7 +4357,7 @@ export default function Home() {
 
             {isLoadingGpsHistory ? (
               <div className="py-16 text-center">
-                <div className="w-10 h-10 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                <div className="w-10 h-10 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-3 shrink-0 aspect-square" />
                 <p className="text-xs font-semibold text-gray-500">Retrieving Live GPS Waypoints...</p>
               </div>
             ) : (
@@ -4367,7 +4367,7 @@ export default function Home() {
                   {/* Top Map Header Stats */}
                   <div className="relative z-10 flex justify-between items-center mb-4 text-xs">
                     <span className="bg-slate-800/90 border border-slate-700 px-3 py-1 rounded-lg text-emerald-400 font-mono font-bold flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span> Live Tracking Stream Active
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping shrink-0 aspect-square"></span> Live Tracking Stream Active
                     </span>
                     <span className="bg-slate-800/90 border border-slate-700 px-3 py-1 rounded-lg text-slate-300 font-mono text-[11px]">
                       Geofence Radius: {gpsMapShiftDetails?.client?.geofenceRadiusMeter || 150}m
@@ -4813,7 +4813,7 @@ export default function Home() {
 
             {isLoadingAudits ? (
               <div className="py-16 text-center">
-                <div className="w-10 h-10 border-4 border-slate-800 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                <div className="w-10 h-10 border-4 border-slate-800 border-t-transparent rounded-full animate-spin mx-auto mb-3 shrink-0 aspect-square" />
                 <p className="text-xs font-semibold text-gray-500">Retrieving System Audit Trail...</p>
               </div>
             ) : (
@@ -5029,7 +5029,7 @@ export default function Home() {
         <div className="p-3 border-t border-gray-100 bg-gray-50/80 shrink-0 space-y-2">
           <div className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-gray-200/80 shadow-2xs">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-full bg-[#77248c] text-white flex items-center justify-center font-bold text-xs shrink-0">
+              <div className="w-8 h-8 rounded-full bg-[#77248c] text-white flex items-center justify-center font-bold text-xs shrink-0 aspect-square">
                 {user.name?.charAt(0) || 'U'}
               </div>
               <div className="min-w-0 flex-1">
@@ -5100,7 +5100,7 @@ export default function Home() {
               <button onClick={() => setShowNotificationDrawer(!showNotificationDrawer)} className="p-2 hover:bg-gray-100 rounded-xl text-gray-500 transition-all relative">
                 <i className="fa-solid fa-bell text-lg"></i>
                 {dbNotifications.filter(n => !n.isRead).length > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-4.5 h-4.5 rounded-full flex items-center justify-center animate-pulse">
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-4.5 h-4.5 rounded-full flex items-center justify-center animate-pulse shrink-0 aspect-square">
                     {dbNotifications.filter(n => !n.isRead).length}
                   </span>
                 )}
@@ -5139,7 +5139,7 @@ export default function Home() {
               )}
             </div>
 
-            <button onClick={() => setCurrentView('profile')} className="w-9 h-9 rounded-full bg-purple-600 flex items-center justify-center text-white text-sm font-bold">
+            <button onClick={() => setCurrentView('profile')} className="w-9 h-9 rounded-full bg-purple-600 flex items-center justify-center text-white text-sm font-bold shrink-0 aspect-square">
               {user.name?.charAt(0) || 'U'}
             </button>
           </div>
@@ -5148,7 +5148,7 @@ export default function Home() {
         {/* Content Area */}
         <div className="flex-1 p-4 md:p-8 overflow-x-hidden">
           {loading ? (
-            <div className="flex items-center justify-center h-64"><div className="w-10 h-10 border-4 border-purple-600 border-t-transparent rounded-full animate-spin" /></div>
+            <div className="flex items-center justify-center h-64"><div className="w-10 h-10 border-4 border-purple-600 border-t-transparent rounded-full animate-spin shrink-0 aspect-square" /></div>
           ) : (
             <>
               {/* ===== DASHBOARD VIEW ===== */}
@@ -5252,7 +5252,7 @@ export default function Home() {
                             <div>
                               <div className="text-sm font-bold text-gray-700 flex items-center gap-1.5">
                                 Total Clients
-                                {dashboardCardFilter === 'CLIENTS' && <span className="w-2 h-2 rounded-full bg-purple-600 animate-pulse" />}
+                                {dashboardCardFilter === 'CLIENTS' && <span className="w-2 h-2 rounded-full bg-purple-600 animate-pulse shrink-0 aspect-square" />}
                               </div>
                               <div className="text-2xl font-bold text-gray-800">{clients.length}</div>
                             </div>
@@ -5276,7 +5276,7 @@ export default function Home() {
                             <div>
                               <div className="text-sm font-bold text-gray-700 flex items-center gap-1.5">
                                 Caregivers
-                                {dashboardCardFilter === 'CAREGIVERS' && <span className="w-2 h-2 rounded-full bg-teal-500 animate-pulse" />}
+                                {dashboardCardFilter === 'CAREGIVERS' && <span className="w-2 h-2 rounded-full bg-teal-500 animate-pulse shrink-0 aspect-square" />}
                               </div>
                               <div className="text-2xl font-bold text-gray-800">{caregivers.length}</div>
                             </div>
@@ -5300,7 +5300,7 @@ export default function Home() {
                             <div>
                               <div className="text-sm font-bold text-gray-700 flex items-center gap-1.5">
                                 Active Shifts
-                                {dashboardCardFilter === 'ACTIVE_SHIFTS' && <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />}
+                                {dashboardCardFilter === 'ACTIVE_SHIFTS' && <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse shrink-0 aspect-square" />}
                               </div>
                               <div className="text-2xl font-bold text-gray-800">{shifts.filter(s => s.status === 'IN_PROGRESS').length}</div>
                             </div>
@@ -5324,7 +5324,7 @@ export default function Home() {
                             <div>
                               <div className="text-sm font-bold text-gray-700 flex items-center gap-1.5">
                                 Completed
-                                {dashboardCardFilter === 'COMPLETED_SHIFTS' && <span className="w-2 h-2 rounded-full bg-teal-600 animate-pulse" />}
+                                {dashboardCardFilter === 'COMPLETED_SHIFTS' && <span className="w-2 h-2 rounded-full bg-teal-600 animate-pulse shrink-0 aspect-square" />}
                               </div>
                               <div className="text-2xl font-bold text-gray-800">{shifts.filter(s => s.status === 'COMPLETED').length}</div>
                             </div>
@@ -5352,7 +5352,7 @@ export default function Home() {
                                 <div>
                                   <div className="text-sm font-bold text-orange-700 flex items-center gap-1.5">
                                     Unassigned Clients
-                                    {dashboardCardFilter === 'UNASSIGNED_CLIENTS' && <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />}
+                                    {dashboardCardFilter === 'UNASSIGNED_CLIENTS' && <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse shrink-0 aspect-square" />}
                                   </div>
                                   <div className="text-2xl font-bold text-orange-600">{unassigned.length}</div>
                                 </div>
@@ -5429,7 +5429,7 @@ export default function Home() {
                                 {caregivers.map((cg: any) => (
                                   <tr key={cg.id} className="hover:bg-purple-50/40 transition-colors">
                                     <td className="py-3 px-2 font-bold text-gray-800 flex items-center gap-2">
-                                      <div className="w-7 h-7 rounded-full bg-teal-500 text-white font-bold flex items-center justify-center text-xs">
+                                      <div className="w-7 h-7 rounded-full bg-teal-500 text-white font-bold flex items-center justify-center text-xs shrink-0 aspect-square">
                                         {cg.name ? cg.name.charAt(0).toUpperCase() : 'C'}
                                       </div>
                                       {cg.name}
@@ -5672,7 +5672,7 @@ export default function Home() {
                 <div className="max-w-4xl mx-auto space-y-6">
                   <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
                     <div className="flex flex-col items-center text-center">
-                      <div className="w-32 h-32 rounded-full bg-purple-600 flex items-center justify-center text-white text-5xl font-bold shadow-lg">
+                      <div className="w-32 h-32 rounded-full bg-purple-600 flex items-center justify-center text-white text-5xl font-bold shadow-lg shrink-0 aspect-square">
                         {user.name?.charAt(0) || 'U'}
                       </div>
                       <h2 className="text-2xl font-bold text-gray-800 mt-4">{user.name}</h2>
@@ -6313,7 +6313,7 @@ export default function Home() {
                                       }`}>{shift.status}</span>
                                       {shift.status === 'IN_PROGRESS' && (
                                         <span className="px-2.5 py-0.5 bg-emerald-500 text-white rounded-full text-[10px] font-bold flex items-center gap-1 animate-pulse">
-                                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-ping inline-block" />
+                                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-ping inline-block shrink-0 aspect-square" />
                                           🟢 Ongoing Service
                                         </span>
                                       )}
@@ -6699,7 +6699,7 @@ export default function Home() {
                               return (
                                 <tr key={cg.id} className="hover:bg-purple-50/40 transition-colors">
                                   <td className="py-3.5 px-2 font-bold text-gray-800 flex items-center gap-2">
-                                    <div className="w-7 h-7 rounded-full bg-teal-500 text-white font-bold flex items-center justify-center text-xs">
+                                    <div className="w-7 h-7 rounded-full bg-teal-500 text-white font-bold flex items-center justify-center text-xs shrink-0 aspect-square">
                                       {cg.name ? cg.name.charAt(0).toUpperCase() : 'C'}
                                     </div>
                                     {cg.name}
@@ -7403,7 +7403,7 @@ export default function Home() {
                                 <tr key={cl.id} className="hover:bg-purple-50/40 transition-colors">
                                   <td className="py-3.5 px-2 font-bold text-gray-800">
                                     <div className="flex items-center gap-2">
-                                      <div className="w-7 h-7 rounded-full bg-purple-600 text-white font-bold flex items-center justify-center text-xs">{cl.name?.charAt(0)?.toUpperCase() || 'C'}</div>
+                                      <div className="w-7 h-7 rounded-full bg-purple-600 text-white font-bold flex items-center justify-center text-xs shrink-0 aspect-square">{cl.name?.charAt(0)?.toUpperCase() || 'C'}</div>
                                       <div>
                                         <div>{cl.name}</div>
                                         {linkedFamilyUser && <div className="text-[10px] text-purple-600 font-mono font-normal">{linkedFamilyUser.email}</div>}
@@ -7592,7 +7592,7 @@ export default function Home() {
                   {/* Access Gating check */}
                   {!(user.email === 'info@akirapahomecareus.com' || user.email === 'cathy@akirapahomecareus.com') ? (
                     <div className="bg-[#77248c] border-2 border-[#77248c] rounded-3xl p-8 text-center max-w-2xl mx-auto my-8 animate-fade-up shadow-xl text-white">
-                      <div className="w-16 h-16 bg-white/20 text-white rounded-full flex items-center justify-center mx-auto mb-4 text-2xl shadow-inner backdrop-blur-xs">
+                      <div className="w-16 h-16 bg-white/20 text-white rounded-full flex items-center justify-center mx-auto mb-4 text-2xl shadow-inner backdrop-blur-xs shrink-0 aspect-square">
                         <i className="fa-solid fa-lock text-white"></i>
                       </div>
                       <h3 className="text-xl font-extrabold text-white mb-2">Restricted Access — Senior Business Admins Only</h3>
@@ -7940,7 +7940,7 @@ export default function Home() {
                               <div className="text-sm text-gray-600">{n.message}</div>
                               <div className="text-xs text-gray-400 mt-1">{formatDateTime(n.createdAt)}</div>
                             </div>
-                            {!n.isRead && <div className="w-2 h-2 rounded-full bg-purple-600 mt-2 flex-shrink-0" />}
+                            {!n.isRead && <div className="w-2 h-2 rounded-full bg-purple-600 mt-2 flex-shrink-0 aspect-square" />}
                           </div>
                         );
                       })}
@@ -7954,7 +7954,7 @@ export default function Home() {
                 <div className="space-y-6">
                   {isLoadingFinancials ? (
                     <div className="py-16 text-center">
-                      <div className="w-10 h-10 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                      <div className="w-10 h-10 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-3 shrink-0 aspect-square" />
                       <p className="text-xs font-semibold text-gray-500">Calculating this week's payroll...</p>
                     </div>
                   ) : financialsData ? (
@@ -8087,7 +8087,7 @@ export default function Home() {
                 <div className="space-y-6">
                   {isLoadingInvoices ? (
                     <div className="py-16 text-center">
-                      <div className="w-10 h-10 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                      <div className="w-10 h-10 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-3 shrink-0 aspect-square" />
                       <p className="text-xs font-semibold text-gray-500">Loading billing data...</p>
                     </div>
                   ) : invoicesData ? (
@@ -8095,12 +8095,12 @@ export default function Home() {
                       {/* Payment Tracker Header Banner */}
                       <div className="relative overflow-hidden bg-gradient-to-br from-[#77248c] via-[#5f1b70] to-[#451253] rounded-3xl p-7 text-white shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border border-purple-500/20">
                         {/* Background glow effects */}
-                        <div className="absolute -top-16 -right-16 w-72 h-72 bg-[#4cdbd5]/15 rounded-full blur-3xl pointer-events-none" />
-                        <div className="absolute -bottom-16 left-1/3 w-64 h-64 bg-purple-500/20 rounded-full blur-3xl pointer-events-none" />
+                        <div className="absolute -top-16 -right-16 w-72 h-72 bg-[#4cdbd5]/15 rounded-full blur-3xl pointer-events-none shrink-0 aspect-square" />
+                        <div className="absolute -bottom-16 left-1/3 w-64 h-64 bg-purple-500/20 rounded-full blur-3xl pointer-events-none shrink-0 aspect-square" />
 
                         <div className="relative z-10 space-y-2 flex-1 min-w-0 pr-4">
                           <div className="flex items-center gap-2 text-xs font-extrabold text-[#4cdbd5] uppercase tracking-widest">
-                            <span className="w-2.5 h-2.5 rounded-full bg-[#4cdbd5] inline-block animate-pulse shadow-xs shrink-0"></span>
+                            <span className="w-2.5 h-2.5 rounded-full bg-[#4cdbd5] inline-block animate-pulse shadow-xs shrink-0 aspect-square"></span>
                             <span>Akirapa Home Care Agency • Financial Intelligence</span>
                           </div>
                           <h2 className="text-3xl md:text-4xl font-black text-white tracking-tight leading-tight drop-shadow-sm">PAYMENT TRACKER</h2>
@@ -8161,7 +8161,7 @@ export default function Home() {
 
                         {invoicesData.invoices.length === 0 ? (
                           <div className="text-center py-16">
-                            <div className="w-12 h-12 rounded-full bg-purple-50 text-[#77248c] flex items-center justify-center mx-auto mb-3 text-xl">
+                            <div className="w-12 h-12 rounded-full bg-purple-50 text-[#77248c] flex items-center justify-center mx-auto mb-3 text-xl shrink-0 aspect-square">
                               <i className="fa-solid fa-file-invoice-dollar"></i>
                             </div>
                             <p className="text-gray-500 font-semibold text-sm">No invoices generated yet</p>
@@ -8272,19 +8272,19 @@ export default function Home() {
                           <div className="flex items-center gap-4">
                             <span className="font-black text-[#77248c] uppercase tracking-wider text-[10px]">STATUS KEY:</span>
                             <div className="flex items-center gap-1.5 font-bold text-gray-700">
-                              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span>
+                              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block shrink-0 aspect-square"></span>
                               <span>Paid</span>
                             </div>
                             <div className="flex items-center gap-1.5 font-bold text-gray-700">
-                              <span className="w-2.5 h-2.5 rounded-full bg-cyan-500 inline-block"></span>
+                              <span className="w-2.5 h-2.5 rounded-full bg-cyan-500 inline-block shrink-0 aspect-square"></span>
                               <span>Pending</span>
                             </div>
                             <div className="flex items-center gap-1.5 font-bold text-gray-700">
-                              <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block"></span>
+                              <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block shrink-0 aspect-square"></span>
                               <span>Partial</span>
                             </div>
                             <div className="flex items-center gap-1.5 font-bold text-gray-700">
-                              <span className="w-2.5 h-2.5 rounded-full bg-red-500 inline-block"></span>
+                              <span className="w-2.5 h-2.5 rounded-full bg-red-500 inline-block shrink-0 aspect-square"></span>
                               <span>Overdue</span>
                             </div>
                           </div>
@@ -8336,7 +8336,7 @@ export default function Home() {
                   <h3 className="font-semibold text-gray-800 text-lg mb-1">Weekly Caregiver Reviews</h3>
                   <p className="text-xs text-gray-400 mb-4">Submitted by clients/family members each week. Not visible to caregivers.</p>
                   {isLoadingAdminReviews ? (
-                    <div className="py-16 text-center"><div className="w-10 h-10 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto" /></div>
+                    <div className="py-16 text-center"><div className="w-10 h-10 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto shrink-0 aspect-square" /></div>
                   ) : adminCaregiverReviews.length === 0 ? (
                     <div className="text-center py-12"><p className="text-gray-400">No reviews submitted yet</p></div>
                   ) : (
@@ -8391,7 +8391,7 @@ export default function Home() {
 
                   {isLoadingOversight ? (
                     <div className="py-16 text-center">
-                      <div className="w-10 h-10 border-4 border-[#77248c] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                      <div className="w-10 h-10 border-4 border-[#77248c] border-t-transparent rounded-full animate-spin mx-auto mb-3 shrink-0 aspect-square" />
                       <p className="text-xs font-semibold text-gray-500">Loading message activity...</p>
                     </div>
                   ) : (
@@ -8619,7 +8619,7 @@ export default function Home() {
                       {!selectedMessageClientId ? (
                         <p className="text-center text-gray-400 text-sm py-8">Select a conversation to view messages.</p>
                       ) : isLoadingMessages ? (
-                        <div className="text-center py-8"><div className="w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto" /></div>
+                        <div className="text-center py-8"><div className="w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto shrink-0 aspect-square" /></div>
                       ) : messageThread.length === 0 ? (
                         <p className="text-center text-gray-700 font-semibold text-sm py-8">No messages yet. Start the conversation below.</p>
                       ) : (
@@ -8698,7 +8698,7 @@ export default function Home() {
                         <div className="flex items-center gap-2">
                           <div className="relative">
                             <input type="file" accept="image/*,video/*,audio/*" onChange={handleMediaChange} className="absolute inset-0 opacity-0 w-9 h-9 cursor-pointer z-10" />
-                            <button type="button" className="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-900 flex items-center justify-center"><i className="fa-solid fa-paperclip text-gray-900"></i></button>
+                            <button type="button" className="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-900 flex items-center justify-center shrink-0 aspect-square"><i className="fa-solid fa-paperclip text-gray-900"></i></button>
                           </div>
                           <button
                             type="button"
@@ -8718,7 +8718,7 @@ export default function Home() {
                           <button
                             onClick={handleSendMessage}
                             disabled={isSendingMessage || (!messageText.trim() && selectedMediaFiles.length === 0)}
-                            className="w-10 h-10 rounded-full bg-purple-600 hover:bg-purple-700 text-white flex items-center justify-center disabled:opacity-50 transition-all shrink-0"
+                            className="w-10 h-10 rounded-full bg-purple-600 hover:bg-purple-700 text-white flex items-center justify-center disabled:opacity-50 transition-all shrink-0 aspect-square"
                           >
                             <i className="fa-solid fa-paper-plane"></i>
                           </button>
@@ -8834,7 +8834,7 @@ export default function Home() {
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-8 animate-fade-up">
             <div className="text-center mb-6">
-              <div className="w-16 h-16 rounded-full bg-[#77248c] text-white flex items-center justify-center mx-auto mb-4 text-2xl shadow-lg">
+              <div className="w-16 h-16 rounded-full bg-[#77248c] text-white flex items-center justify-center mx-auto mb-4 text-2xl shadow-lg shrink-0 aspect-square">
                 <i className="fa-solid fa-user-check"></i>
               </div>
               <h3 className="font-extrabold text-xl text-gray-900 mb-1">Welcome to Akirapa! 👋</h3>
@@ -9107,7 +9107,7 @@ export default function Home() {
 
             <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/60">
               {isLoadingTranscript || viewingTranscript.messages === null ? (
-                <div className="text-center py-10"><div className="w-8 h-8 border-4 border-[#77248c] border-t-transparent rounded-full animate-spin mx-auto" /></div>
+                <div className="text-center py-10"><div className="w-8 h-8 border-4 border-[#77248c] border-t-transparent rounded-full animate-spin mx-auto shrink-0 aspect-square" /></div>
               ) : viewingTranscript.messages.length === 0 ? (
                 <p className="text-center text-gray-400 text-sm py-8">This conversation has no messages.</p>
               ) : (
