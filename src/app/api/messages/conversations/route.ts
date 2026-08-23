@@ -2,32 +2,10 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/session';
 
-const clientWithParticipants = {
-  select: {
-    id: true,
-    name: true,
-    caregiverPods: {
-      select: { caregiver: { select: { id: true, name: true } } },
-    },
-    familyMembers: {
-      select: { user: { select: { id: true, name: true } } },
-    },
-  },
-};
-
-function toParticipants(client: any, admins: any[] = []) {
-  return [
-    ...admins.map((a: any) => ({ id: a.id, name: a.name, role: a.role })),
-    ...client.caregiverPods.map((p: any) => ({ id: p.caregiver.id, name: p.caregiver.name, role: 'CAREGIVER' })),
-    ...client.familyMembers.map((f: any) => ({ id: f.user.id, name: f.user.name, role: 'FAMILY_MEMBER' })),
-  ];
-}
-
-// Returns the clients (conversations) the current user is allowed to message
-// about: pod clients for caregivers, linked clients for family members, and
-// every client for admin/coordinator monitoring access. Each conversation
-// includes the list of people actually in that client's care team thread
-// (assigned caregivers + linked family + admins) so viewers can see who's chatting.
+// Returns the conversations the current user is allowed to message.
+// FAMILY_MEMBER → only system admins + caregivers assigned to their loved one
+// CAREGIVER → admins + clients in their pod + family members of those clients
+// ADMIN / CARE_COORDINATOR → all users (full oversight)
 export async function GET() {
   try {
     const sessionUser = await getSessionUser();
@@ -35,23 +13,180 @@ export async function GET() {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    // 1. Fetch All System Users (Admins, Coordinators, Caregivers, Family Members)
+    const conversations: any[] = [];
+
+    // ─── FAMILY MEMBER: restrict to admins + assigned caregiver(s) ───
+    if (sessionUser.role === 'FAMILY_MEMBER') {
+      // 1. Get all system admins and care coordinators
+      const admins = await prisma.user.findMany({
+        where: { role: { in: ['ADMIN', 'CARE_COORDINATOR'] } },
+        select: { id: true, name: true, role: true },
+        orderBy: { name: 'asc' },
+      });
+
+      // 2. Find the client(s) this family member is linked to
+      const linkedClients = await prisma.client.findMany({
+        where: {
+          familyMembers: {
+            some: { userId: sessionUser.id },
+          },
+        },
+        select: {
+          id: true,
+          name: true,
+          address: true,
+          caregiverPods: {
+            select: {
+              caregiver: { select: { id: true, name: true, role: true } },
+            },
+          },
+          // Also look for directly assigned caregivers via shifts
+          shifts: {
+            where: {
+              status: { in: ['CONFIRMED', 'IN_PROGRESS', 'UNCONFIRMED'] },
+            },
+            select: {
+              caregiver: { select: { id: true, name: true, role: true } },
+            },
+            distinct: ['caregiverId'],
+            take: 20,
+          },
+        },
+        orderBy: { name: 'asc' },
+      });
+
+      const defaultClientId = linkedClients[0]?.id || null;
+
+      // 3. Add admins/coordinators
+      for (const admin of admins) {
+        conversations.push({
+          id: defaultClientId,
+          contactId: admin.id,
+          name: admin.name,
+          subtitle: admin.role === 'ADMIN' ? 'System Administrator' : 'Care Coordinator',
+          roleLabel: admin.role,
+          badgeType: 'admin',
+          participants: [{ id: admin.id, name: admin.name, role: admin.role }],
+        });
+      }
+
+      // 4. Add caregivers assigned to their loved one(s) — deduplicated
+      const addedCaregiverIds = new Set<string>();
+      for (const client of linkedClients) {
+        // From caregiver pods
+        for (const pod of client.caregiverPods) {
+          const cg = pod.caregiver;
+          if (!addedCaregiverIds.has(cg.id)) {
+            addedCaregiverIds.add(cg.id);
+            conversations.push({
+              id: client.id,
+              contactId: cg.id,
+              name: cg.name,
+              subtitle: `Caregiver — ${client.name}'s Care Team`,
+              roleLabel: 'CAREGIVER',
+              badgeType: 'caregiver',
+              linkedClientName: client.name,
+              participants: [{ id: cg.id, name: cg.name, role: 'CAREGIVER' }],
+            });
+          }
+        }
+        // From active/upcoming shifts
+        for (const shift of client.shifts) {
+          const cg = shift.caregiver;
+          if (cg && !addedCaregiverIds.has(cg.id)) {
+            addedCaregiverIds.add(cg.id);
+            conversations.push({
+              id: client.id,
+              contactId: cg.id,
+              name: cg.name,
+              subtitle: `Caregiver — Assigned to ${client.name}`,
+              roleLabel: 'CAREGIVER',
+              badgeType: 'caregiver',
+              linkedClientName: client.name,
+              participants: [{ id: cg.id, name: cg.name, role: 'CAREGIVER' }],
+            });
+          }
+        }
+      }
+
+      return NextResponse.json({ conversations });
+    }
+
+    // ─── CAREGIVER: admins + clients in their pod + family members of those clients ───
+    if (sessionUser.role === 'CAREGIVER') {
+      const admins = await prisma.user.findMany({
+        where: { role: { in: ['ADMIN', 'CARE_COORDINATOR'] } },
+        select: { id: true, name: true, role: true },
+        orderBy: { name: 'asc' },
+      });
+
+      const podClients = await prisma.client.findMany({
+        where: {
+          caregiverPods: { some: { caregiverId: sessionUser.id } },
+        },
+        select: {
+          id: true,
+          name: true,
+          address: true,
+          familyMembers: {
+            select: { user: { select: { id: true, name: true, role: true } } },
+          },
+        },
+        orderBy: { name: 'asc' },
+      });
+
+      const defaultClientId = podClients[0]?.id || null;
+
+      // Add admins
+      for (const admin of admins) {
+        conversations.push({
+          id: defaultClientId,
+          contactId: admin.id,
+          name: admin.name,
+          subtitle: admin.role === 'ADMIN' ? 'System Administrator' : 'Care Coordinator',
+          roleLabel: admin.role,
+          badgeType: 'admin',
+          participants: [{ id: admin.id, name: admin.name, role: admin.role }],
+        });
+      }
+
+      // Add family members of pod clients
+      const addedFamilyIds = new Set<string>();
+      for (const client of podClients) {
+        for (const fm of client.familyMembers) {
+          const fmUser = fm.user;
+          if (!addedFamilyIds.has(fmUser.id)) {
+            addedFamilyIds.add(fmUser.id);
+            conversations.push({
+              id: client.id,
+              contactId: fmUser.id,
+              name: fmUser.name,
+              subtitle: `Family of ${client.name}`,
+              roleLabel: 'FAMILY_MEMBER',
+              badgeType: 'family',
+              participants: [{ id: fmUser.id, name: fmUser.name, role: 'FAMILY_MEMBER' }],
+            });
+          }
+        }
+      }
+
+      return NextResponse.json({ conversations });
+    }
+
+    // ─── ADMIN / CARE_COORDINATOR: see all users ───
     const allUsers = await prisma.user.findMany({
       where: { id: { not: sessionUser.id } },
       select: { id: true, name: true, role: true, email: true },
       orderBy: { name: 'asc' },
     });
 
-    // 2. Fetch All Clients
     const allClients = await prisma.client.findMany({
       select: { id: true, name: true, address: true },
       orderBy: { name: 'asc' },
     });
 
-    const conversations: any[] = [];
     const defaultClientId = allClients[0]?.id || null;
 
-    // A. Add All System Users as individual 1-on-1 contact cards
     for (const u of allUsers) {
       let roleLabel = 'User';
       if (u.role === 'ADMIN') roleLabel = 'System Administrator';
@@ -69,7 +204,6 @@ export async function GET() {
       });
     }
 
-    // B. Add All Clients as individual Client cards
     for (const c of allClients) {
       conversations.push({
         id: c.id,

@@ -493,7 +493,7 @@ export default function Home() {
   const [viewingBillingRecord, setViewingBillingRecord] = useState<any>(null);
 
   // Messaging (caregiver <-> family, monitored by admin/coordinator)
-  const [messageConversations, setMessageConversations] = useState<Array<{ id: string; contactId?: string; name: string; subtitle?: string; roleLabel?: string; participants: Array<{ id: string; name: string; role: string }> }>>([]);
+  const [messageConversations, setMessageConversations] = useState<Array<{ id: string; contactId?: string; name: string; subtitle?: string; roleLabel?: string; badgeType?: string; linkedClientName?: string; participants: Array<{ id: string; name: string; role: string }> }>>([]);
   const [selectedMessageClientId, setSelectedMessageClientId] = useState<string>('');
   const [selectedContactId, setSelectedContactId] = useState<string>('');
   const [messageThread, setMessageThread] = useState<any[]>([]);
@@ -9302,15 +9302,55 @@ export default function Home() {
               {currentView === 'messages' && (
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4" style={{ height: 'calc(100vh - 180px)' }}>
                   {/* Conversation list */}
-                  <div className="md:col-span-1 bg-white rounded-2xl shadow-sm border border-gray-100 p-4 overflow-y-auto">
-                    <h3 className="font-semibold text-gray-800 text-sm mb-3">Conversations</h3>
-                    {messageConversations.length === 0 ? (
-                      <p className="text-xs text-gray-400">No conversations available yet.</p>
-                    ) : (
-                      <div className="space-y-1">
-                        {messageConversations.map(c => {
+                  <div className="md:col-span-1 bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden">
+                    {/* Header */}
+                    <div className="p-4 border-b border-gray-100">
+                      <h3 className="font-bold text-gray-800 text-sm flex items-center gap-2">
+                        <i className="fa-solid fa-comments text-[#77248c]"></i> Conversations
+                      </h3>
+                      {user.role === 'FAMILY_MEMBER' && (
+                        <div className="mt-2 bg-[#77248c]/5 border border-[#77248c]/15 rounded-xl px-3 py-2 text-[10px] text-[#77248c] font-semibold flex items-start gap-1.5 leading-snug">
+                          <i className="fa-solid fa-shield-halved mt-0.5 shrink-0"></i>
+                          <span>You can message system admins and your loved one&apos;s assigned caregiver only.</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Contact list */}
+                    <div className="flex-1 overflow-y-auto p-3 space-y-1">
+                      {messageConversations.length === 0 ? (
+                        <div className="text-center py-8 space-y-2">
+                          <i className="fa-solid fa-comments text-gray-200 text-3xl block"></i>
+                          <p className="text-xs text-gray-400">No contacts available yet.</p>
+                          {user.role === 'FAMILY_MEMBER' && (
+                            <p className="text-[10px] text-gray-300">Contact an admin if you need help connecting with your care team.</p>
+                          )}
+                        </div>
+                      ) : (
+                        messageConversations.map(c => {
                           const contactKey = c.contactId || c.id;
                           const isSelected = selectedContactId ? selectedContactId === contactKey : selectedMessageClientId === c.id;
+
+                          // Badge styling by role type
+                          const badgeType = c.badgeType || (
+                            c.roleLabel === 'ADMIN' || c.roleLabel === 'CARE_COORDINATOR' ? 'admin' :
+                            c.roleLabel === 'CAREGIVER' ? 'caregiver' :
+                            c.roleLabel === 'FAMILY_MEMBER' ? 'family' : 'other'
+                          );
+                          const avatarBg =
+                            badgeType === 'admin' ? 'bg-[#77248c]' :
+                            badgeType === 'caregiver' ? 'bg-teal-500' :
+                            badgeType === 'family' ? 'bg-blue-500' : 'bg-gray-400';
+                          const avatarIcon =
+                            badgeType === 'admin' ? 'fa-shield-halved' :
+                            badgeType === 'caregiver' ? 'fa-user-nurse' :
+                            badgeType === 'family' ? 'fa-house-medical' : 'fa-user';
+
+                          const pillLabel =
+                            badgeType === 'admin' ? (c.roleLabel === 'CARE_COORDINATOR' ? 'Coordinator' : 'Admin') :
+                            badgeType === 'caregiver' ? 'Caregiver' :
+                            badgeType === 'family' ? 'Family' : '';
+
                           return (
                             <button
                               key={contactKey}
@@ -9319,17 +9359,31 @@ export default function Home() {
                                 setSelectedContactId(contactKey);
                                 loadMessageThread(c.id, false, contactKey);
                               }}
-                              className={`w-full text-left px-3.5 py-3 rounded-xl text-sm transition-all ${isSelected ? 'bg-[#77248c] text-white shadow-md' : 'hover:bg-gray-50 border border-transparent'}`}
+                              className={`w-full text-left px-3 py-3 rounded-xl transition-all flex items-center gap-3 group ${isSelected ? 'bg-[#77248c] shadow-md' : 'hover:bg-gray-50 border border-transparent hover:border-gray-100'}`}
                             >
-                              <div className={`font-extrabold text-sm ${isSelected ? 'text-white' : 'text-gray-800'}`}>{c.name}</div>
-                              <div className={`text-xs font-semibold mt-0.5 leading-snug ${isSelected ? 'text-purple-100' : 'text-gray-500'}`}>
-                                {c.subtitle || (c.participants && c.participants[0] ? `${c.participants[0].role.replace('_', ' ')}` : 'Individual Contact')}
+                              {/* Avatar */}
+                              <div className={`w-9 h-9 rounded-full ${isSelected ? 'bg-white/25' : avatarBg} text-white flex items-center justify-center shrink-0 aspect-square shadow-xs`}>
+                                <i className={`fa-solid ${avatarIcon} text-xs text-white`}></i>
+                              </div>
+                              {/* Name & subtitle */}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className={`font-bold text-sm leading-tight truncate ${isSelected ? 'text-white' : 'text-gray-800'}`}>{c.name}</span>
+                                  {pillLabel && (
+                                    <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full shrink-0 ${isSelected ? 'bg-white/20 text-white' : badgeType === 'admin' ? 'bg-purple-100 text-[#77248c]' : badgeType === 'caregiver' ? 'bg-teal-100 text-teal-700' : 'bg-blue-100 text-blue-700'}`}>
+                                      {pillLabel}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className={`text-[11px] font-medium truncate mt-0.5 ${isSelected ? 'text-purple-100' : 'text-gray-400'}`}>
+                                  {c.linkedClientName ? `For ${c.linkedClientName}` : (c.subtitle || 'Contact')}
+                                </div>
                               </div>
                             </button>
                           );
-                        })}
-                      </div>
-                    )}
+                        })
+                      )}
+                    </div>
                   </div>
 
                   {/* Thread */}
