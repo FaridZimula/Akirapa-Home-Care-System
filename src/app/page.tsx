@@ -2805,13 +2805,13 @@ export default function Home() {
               <button
                 type="button"
                 onClick={() => handleGoogleAccountSelect('info@akirapahomecareus.com', 'ADMIN')}
-                className="w-full flex items-center justify-between p-3.5 bg-purple-50/70 hover:bg-purple-100/70 border border-purple-200 rounded-2xl transition-all text-left cursor-pointer group"
+                className="w-full flex items-center justify-between p-3.5 bg-gray-50 hover:bg-purple-50 border border-gray-200 rounded-2xl transition-all text-left cursor-pointer group"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-purple-600 text-white rounded-full flex items-center justify-center font-bold text-sm">A</div>
+                  <div className="w-10 h-10 bg-[#77248c] text-white rounded-full flex items-center justify-center font-bold text-sm">A</div>
                   <div>
                     <div className="font-bold text-gray-900 text-xs">Senior Admin Account</div>
-                    <div className="text-[11px] text-purple-700 font-mono">info@akirapahomecareus.com</div>
+                    <div className="text-[11px] text-[#77248c] font-mono">info@akirapahomecareus.com</div>
                   </div>
                 </div>
                 <i className="fa-solid fa-chevron-right text-gray-400 group-hover:translate-x-1 transition-transform text-xs"></i>
@@ -2820,13 +2820,13 @@ export default function Home() {
               <button
                 type="button"
                 onClick={() => handleGoogleAccountSelect('cathy@akirapahomecareus.com', 'ADMIN')}
-                className="w-full flex items-center justify-between p-3.5 bg-purple-50/70 hover:bg-purple-100/70 border border-purple-200 rounded-2xl transition-all text-left cursor-pointer group"
+                className="w-full flex items-center justify-between p-3.5 bg-gray-50 hover:bg-purple-50 border border-gray-200 rounded-2xl transition-all text-left cursor-pointer group"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-purple-600 text-white rounded-full flex items-center justify-center font-bold text-sm">C</div>
+                  <div className="w-10 h-10 bg-[#77248c] text-white rounded-full flex items-center justify-center font-bold text-sm">C</div>
                   <div>
                     <div className="font-bold text-gray-900 text-xs">Cathy Admin Account</div>
-                    <div className="text-[11px] text-purple-700 font-mono">cathy@akirapahomecareus.com</div>
+                    <div className="text-[11px] text-[#77248c] font-mono">cathy@akirapahomecareus.com</div>
                   </div>
                 </div>
                 <i className="fa-solid fa-chevron-right text-gray-400 group-hover:translate-x-1 transition-transform text-xs"></i>
@@ -4982,7 +4982,7 @@ export default function Home() {
             <button
               type="button"
               onClick={() => { setCurrentView('profile'); setIsMobileMenuOpen(false); }}
-              className={`p-1.5 rounded-lg transition-colors cursor-pointer shrink-0 ${currentView === 'profile' ? 'bg-purple-100 text-[#77248c]' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'}`}
+              className={`p-1.5 rounded-lg transition-colors cursor-pointer shrink-0 ${currentView === 'profile' ? 'bg-[#77248c] text-white shadow-xs' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'}`}
               title="My Profile"
             >
               <i className="fa-solid fa-gear text-xs"></i>
@@ -5620,7 +5620,7 @@ export default function Home() {
                       <h2 className="text-2xl font-bold text-gray-800 mt-4">{user.name}</h2>
                       <p className="text-gray-500">{user.email}</p>
                       <span className="mt-2 px-4 py-1.5 bg-[#77248c] text-white rounded-full text-sm font-bold shadow-xs">{user.role}</span>
-                      {user.phoneNumber && <p className="text-sm text-gray-500 mt-2 font-mono"><i className="fa-solid fa-phone mr-2"></i>{formatUSPhoneDisplay(user.phoneNumber)}</p>}
+                      {user.role !== 'ADMIN' && user.phoneNumber && <p className="text-sm text-gray-500 mt-2 font-mono"><i className="fa-solid fa-phone mr-2"></i>{formatUSPhoneDisplay(user.phoneNumber)}</p>}
                     </div>
                     {user.role !== 'ADMIN' && (
                       <div className="grid grid-cols-2 gap-4 mt-8">
@@ -5814,8 +5814,8 @@ export default function Home() {
                       {/* Quick Account Info Card */}
                       <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
                         <div className="flex items-center gap-3 border-b border-gray-100 pb-4 mb-5">
-                          <div className="w-10 h-10 rounded-2xl bg-purple-50 flex items-center justify-center">
-                            <i className="fa-solid fa-circle-user text-[#77248c] text-lg"></i>
+                          <div className="w-10 h-10 rounded-2xl bg-[#77248c] text-white flex items-center justify-center shadow-xs">
+                            <i className="fa-solid fa-circle-user text-white text-lg"></i>
                           </div>
                           <div>
                             <h3 className="font-bold text-gray-800 text-base">Account Information</h3>
@@ -5846,7 +5846,7 @@ export default function Home() {
                               </div>
                             </div>
                           )}
-                          <div className="flex items-center gap-3 p-3 bg-[#77248c] rounded-xl border border-purple-800 text-white shadow-sm">
+                          <div className="flex items-center gap-3 p-3 bg-[#77248c] rounded-xl text-white shadow-sm">
                             <i className="fa-solid fa-heart text-white w-4 text-center"></i>
                             <div>
                               <div className="text-[10px] text-purple-200 uppercase font-semibold">Portal Access</div>
@@ -7472,10 +7472,10 @@ export default function Home() {
                           n.type === 'CARE_PLAN_UPDATED' ? 'fa-clipboard-list' :
                           n.type === 'NEW_MESSAGE' ? 'fa-message' : 'fa-bell';
 
-                        const colorClass = isAlert ? 'bg-red-100 text-red-600' :
-                          isSuccess ? 'bg-emerald-100 text-emerald-600' :
-                          isFinancial ? 'bg-blue-100 text-blue-600' :
-                          'bg-purple-100 text-purple-600';
+                        const colorClass = isAlert ? 'bg-red-600 text-white shadow-xs' :
+                          isSuccess ? 'bg-emerald-600 text-white shadow-xs' :
+                          isFinancial ? 'bg-blue-600 text-white shadow-xs' :
+                          'bg-[#77248c] text-white shadow-xs';
 
                         return (
                           <div
@@ -7644,21 +7644,25 @@ export default function Home() {
                   ) : invoicesData ? (
                     <>
                       {/* Payment Tracker Header Banner */}
-                      <div className="bg-gradient-to-r from-[#77248c] via-purple-900 to-[#5a1a6b] rounded-3xl p-6 text-white shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                        <div>
-                          <div className="flex items-center gap-2 text-xs font-bold text-purple-200 uppercase tracking-widest mb-1">
-                            <span className="w-3 h-3 rounded-full bg-[#4cdbd5] inline-block shadow-xs"></span>
-                            Akirapa Home Care Agency • Financial Intelligence
+                      <div className="relative overflow-hidden bg-gradient-to-br from-[#77248c] via-[#5f1b70] to-[#451253] rounded-3xl p-7 text-white shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border border-purple-500/20">
+                        {/* Background glow effects */}
+                        <div className="absolute -top-16 -right-16 w-72 h-72 bg-[#4cdbd5]/15 rounded-full blur-3xl pointer-events-none" />
+                        <div className="absolute -bottom-16 left-1/3 w-64 h-64 bg-purple-500/20 rounded-full blur-3xl pointer-events-none" />
+
+                        <div className="relative z-10 space-y-2 flex-1 min-w-0 pr-4">
+                          <div className="flex items-center gap-2 text-xs font-extrabold text-[#4cdbd5] uppercase tracking-widest">
+                            <span className="w-2.5 h-2.5 rounded-full bg-[#4cdbd5] inline-block animate-pulse shadow-xs shrink-0"></span>
+                            <span>Akirapa Home Care Agency • Financial Intelligence</span>
                           </div>
-                          <h2 className="text-3xl font-black text-white tracking-tight">PAYMENT TRACKER</h2>
-                          <p className="text-xs text-purple-100/90 mt-1 max-w-xl">
+                          <h2 className="text-3xl md:text-4xl font-black text-white tracking-tight leading-tight drop-shadow-sm">PAYMENT TRACKER</h2>
+                          <p className="text-xs md:text-sm text-purple-100 font-medium leading-relaxed max-w-2xl">
                             Track client invoices, payments, remaining balances, and overdue accounts at a glance.
                           </p>
                         </div>
 
                         <button
                           onClick={() => setShowGenerateInvoiceModal(true)}
-                          className="px-5 py-3 bg-[#4cdbd5] hover:bg-[#3bc7c1] text-purple-950 font-black text-xs rounded-2xl flex items-center gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer active:scale-95"
+                          className="relative z-10 px-6 py-3.5 bg-[#4cdbd5] hover:bg-[#3bc7c1] text-[#2d0936] font-black text-xs rounded-2xl flex items-center gap-2.5 shadow-md hover:shadow-cyan-500/30 transition-all duration-200 cursor-pointer active:scale-95 shrink-0 whitespace-nowrap"
                         >
                           <i className="fa-solid fa-file-invoice text-sm"></i>
                           <span>Generate New Invoice</span>

@@ -43,7 +43,7 @@ async function main() {
         passwordHash: defaultPasswordHash,
         name: account.name,
         role: UserRole.ADMIN,
-        phoneNumber: '+16045550100',
+        phoneNumber: null,
         profileMetadata: JSON.stringify({
           bio: 'Clinical & System Operations Administrator',
           certifications: ['System Admin', 'HIPAA Privacy Officer'],
