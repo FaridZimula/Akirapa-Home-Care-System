@@ -222,6 +222,35 @@ export default function Home() {
   const [newClientEmergencyRelationship, setNewClientEmergencyRelationship] = useState('Family Contact');
   const [isProvisioningClient, setIsProvisioningClient] = useState(false);
   const [addClientError, setAddClientError] = useState<string | null>(null);
+  // Client Intake — Fill Later Toggle
+  const [clientFillDetailsLater, setClientFillDetailsLater] = useState(false);
+  // Client Intake — Demographics
+  const [newClientDob, setNewClientDob] = useState('');
+  const [newClientGender, setNewClientGender] = useState('');
+  // Client Intake — Health & Medical
+  const [newClientMedicalConditions, setNewClientMedicalConditions] = useState('');
+  const [newClientAllergies, setNewClientAllergies] = useState('');
+  const [newClientMobility, setNewClientMobility] = useState('');
+  const [newClientMedicationDetails, setNewClientMedicationDetails] = useState('');
+  // Client Intake — Physical Wellbeing Baseline
+  const [newClientEnergyLevel, setNewClientEnergyLevel] = useState<'High' | 'Moderate' | 'Low' | ''>('');
+  const [newClientPainLevel, setNewClientPainLevel] = useState<'None' | 'Mild' | 'Moderate' | 'Severe' | ''>('');
+  const [newClientMood, setNewClientMood] = useState<string[]>([]);
+  const [newClientAlertness, setNewClientAlertness] = useState<string[]>([]);
+  const [newClientAppetite, setNewClientAppetite] = useState<'Good' | 'Fair' | 'Poor' | ''>('');
+  const [newClientHydration, setNewClientHydration] = useState<'Good' | 'Fair' | 'Poor' | ''>('');
+  const [newClientSleep, setNewClientSleep] = useState<'Good' | 'Fair' | 'Poor' | ''>('');
+  // Client Intake — Caregiver Preferences & About
+  const [newClientCarePreferences, setNewClientCarePreferences] = useState<string[]>([]);
+  const [newClientPersonality, setNewClientPersonality] = useState('');
+  const [newClientDailyRoutine, setNewClientDailyRoutine] = useState('');
+  const [newClientPreferredCaregiverType, setNewClientPreferredCaregiverType] = useState('');
+  const [newClientAdditionalObservations, setNewClientAdditionalObservations] = useState('');
+  // Client Intake — Emergency Contact 2
+  const [newClientEmergency2FirstName, setNewClientEmergency2FirstName] = useState('');
+  const [newClientEmergency2LastName, setNewClientEmergency2LastName] = useState('');
+  const [newClientEmergency2Phone, setNewClientEmergency2Phone] = useState('');
+  const [newClientEmergency2Relationship, setNewClientEmergency2Relationship] = useState('');
 
   // In-Portal Self Password Change Modal State
   const [showSelfPasswordModal, setShowSelfPasswordModal] = useState(false);
