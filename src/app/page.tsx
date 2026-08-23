@@ -7980,14 +7980,14 @@ export default function Home() {
 
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                               {/* Aspect 1: Appetite */}
-                              <div className="bg-gray-50/80 border border-gray-200 rounded-2xl p-4 space-y-3 hover:border-purple-200 transition-all shadow-2xs">
-                                <div className="flex items-center gap-2.5 border-b border-gray-200/60 pb-2">
-                                  <div className="w-8 h-8 rounded-xl bg-purple-100 text-[#77248c] flex items-center justify-center text-sm shrink-0 aspect-square shadow-2xs">
-                                    <i className="fa-solid fa-utensils text-[#77248c]"></i>
+                              <div className="bg-white border border-[#77248c]/30 hover:border-[#77248c] rounded-2xl p-4 space-y-3 transition-all shadow-xs group">
+                                <div className="flex items-center gap-2.5 border-b border-purple-100 pb-2.5">
+                                  <div className="w-9 h-9 rounded-xl bg-[#77248c] text-white flex items-center justify-center text-sm shrink-0 aspect-square shadow-sm border border-[#77248c]">
+                                    <i className="fa-solid fa-utensils text-white !text-white" style={{ color: '#ffffff' }}></i>
                                   </div>
                                   <div>
-                                    <div className="font-extrabold text-xs text-gray-800 uppercase tracking-wider">1. Appetite</div>
-                                    <div className="text-[10px] text-gray-400 font-medium">Meal intake & nutrition</div>
+                                    <div className="font-extrabold text-xs text-gray-900 uppercase tracking-wider">1. Appetite</div>
+                                    <div className="text-[10px] text-gray-500 font-medium">Meal intake & nutrition</div>
                                   </div>
                                 </div>
 
@@ -8006,14 +8006,14 @@ export default function Home() {
                               </div>
 
                               {/* Aspect 2: Hydration */}
-                              <div className="bg-gray-50/80 border border-gray-200 rounded-2xl p-4 space-y-3 hover:border-teal-200 transition-all shadow-2xs">
-                                <div className="flex items-center gap-2.5 border-b border-gray-200/60 pb-2">
-                                  <div className="w-8 h-8 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center text-sm shrink-0 aspect-square shadow-2xs">
-                                    <i className="fa-solid fa-droplet text-teal-600"></i>
+                              <div className="bg-white border border-[#77248c]/30 hover:border-[#77248c] rounded-2xl p-4 space-y-3 transition-all shadow-xs group">
+                                <div className="flex items-center gap-2.5 border-b border-purple-100 pb-2.5">
+                                  <div className="w-9 h-9 rounded-xl bg-[#77248c] text-white flex items-center justify-center text-sm shrink-0 aspect-square shadow-sm border border-[#77248c]">
+                                    <i className="fa-solid fa-droplet text-white !text-white" style={{ color: '#ffffff' }}></i>
                                   </div>
                                   <div>
-                                    <div className="font-extrabold text-xs text-gray-800 uppercase tracking-wider">2. Hydration</div>
-                                    <div className="text-[10px] text-gray-400 font-medium">Daily fluid & water intake</div>
+                                    <div className="font-extrabold text-xs text-gray-900 uppercase tracking-wider">2. Hydration</div>
+                                    <div className="text-[10px] text-gray-500 font-medium">Daily fluid & water intake</div>
                                   </div>
                                 </div>
 
@@ -8032,14 +8032,14 @@ export default function Home() {
                               </div>
 
                               {/* Aspect 3: Sleep */}
-                              <div className="bg-gray-50/80 border border-gray-200 rounded-2xl p-4 space-y-3 hover:border-purple-200 transition-all shadow-2xs">
-                                <div className="flex items-center gap-2.5 border-b border-gray-200/60 pb-2">
-                                  <div className="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center text-sm shrink-0 aspect-square shadow-2xs">
-                                    <i className="fa-solid fa-moon text-indigo-600"></i>
+                              <div className="bg-white border border-[#77248c]/30 hover:border-[#77248c] rounded-2xl p-4 space-y-3 transition-all shadow-xs group">
+                                <div className="flex items-center gap-2.5 border-b border-purple-100 pb-2.5">
+                                  <div className="w-9 h-9 rounded-xl bg-[#77248c] text-white flex items-center justify-center text-sm shrink-0 aspect-square shadow-sm border border-[#77248c]">
+                                    <i className="fa-solid fa-moon text-white !text-white" style={{ color: '#ffffff' }}></i>
                                   </div>
                                   <div>
-                                    <div className="font-extrabold text-xs text-gray-800 uppercase tracking-wider">3. Sleep Quality</div>
-                                    <div className="text-[10px] text-gray-400 font-medium">Nighttime rest & sleep</div>
+                                    <div className="font-extrabold text-xs text-gray-900 uppercase tracking-wider">3. Sleep Quality</div>
+                                    <div className="text-[10px] text-gray-500 font-medium">Nighttime rest & sleep</div>
                                   </div>
                                 </div>
 
