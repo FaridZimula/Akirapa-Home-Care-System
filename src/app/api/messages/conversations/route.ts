@@ -129,7 +129,27 @@ export async function GET(request: Request) {
         }
       }
 
-      return NextResponse.json({ conversations });
+          // Compute unreadCount for each contact
+    for (const c of conversations) {
+      if (c.contactId) {
+        try {
+          const unreadCount = await prisma.message.count({
+            where: {
+              senderId: c.contactId,
+              recipientId: sessionUser.id,
+              isRead: false,
+            },
+          });
+          c.unreadCount = unreadCount;
+        } catch (e) {
+          c.unreadCount = 0;
+        }
+      } else {
+        c.unreadCount = 0;
+      }
+    }
+
+    return NextResponse.json({ conversations });
     }
 
     // ─── CAREGIVER: admins + clients in their pod + family members of those clients ───

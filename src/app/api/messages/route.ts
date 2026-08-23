@@ -81,6 +81,22 @@ export async function GET(request: Request) {
       };
     }
 
+    // Mark unread messages sent to sessionUser as read
+    try {
+      if (targetId) {
+        await prisma.message.updateMany({
+          where: {
+            senderId: targetId,
+            recipientId: sessionUser.id,
+            isRead: false,
+          },
+          data: { isRead: true },
+        });
+      }
+    } catch (e) {
+      // Ignore if column migration pending
+    }
+
     const messages = await prisma.message.findMany({
       where: whereClause,
       orderBy: { createdAt: 'asc' },

@@ -500,7 +500,7 @@ export default function Home() {
   const [viewingBillingRecord, setViewingBillingRecord] = useState<any>(null);
 
   // Messaging (caregiver <-> family, monitored by admin/coordinator)
-  const [messageConversations, setMessageConversations] = useState<Array<{ id: string; contactId?: string; name: string; subtitle?: string; roleLabel?: string; badgeType?: string; linkedClientName?: string; participants: Array<{ id: string; name: string; role: string }> }>>([]);
+  const [messageConversations, setMessageConversations] = useState<Array<{ id: string; contactId?: string; name: string; subtitle?: string; roleLabel?: string; badgeType?: string; linkedClientName?: string; unreadCount?: number; participants: Array<{ id: string; name: string; role: string }> }>>([]);
   const [selectedMessageClientId, setSelectedMessageClientId] = useState<string>('');
   const [selectedContactId, setSelectedContactId] = useState<string>('');
   const [messageThread, setMessageThread] = useState<any[]>([]);
@@ -5234,8 +5234,13 @@ export default function Home() {
                   <i className="fa-solid fa-star-half-stroke w-4 text-center"></i> Caregiver Reviews
                 </button>
               )}
-              <button onClick={() => { setCurrentView('messages'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${currentView === 'messages' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
+              <button onClick={() => { setCurrentView('messages'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all relative ${currentView === 'messages' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                 <i className="fa-solid fa-comments w-4 text-center"></i> Messages
+                {messageConversations.some(c => (c.unreadCount || 0) > 0) && (
+                  <span className="ml-auto w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center shadow shrink-0 aspect-square">
+                    {messageConversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0) > 9 ? '9+' : messageConversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0)}
+                  </span>
+                )}
               </button>
               {(user.role === 'ADMIN' || user.role === 'CARE_COORDINATOR') && (
                 <button onClick={() => { setCurrentView('messageOversight'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${currentView === 'messageOversight' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
@@ -5254,8 +5259,13 @@ export default function Home() {
               <button onClick={() => { setCurrentView('listings'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${currentView === 'listings' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                 <i className="fa-solid fa-clock w-4 text-center"></i> My Shifts
               </button>
-              <button onClick={() => { setCurrentView('messages'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${currentView === 'messages' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
+              <button onClick={() => { setCurrentView('messages'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all relative ${currentView === 'messages' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                 <i className="fa-solid fa-comments w-4 text-center"></i> Messages
+                {messageConversations.some(c => (c.unreadCount || 0) > 0) && (
+                  <span className="ml-auto w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center shadow shrink-0 aspect-square">
+                    {messageConversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0) > 9 ? '9+' : messageConversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0)}
+                  </span>
+                )}
               </button>
               <button onClick={() => { setCurrentView('interested'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${currentView === 'interested' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                 <i className="fa-solid fa-bell w-4 text-center"></i> Alerts
@@ -5269,8 +5279,13 @@ export default function Home() {
               <button onClick={() => { setCurrentView('listings'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${currentView === 'listings' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                 <i className="fa-solid fa-heart-pulse w-4 text-center"></i> Care Feed
               </button>
-              <button onClick={() => { setCurrentView('messages'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${currentView === 'messages' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
+              <button onClick={() => { setCurrentView('messages'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all relative ${currentView === 'messages' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                 <i className="fa-solid fa-comments w-4 text-center"></i> Messages
+                {messageConversations.some(c => (c.unreadCount || 0) > 0) && (
+                  <span className="ml-auto w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center shadow shrink-0 aspect-square">
+                    {messageConversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0) > 9 ? '9+' : messageConversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0)}
+                  </span>
+                )}
               </button>
               <button onClick={() => { setCurrentView('purchases'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${currentView === 'purchases' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                 <i className="fa-solid fa-file-invoice w-4 text-center"></i> Documents
@@ -9541,7 +9556,7 @@ export default function Home() {
                                         </div>
                                       </td>
                                       <td className="py-3 pr-3">
-                                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${t.type === 'DIRECT' ? 'bg-purple-100 text-purple-700 border border-purple-200' : 'bg-teal-100 text-teal-700 border border-teal-200'}`}>
+                                        <span className={`px-2.5 py-0.5 rounded-full text-[9px] uppercase tracking-wider font-extrabold shadow-2xs ${t.type === 'DIRECT' ? 'bg-[#77248c] text-white border border-[#77248c]' : 'bg-[#4cdbd5] text-white border border-[#4cdbd5]'}`}>
                                           {t.type === 'DIRECT' ? 'PRIVATE DM' : 'CARE TEAM'}
                                         </span>
                                       </td>
@@ -9622,14 +9637,13 @@ export default function Home() {
 
                           const pillLabel =
                             badgeType === 'admin' ? (c.roleLabel === 'CARE_COORDINATOR' ? 'Coordinator' : 'ADMIN') :
-                            badgeType === 'caregiver' ? 'Caregiver' :
-                            badgeType === 'family' ? 'FAMILY' : '';
+                            badgeType === 'caregiver' ? 'CAREGIVER' :
+                            badgeType === 'family' ? 'FAMILY' : (c.roleLabel || 'USER');
 
                           const badgeStyle =
-                            badgeType === 'admin' ? 'bg-[#77248c] text-white border border-[#77248c] shadow-2xs font-extrabold' :
-                            badgeType === 'caregiver' ? 'bg-teal-600 text-white border border-teal-600 shadow-2xs font-extrabold' :
-                            badgeType === 'family' ? 'bg-[#4cdbd5] text-white border border-[#4cdbd5] shadow-2xs font-black' :
-                            'bg-gray-200 text-gray-700 font-bold';
+                            badgeType === 'admin'
+                              ? 'bg-[#77248c] text-white !text-white border border-[#77248c] shadow-2xs font-extrabold'
+                              : 'bg-[#4cdbd5] text-white !text-white border border-[#4cdbd5] shadow-2xs font-black';
 
                           return (
                             <button
@@ -9642,7 +9656,14 @@ export default function Home() {
                               className={`w-full text-left px-3 py-3 rounded-xl transition-all flex items-center gap-3 group ${isSelected ? 'bg-[#77248c] shadow-md' : 'hover:bg-gray-50 border border-transparent hover:border-gray-100'}`}
                             >
                               {/* Avatar */}
-                              <div className={`w-9 h-9 rounded-full ${isSelected ? 'bg-white/25' : avatarBg} text-white flex items-center justify-center shrink-0 aspect-square shadow-xs`}>
+                              <div
+                                className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 aspect-square shadow-xs"
+                                style={
+                                  isSelected
+                                    ? { backgroundColor: '#77248c', color: '#ffffff', border: '2px solid #ffffff' }
+                                    : { backgroundColor: badgeType === 'admin' ? '#77248c' : badgeType === 'caregiver' ? '#14b8a6' : '#4cdbd5', color: '#ffffff', border: '1px solid transparent' }
+                                }
+                              >
                                 <i className={`fa-solid ${avatarIcon} text-xs text-white`}></i>
                               </div>
                               {/* Name & subtitle */}
@@ -9650,8 +9671,22 @@ export default function Home() {
                                 <div className="flex items-center gap-1.5 flex-wrap">
                                   <span className={`font-bold text-sm leading-tight truncate ${isSelected ? 'text-white' : 'text-gray-800'}`}>{c.name}</span>
                                   {pillLabel && (
-                                    <span className={`text-[9px] uppercase px-2 py-0.5 rounded-full shrink-0 tracking-wider ${isSelected ? 'bg-white/20 text-white border border-white/40 font-extrabold' : badgeStyle}`}>
+                                    <span
+                                      className="text-[9px] uppercase px-2.5 py-0.5 rounded-full shrink-0 tracking-wider font-extrabold shadow-2xs"
+                                      style={
+                                        isSelected
+                                          ? { backgroundColor: '#77248c', color: '#ffffff', border: '2px solid #ffffff' }
+                                          : badgeType === 'admin'
+                                          ? { backgroundColor: '#77248c', color: '#ffffff', border: '1px solid #77248c' }
+                                          : { backgroundColor: '#4cdbd5', color: '#ffffff', border: '1px solid #4cdbd5' }
+                                      }
+                                    >
                                       {pillLabel}
+                                    </span>
+                                  )}
+                                  {Boolean((c.unreadCount || 0) > 0) && (
+                                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-black shrink-0 shadow-xs ${isSelected ? 'bg-white text-red-600' : 'bg-red-500 text-white animate-pulse'}`}>
+                                      {(c.unreadCount || 0) > 9 ? '9+' : c.unreadCount} UNREAD
                                     </span>
                                   )}
                                 </div>
@@ -10254,10 +10289,47 @@ export default function Home() {
                     </div>
                     {m.text && <p className="text-sm text-gray-800 whitespace-pre-wrap">{m.text}</p>}
                     {m.hasAttachment && (
-                      <div className="mt-1.5 text-xs text-gray-500 italic flex items-center gap-1.5">
-                        <i className="fa-solid fa-paperclip"></i>
-                        {m.mediaType === 'audio' ? 'Voice note' : m.mediaType === 'video' ? 'Video' : 'Photo'}
-                        {m.mediaName ? ` — ${m.mediaName}` : ''}
+                      <div className="mt-2.5">
+                        {m.mediaType === 'audio' ? (
+                          <div className="p-3 bg-[#77248c]/5 border border-[#77248c]/20 rounded-xl space-y-1.5 max-w-md">
+                            <div className="flex items-center gap-2 text-xs font-bold text-[#77248c]">
+                              <i className="fa-solid fa-microphone-lines text-sm animate-pulse text-[#77248c]"></i>
+                              <span>Voice Note ({m.mediaName || 'voice_note.webm'})</span>
+                            </div>
+                            {m.mediaUrl ? (
+                              <audio src={m.mediaUrl} controls className="w-full h-8 scale-95 opacity-90 rounded-lg" />
+                            ) : (
+                              <span className="text-[11px] text-gray-400 italic">Voice note audio file loading...</span>
+                            )}
+                          </div>
+                        ) : m.mediaType === 'video' ? (
+                          <div className="max-w-sm rounded-xl overflow-hidden border border-gray-200 shadow-2xs bg-black">
+                            {m.mediaUrl ? (
+                              <video src={m.mediaUrl} controls className="w-full max-h-64 object-cover" />
+                            ) : (
+                              <div className="p-4 text-white text-xs text-center">Video file loading...</div>
+                            )}
+                            {m.mediaName && <div className="p-1.5 bg-gray-900 text-white text-[10px] font-mono truncate">{m.mediaName}</div>}
+                          </div>
+                        ) : (
+                          <div className="space-y-1">
+                            {m.mediaUrl ? (
+                              <div
+                                onClick={() => setActiveMediaModal({ url: m.mediaUrl, type: 'image/png', caption: m.mediaName || 'Photo Attachment', createdAt: m.createdAt })}
+                                className="relative max-w-sm rounded-xl overflow-hidden border border-gray-200 shadow-2xs group cursor-pointer"
+                              >
+                                <img src={m.mediaUrl} alt={m.mediaName || 'Photo Attachment'} className="w-full max-h-64 object-cover group-hover:scale-102 transition-transform duration-300" />
+                                <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white font-bold text-xs gap-1.5 backdrop-blur-[2px]">
+                                  <i className="fa-solid fa-magnifying-glass-plus text-base"></i> Click to View Full Image
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="p-3 bg-gray-100 rounded-xl text-xs text-gray-500 italic">
+                                <i className="fa-solid fa-image mr-1.5"></i> Photo attachment: {m.mediaName || 'photo.jpg'}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
