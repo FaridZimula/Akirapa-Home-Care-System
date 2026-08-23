@@ -499,7 +499,7 @@ export default function Home() {
   const [viewingBillingRecord, setViewingBillingRecord] = useState<any>(null);
 
   // Messaging (caregiver <-> family, monitored by admin/coordinator)
-  const [messageConversations, setMessageConversations] = useState<Array<{ id: string; contactId?: string; name: string; subtitle?: string; roleLabel?: string; badgeType?: string; linkedClientName?: string; participants: Array<{ id: string; name: string; role: string }> }>>([]);
+  const [messageConversations, setMessageConversations] = useState<Array<{ id: string; contactId?: string; name: string; subtitle?: string; roleLabel?: string; badgeType?: string; linkedClientName?: string; unreadCount?: number; participants: Array<{ id: string; name: string; role: string }> }>>([]);
   const [selectedMessageClientId, setSelectedMessageClientId] = useState<string>('');
   const [selectedContactId, setSelectedContactId] = useState<string>('');
   const [messageThread, setMessageThread] = useState<any[]>([]);
@@ -5184,7 +5184,7 @@ export default function Home() {
               )}
               <button onClick={() => { setCurrentView('messages'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all relative ${currentView === 'messages' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                 <i className="fa-solid fa-comments w-4 text-center"></i> Messages
-                {messageConversations.some(c => c.unreadCount > 0) && (
+                {messageConversations.some(c => (c.unreadCount || 0) > 0) && (
                   <span className="ml-auto w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center shadow shrink-0 aspect-square">
                     {messageConversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0) > 9 ? '9+' : messageConversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0)}
                   </span>
@@ -5209,7 +5209,7 @@ export default function Home() {
               </button>
               <button onClick={() => { setCurrentView('messages'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all relative ${currentView === 'messages' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                 <i className="fa-solid fa-comments w-4 text-center"></i> Messages
-                {messageConversations.some(c => c.unreadCount > 0) && (
+                {messageConversations.some(c => (c.unreadCount || 0) > 0) && (
                   <span className="ml-auto w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center shadow shrink-0 aspect-square">
                     {messageConversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0) > 9 ? '9+' : messageConversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0)}
                   </span>
@@ -5229,7 +5229,7 @@ export default function Home() {
               </button>
               <button onClick={() => { setCurrentView('messages'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all relative ${currentView === 'messages' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                 <i className="fa-solid fa-comments w-4 text-center"></i> Messages
-                {messageConversations.some(c => c.unreadCount > 0) && (
+                {messageConversations.some(c => (c.unreadCount || 0) > 0) && (
                   <span className="ml-auto w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center shadow shrink-0 aspect-square">
                     {messageConversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0) > 9 ? '9+' : messageConversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0)}
                   </span>
@@ -9632,9 +9632,9 @@ export default function Home() {
                                       {pillLabel}
                                     </span>
                                   )}
-                                  {Boolean(c.unreadCount && c.unreadCount > 0) && (
+                                  {Boolean((c.unreadCount || 0) > 0) && (
                                     <span className={`px-2 py-0.5 rounded-full text-[9px] font-black shrink-0 shadow-xs ${isSelected ? 'bg-white text-red-600' : 'bg-red-500 text-white animate-pulse'}`}>
-                                      {c.unreadCount > 9 ? '9+' : c.unreadCount} UNREAD
+                                      {(c.unreadCount || 0) > 9 ? '9+' : c.unreadCount} UNREAD
                                     </span>
                                   )}
                                 </div>
