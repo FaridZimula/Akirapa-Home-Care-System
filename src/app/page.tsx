@@ -5846,11 +5846,11 @@ export default function Home() {
                               </div>
                             </div>
                           )}
-                          <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-xl border border-purple-100">
-                            <i className="fa-solid fa-heart text-[#77248c] w-4 text-center"></i>
+                          <div className="flex items-center gap-3 p-3 bg-[#77248c] rounded-xl border border-purple-800 text-white shadow-sm">
+                            <i className="fa-solid fa-heart text-white w-4 text-center"></i>
                             <div>
-                              <div className="text-[10px] text-gray-400 uppercase font-semibold">Portal Access</div>
-                              <div className="font-bold text-[#77248c] text-xs">Family Care Portal — Full Access</div>
+                              <div className="text-[10px] text-purple-200 uppercase font-semibold">Portal Access</div>
+                              <div className="font-bold text-white text-xs">Family Care Portal — Full Access</div>
                             </div>
                           </div>
                         </div>
@@ -8311,8 +8311,8 @@ export default function Home() {
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                   <h3 className="font-semibold text-gray-800 mb-4">{user.role === 'FAMILY_MEMBER' ? 'Documents & Invoices' : 'Purchases & Sales'}</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                    <div className="bg-green-50 rounded-xl p-4 text-center"><div className="text-sm text-gray-600">Completed</div><div className="text-2xl font-bold text-green-600">{shifts.filter(s => s.status === 'COMPLETED').length}</div></div>
-                    <div className="bg-purple-50 rounded-xl p-4 text-center"><div className="text-sm text-gray-600">Active</div><div className="text-2xl font-bold text-purple-600">{shifts.filter(s => s.status === 'IN_PROGRESS' || s.status === 'CONFIRMED').length}</div></div>
+                    <div className="bg-emerald-600 rounded-xl p-4 text-center text-white shadow-sm"><div className="text-sm font-semibold text-white flex items-center justify-center gap-1.5"><i className="fa-solid fa-circle-check text-white text-base"></i> Completed</div><div className="text-2xl font-bold text-white mt-0.5">{shifts.filter(s => s.status === 'COMPLETED').length}</div></div>
+                    <div className="bg-[#77248c] rounded-xl p-4 text-center text-white shadow-sm"><div className="text-sm font-semibold text-white flex items-center justify-center gap-1.5"><i className="fa-solid fa-clock text-white text-base"></i> Active</div><div className="text-2xl font-bold text-white mt-0.5">{shifts.filter(s => s.status === 'IN_PROGRESS' || s.status === 'CONFIRMED').length}</div></div>
                   </div>
                   <div className="space-y-3">
                     {shifts.filter(s => s.status === 'COMPLETED' || s.status === 'IN_PROGRESS').slice(0, 5).map((shift) => (
