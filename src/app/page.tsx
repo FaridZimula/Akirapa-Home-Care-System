@@ -7075,15 +7075,17 @@ export default function Home() {
                       {!clientFillDetailsLater ? (
                         <div className="space-y-6 animate-fade-up">
                           {/* Demographics & Physical Wellbeing Header */}
-                          <div className="bg-teal-900 text-white rounded-2xl p-4 flex justify-between items-center shadow-xs">
+                          <div className="bg-[#4cdbd5] text-white rounded-2xl p-4.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md">
                             <div className="flex items-center gap-3">
-                              <i className="fa-solid fa-heart-pulse text-[#4cdbd5] text-lg"></i>
+                              <div className="w-10 h-10 rounded-xl bg-white/20 text-white flex items-center justify-center shrink-0 aspect-square shadow-xs">
+                                <i className="fa-solid fa-heart-pulse text-white text-xl"></i>
+                              </div>
                               <div>
-                                <div className="font-extrabold text-sm uppercase tracking-wider">Client Intake Assessment</div>
-                                <div className="text-[10px] text-teal-200">Baseline Health, Wellbeing & Daily Status (Interview Worksheet)</div>
+                                <div className="font-extrabold text-sm uppercase tracking-wider text-white">Client Intake Assessment</div>
+                                <div className="text-[11px] text-white/95 font-medium">Baseline Health, Wellbeing & Daily Status (Interview Worksheet)</div>
                               </div>
                             </div>
-                            <span className="text-[10px] bg-[#4cdbd5] text-teal-950 font-black px-2.5 py-1 rounded-full uppercase">Live Interview Mode</span>
+                            <span className="text-[10px] bg-white text-[#0e7490] font-black px-3 py-1.5 rounded-full uppercase shadow-xs shrink-0 tracking-wider">Live Interview Mode</span>
                           </div>
 
                           {/* Section A: Physical Wellbeing */}
