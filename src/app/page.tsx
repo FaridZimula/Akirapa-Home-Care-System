@@ -6127,13 +6127,13 @@ export default function Home() {
               {currentView === 'care_updates' && user.role === 'FAMILY_MEMBER' && (
                 <div className="space-y-6 max-w-3xl mx-auto">
                   {/* Header Banner */}
-                  <div className="bg-[#77248c] rounded-3xl p-6 text-white shadow-xl flex flex-col sm:flex-row items-start sm:items-center gap-5">
-                    <div className="w-14 h-14 rounded-2xl bg-white/20 text-white flex items-center justify-center text-2xl shadow-inner shrink-0 aspect-square">
-                      <i className="fa-solid fa-bell-concierge text-white"></i>
+                  <div className="bg-[#77248c] rounded-3xl p-6 text-white !text-white shadow-xl flex flex-col sm:flex-row items-start sm:items-center gap-5" style={{ color: '#ffffff' }}>
+                    <div className="w-14 h-14 rounded-2xl bg-white/20 text-white !text-white flex items-center justify-center text-2xl shadow-inner shrink-0 aspect-square" style={{ color: '#ffffff' }}>
+                      <i className="fa-solid fa-bell-concierge text-white !text-white" style={{ color: '#ffffff' }}></i>
                     </div>
                     <div className="flex-1">
-                      <h3 className="font-extrabold text-xl text-white tracking-wide">Care Updates</h3>
-                      <p className="text-xs text-white/90 font-medium mt-0.5">Real-time alerts, caregiver assignments, shift updates, and emergency notices for your loved one&apos;s care.</p>
+                      <h3 className="font-extrabold text-xl text-white !text-white tracking-wide" style={{ color: '#ffffff' }}>Care Updates</h3>
+                      <p className="text-xs text-white/95 !text-white font-medium mt-0.5" style={{ color: '#ffffff' }}>Real-time alerts, caregiver assignments, shift updates, and emergency notices for your loved one&apos;s care.</p>
                     </div>
                     {dbNotifications.filter(n => !n.isRead).length > 0 && (
                       <button
