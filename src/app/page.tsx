@@ -5182,8 +5182,13 @@ export default function Home() {
                   <i className="fa-solid fa-star-half-stroke w-4 text-center"></i> Caregiver Reviews
                 </button>
               )}
-              <button onClick={() => { setCurrentView('messages'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${currentView === 'messages' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
+              <button onClick={() => { setCurrentView('messages'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all relative ${currentView === 'messages' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                 <i className="fa-solid fa-comments w-4 text-center"></i> Messages
+                {messageConversations.some(c => c.unreadCount > 0) && (
+                  <span className="ml-auto w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center shadow shrink-0 aspect-square">
+                    {messageConversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0) > 9 ? '9+' : messageConversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0)}
+                  </span>
+                )}
               </button>
               {(user.role === 'ADMIN' || user.role === 'CARE_COORDINATOR') && (
                 <button onClick={() => { setCurrentView('messageOversight'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${currentView === 'messageOversight' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
@@ -5202,8 +5207,13 @@ export default function Home() {
               <button onClick={() => { setCurrentView('listings'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${currentView === 'listings' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                 <i className="fa-solid fa-clock w-4 text-center"></i> My Shifts
               </button>
-              <button onClick={() => { setCurrentView('messages'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${currentView === 'messages' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
+              <button onClick={() => { setCurrentView('messages'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all relative ${currentView === 'messages' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                 <i className="fa-solid fa-comments w-4 text-center"></i> Messages
+                {messageConversations.some(c => c.unreadCount > 0) && (
+                  <span className="ml-auto w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center shadow shrink-0 aspect-square">
+                    {messageConversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0) > 9 ? '9+' : messageConversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0)}
+                  </span>
+                )}
               </button>
               <button onClick={() => { setCurrentView('interested'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${currentView === 'interested' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                 <i className="fa-solid fa-bell w-4 text-center"></i> Alerts
@@ -5217,8 +5227,13 @@ export default function Home() {
               <button onClick={() => { setCurrentView('listings'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${currentView === 'listings' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                 <i className="fa-solid fa-heart-pulse w-4 text-center"></i> Care Feed
               </button>
-              <button onClick={() => { setCurrentView('messages'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${currentView === 'messages' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
+              <button onClick={() => { setCurrentView('messages'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all relative ${currentView === 'messages' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                 <i className="fa-solid fa-comments w-4 text-center"></i> Messages
+                {messageConversations.some(c => c.unreadCount > 0) && (
+                  <span className="ml-auto w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center shadow shrink-0 aspect-square">
+                    {messageConversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0) > 9 ? '9+' : messageConversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0)}
+                  </span>
+                )}
               </button>
               <button onClick={() => { setCurrentView('purchases'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${currentView === 'purchases' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                 <i className="fa-solid fa-file-invoice w-4 text-center"></i> Documents
@@ -9589,22 +9604,37 @@ export default function Home() {
                               className={`w-full text-left px-3 py-3 rounded-xl transition-all flex items-center gap-3 group ${isSelected ? 'bg-[#77248c] shadow-md' : 'hover:bg-gray-50 border border-transparent hover:border-gray-100'}`}
                             >
                               {/* Avatar */}
-                              <div className={`w-9 h-9 rounded-full ${isSelected ? 'bg-white text-[#77248c]' : avatarBg} flex items-center justify-center shrink-0 aspect-square shadow-xs`}>
-                                <i className={`fa-solid ${avatarIcon} text-xs ${isSelected ? 'text-[#77248c] !text-[#77248c]' : 'text-white'}`}></i>
+                              <div
+                                className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 aspect-square shadow-xs"
+                                style={
+                                  isSelected
+                                    ? { backgroundColor: '#77248c', color: '#ffffff', border: '2px solid #ffffff' }
+                                    : { backgroundColor: badgeType === 'admin' ? '#77248c' : badgeType === 'caregiver' ? '#14b8a6' : '#4cdbd5', color: '#ffffff', border: '1px solid transparent' }
+                                }
+                              >
+                                <i className={`fa-solid ${avatarIcon} text-xs text-white`}></i>
                               </div>
                               {/* Name & subtitle */}
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-1.5 flex-wrap">
                                   <span className={`font-bold text-sm leading-tight truncate ${isSelected ? 'text-white' : 'text-gray-800'}`}>{c.name}</span>
                                   {pillLabel && (
-                                    <span className={`text-[9px] uppercase px-2.5 py-0.5 rounded-full shrink-0 tracking-wider ${
-                                      isSelected
-                                        ? 'bg-white text-[#77248c] !text-[#77248c] border border-white shadow-2xs font-black'
-                                        : (badgeType === 'admin'
-                                            ? 'bg-[#77248c] text-white !text-white border border-[#77248c] shadow-2xs font-extrabold'
-                                            : 'bg-[#4cdbd5] text-white !text-white border border-[#4cdbd5] shadow-2xs font-black')
-                                    }`}>
+                                    <span
+                                      className="text-[9px] uppercase px-2.5 py-0.5 rounded-full shrink-0 tracking-wider font-extrabold shadow-2xs"
+                                      style={
+                                        isSelected
+                                          ? { backgroundColor: '#77248c', color: '#ffffff', border: '2px solid #ffffff' }
+                                          : badgeType === 'admin'
+                                          ? { backgroundColor: '#77248c', color: '#ffffff', border: '1px solid #77248c' }
+                                          : { backgroundColor: '#4cdbd5', color: '#ffffff', border: '1px solid #4cdbd5' }
+                                      }
+                                    >
                                       {pillLabel}
+                                    </span>
+                                  )}
+                                  {Boolean(c.unreadCount && c.unreadCount > 0) && (
+                                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-black shrink-0 shadow-xs ${isSelected ? 'bg-white text-red-600' : 'bg-red-500 text-white animate-pulse'}`}>
+                                      {c.unreadCount > 9 ? '9+' : c.unreadCount} UNREAD
                                     </span>
                                   )}
                                 </div>

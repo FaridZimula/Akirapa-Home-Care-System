@@ -260,6 +260,7 @@ model Message {
   mediaUrl      String?  // signed URL for a photo/video/audio attachment
   mediaType     String?  // 'image' | 'video' | 'audio'
   mediaName     String?
+  isRead        Boolean  @default(false)
   createdAt     DateTime @default(now())
 
   client        Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
