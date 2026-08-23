@@ -8808,9 +8808,6 @@ export default function Home() {
                         <div>
                           <div className="flex items-center gap-2">
                             <h3 className="text-2xl font-extrabold text-gray-900 tracking-tight">Business Intelligence Hub</h3>
-                            <span className="bg-[#4cdbd5] text-white text-xs font-extrabold px-3 py-1 rounded-full shadow-xs">
-                              <i className="fa-solid fa-shield-check mr-1 text-white"></i> Authorized Senior Access
-                            </span>
                           </div>
                           <p className="text-sm text-gray-500 mt-1">
                             Monthly analytics breakdown, corporate logs, shift volume, and financial graphics for {businessStats?.monthName || 'Current Month'}
@@ -8851,79 +8848,79 @@ export default function Home() {
                           {/* MONTHLY BUSINESS KPI METRICS GRID */}
                           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                             {/* Revenue Card */}
-                            <div className="relative overflow-hidden bg-gradient-to-br from-[#77248c] via-[#5e1970] to-[#3f0f4b] text-white rounded-2xl p-5 hover-lift shadow-lg border border-purple-500/30">
-                              <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-white/5 rounded-full blur-xl pointer-events-none" />
+                            <div className="relative overflow-hidden bg-gradient-to-br from-[#77248c] via-[#631c75] to-[#4c155b] text-white rounded-2xl p-5 hover-lift shadow-lg border border-purple-400/30">
+                              <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-white/10 rounded-full blur-xl pointer-events-none" />
                               <div className="flex items-center justify-between mb-2">
-                                <span className="text-xs font-extrabold text-purple-200 uppercase tracking-wider">Gross Monthly Revenue</span>
+                                <span className="text-xs font-extrabold text-purple-100 uppercase tracking-wider">Gross Monthly Revenue</span>
                                 <div className="w-9 h-9 bg-white/20 backdrop-blur-md text-white rounded-xl flex items-center justify-center text-sm shadow-xs border border-white/20">
                                   <i className="fa-solid fa-dollar-sign text-white"></i>
                                 </div>
                               </div>
                               <div className="text-3xl font-black !text-white tracking-tight">${businessStats?.summary?.totalRevenue?.toLocaleString() || '0'}</div>
-                              <div className="text-[11px] text-purple-200/90 font-medium mt-1">Calculated from client billing rates</div>
+                              <div className="text-[11px] text-purple-100/90 font-medium mt-1">Calculated from client billing rates</div>
                             </div>
 
                             {/* Caregiver Payroll Card */}
                             <div className="relative overflow-hidden bg-gradient-to-br from-[#0f766e] via-[#0d6b63] to-[#043e39] text-white rounded-2xl p-5 hover-lift shadow-lg border border-teal-500/30">
-                              <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-white/5 rounded-full blur-xl pointer-events-none" />
+                              <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-white/10 rounded-full blur-xl pointer-events-none" />
                               <div className="flex items-center justify-between mb-2">
-                                <span className="text-xs font-extrabold text-teal-100 uppercase tracking-wider">Caregiver Payroll</span>
+                                <span className="text-xs font-extrabold text-cyan-100 uppercase tracking-wider">Caregiver Payroll</span>
                                 <div className="w-9 h-9 bg-white/20 backdrop-blur-md text-white rounded-xl flex items-center justify-center text-sm shadow-xs border border-white/20">
                                   <i className="fa-solid fa-wallet text-white"></i>
                                 </div>
                               </div>
                               <div className="text-3xl font-black !text-white tracking-tight">${businessStats?.summary?.totalPayroll?.toLocaleString() || '0'}</div>
-                              <div className="text-[11px] text-teal-100/90 font-medium mt-1">Staff wages & overtime compensation</div>
+                              <div className="text-[11px] text-cyan-100/90 font-medium mt-1">Staff wages & overtime compensation</div>
                             </div>
 
                             {/* Net Operating Profit Card */}
-                            <div className="relative overflow-hidden bg-gradient-to-br from-[#059669] via-[#047857] to-[#064e3b] text-white rounded-2xl p-5 hover-lift shadow-lg border border-emerald-500/30">
-                              <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-white/5 rounded-full blur-xl pointer-events-none" />
+                            <div className="relative overflow-hidden bg-gradient-to-br from-[#0d9488] via-[#0f766e] to-[#044e4a] text-white rounded-2xl p-5 hover-lift shadow-lg border border-teal-500/30">
+                              <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-white/10 rounded-full blur-xl pointer-events-none" />
                               <div className="flex items-center justify-between mb-2">
-                                <span className="text-xs font-extrabold text-emerald-100 uppercase tracking-wider">Net Operating Profit</span>
+                                <span className="text-xs font-extrabold text-cyan-100 uppercase tracking-wider">Net Operating Profit</span>
                                 <div className="w-9 h-9 bg-white/20 backdrop-blur-md text-white rounded-xl flex items-center justify-center text-sm shadow-xs border border-white/20">
                                   <i className="fa-solid fa-chart-line text-white"></i>
                                 </div>
                               </div>
                               <div className="text-3xl font-black !text-white tracking-tight">${businessStats?.summary?.netProfit?.toLocaleString() || '0'}</div>
-                              <div className="text-[11px] text-emerald-100 font-extrabold mt-1 flex items-center gap-1.5">
+                              <div className="text-[11px] text-cyan-100 font-extrabold mt-1 flex items-center gap-1.5">
                                 Margin: <span className="bg-white/20 backdrop-blur-md px-2 py-0.5 rounded-md !text-white font-bold">{businessStats?.summary?.profitMarginPercent || 0}%</span>
                               </div>
                             </div>
 
                             {/* Care Hours Delivered Card */}
-                            <div className="relative overflow-hidden bg-gradient-to-br from-[#d97706] via-[#b45309] to-[#78350f] text-white rounded-2xl p-5 hover-lift shadow-lg border border-amber-500/30">
-                              <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-white/5 rounded-full blur-xl pointer-events-none" />
+                            <div className="relative overflow-hidden bg-gradient-to-br from-[#ea580c] via-[#c2410c] to-[#7c2d12] text-white rounded-2xl p-5 hover-lift shadow-lg border border-orange-500/30">
+                              <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-white/10 rounded-full blur-xl pointer-events-none" />
                               <div className="flex items-center justify-between mb-2">
-                                <span className="text-xs font-extrabold text-amber-100 uppercase tracking-wider">Care Hours Delivered</span>
+                                <span className="text-xs font-extrabold text-orange-100 uppercase tracking-wider">Care Hours Delivered</span>
                                 <div className="w-9 h-9 bg-white/20 backdrop-blur-md text-white rounded-xl flex items-center justify-center text-sm shadow-xs border border-white/20">
                                   <i className="fa-solid fa-clock text-white"></i>
                                 </div>
                               </div>
                               <div className="text-3xl font-black !text-white tracking-tight">{businessStats?.summary?.totalCareHours || 0} hrs</div>
-                              <div className="text-[11px] text-amber-100/90 font-medium mt-1">Avg shift: {businessStats?.summary?.avgShiftDuration || 0} hrs</div>
+                              <div className="text-[11px] text-orange-100/90 font-medium mt-1">Avg shift: {businessStats?.summary?.avgShiftDuration || 0} hrs</div>
                             </div>
                           </div>
 
                           {/* MONTHLY FINANCIAL TREND GRAPHICS & SHIFT STATUS DISTRIBUTION */}
                           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 print-page-break">
                             {/* Graphic 1: Weekly Financial Breakdown */}
-                            <div className="lg:col-span-2 bg-[#1a1024] text-white rounded-3xl p-6 shadow-xl border border-purple-900/40">
+                            <div className="lg:col-span-2 bg-gradient-to-br from-[#77248c] via-[#5e1970] to-[#3f0f4b] text-white rounded-3xl p-6 shadow-xl border border-purple-400/30">
                               <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
                                 <div className="flex items-center gap-3">
-                                  <div className="w-10 h-10 rounded-2xl bg-[#77248c] text-white flex items-center justify-center font-bold shadow-md shrink-0">
+                                  <div className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-md text-white flex items-center justify-center font-bold shadow-md shrink-0 border border-white/20">
                                     <i className="fa-solid fa-chart-column text-lg text-white"></i>
                                   </div>
                                   <div>
-                                    <h4 className="font-extrabold text-base !text-white tracking-tight">
+                                    <h4 className="font-extrabold text-base !text-white tracking-tight" style={{ color: '#ffffff' }}>
                                       Monthly Financial Trends & Weekly Breakdown
                                     </h4>
-                                    <p className="text-xs text-[#4cdbd5] font-semibold mt-0.5">Comparison of Gross Revenue vs Caregiver Payroll across weeks</p>
+                                    <p className="text-xs font-medium mt-0.5" style={{ color: 'rgba(255, 255, 255, 0.9)' }}>Comparison of Gross Revenue vs Caregiver Payroll across weeks</p>
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-4 text-[11px] font-bold">
-                                  <div className="flex items-center gap-1.5"><span className="w-3 h-3 bg-[#77248c] rounded-sm shadow-xs"></span><span className="!text-white">Revenue</span></div>
-                                  <div className="flex items-center gap-1.5"><span className="w-3 h-3 bg-[#4cdbd5] rounded-sm shadow-xs"></span><span className="!text-white">Payroll</span></div>
+                                  <div className="flex items-center gap-1.5"><span className="w-3 h-3 bg-white rounded-sm shadow-xs"></span><span className="!text-white" style={{ color: '#ffffff' }}>Revenue</span></div>
+                                  <div className="flex items-center gap-1.5"><span className="w-3 h-3 bg-[#4cdbd5] rounded-sm shadow-xs"></span><span className="!text-white" style={{ color: '#ffffff' }}>Payroll</span></div>
                                 </div>
                               </div>
 
@@ -8934,24 +8931,24 @@ export default function Home() {
                                   const payPct = Math.min(100, Math.round((w.payroll / maxVal) * 100));
 
                                   return (
-                                    <div key={idx} className="bg-[#271738]/90 rounded-2xl p-4 border border-purple-800/40 shadow-xs">
+                                    <div key={idx} className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/15 shadow-xs">
                                       <div className="flex justify-between items-center text-xs font-extrabold mb-3">
-                                        <span className="!text-white font-bold">{w.weekLabel}</span>
-                                        <span className="text-[#4cdbd5] font-mono text-[11px]">{w.shifts} completed shifts ({w.hours} care hrs)</span>
+                                        <span className="!text-white font-black" style={{ color: '#ffffff' }}>{w.weekLabel}</span>
+                                        <span className="text-[#4cdbd5] font-mono text-[11px] font-bold">{w.shifts} completed shifts ({w.hours} care hrs)</span>
                                       </div>
                                       <div className="space-y-2.5">
                                         {/* Revenue Bar */}
                                         <div className="flex items-center gap-3 text-xs">
-                                          <span className="w-16 text-[10px] font-extrabold text-purple-300 uppercase tracking-wider">Revenue</span>
-                                          <div className="flex-1 bg-[#150b1f] rounded-full h-3 overflow-hidden p-0.5 border border-purple-900/30">
-                                            <div className="bg-gradient-to-r from-[#77248c] to-purple-500 h-full rounded-full transition-all duration-500 shadow-xs" style={{ width: `${Math.max(5, revPct)}%` }}></div>
+                                          <span className="w-16 text-[10px] font-extrabold text-white uppercase tracking-wider" style={{ color: '#ffffff' }}>Revenue</span>
+                                          <div className="flex-1 bg-black/20 rounded-full h-3 overflow-hidden p-0.5 border border-white/10">
+                                            <div className="bg-gradient-to-r from-purple-300 to-white h-full rounded-full transition-all duration-500 shadow-xs" style={{ width: `${Math.max(5, revPct)}%` }}></div>
                                           </div>
-                                          <span className="w-16 text-right font-mono font-extrabold text-purple-200">${w.revenue.toLocaleString()}</span>
+                                          <span className="w-16 text-right font-mono font-extrabold text-white" style={{ color: '#ffffff' }}>${w.revenue.toLocaleString()}</span>
                                         </div>
                                         {/* Payroll Bar */}
                                         <div className="flex items-center gap-3 text-xs">
                                           <span className="w-16 text-[10px] font-extrabold text-[#4cdbd5] uppercase tracking-wider">Payroll</span>
-                                          <div className="flex-1 bg-[#150b1f] rounded-full h-3 overflow-hidden p-0.5 border border-purple-900/30">
+                                          <div className="flex-1 bg-black/20 rounded-full h-3 overflow-hidden p-0.5 border border-white/10">
                                             <div className="bg-gradient-to-r from-[#4cdbd5] to-cyan-200 h-full rounded-full transition-all duration-500 shadow-xs" style={{ width: `${Math.max(5, payPct)}%` }}></div>
                                           </div>
                                           <span className="w-16 text-right font-mono font-extrabold text-[#4cdbd5]">${w.payroll.toLocaleString()}</span>
