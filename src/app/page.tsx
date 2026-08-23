@@ -641,6 +641,7 @@ export default function Home() {
     e.preventDefault();
     const newClientName = `${newClientFirstName.trim()} ${newClientLastName.trim()}`.trim();
     const newClientEmergencyName = `${newClientEmergencyFirstName.trim()} ${newClientEmergencyLastName.trim()}`.trim();
+    const newClientEmergency2Name = `${newClientEmergency2FirstName.trim()} ${newClientEmergency2LastName.trim()}`.trim();
     if (!newClientFirstName || !newClientLastName || !newClientEmail || !newClientPassword) {
       setAddClientError('Client first name, last name, login email, and first-time password are required.');
       return;
@@ -665,6 +666,27 @@ export default function Home() {
           emergencyContactName: newClientEmergencyName,
           emergencyContactPhone: newClientEmergencyPhone,
           emergencyContactRelationship: newClientEmergencyRelationship,
+          dob: newClientDob || null,
+          gender: newClientGender || null,
+          medicalConditions: newClientMedicalConditions || null,
+          allergies: newClientAllergies || null,
+          mobility: newClientMobility || null,
+          medicationDetails: newClientMedicationDetails || null,
+          energyLevel: newClientEnergyLevel || null,
+          painLevel: newClientPainLevel || null,
+          mood: newClientMood.length > 0 ? newClientMood : null,
+          alertness: newClientAlertness.length > 0 ? newClientAlertness : null,
+          appetite: newClientAppetite || null,
+          hydration: newClientHydration || null,
+          sleep: newClientSleep || null,
+          carePreferences: newClientCarePreferences.length > 0 ? newClientCarePreferences : null,
+          personality: newClientPersonality || null,
+          dailyRoutine: newClientDailyRoutine || null,
+          preferredCaregiverType: newClientPreferredCaregiverType || null,
+          additionalObservations: newClientAdditionalObservations || null,
+          emergency2Name: newClientEmergency2Name || null,
+          emergency2Phone: newClientEmergency2Phone || null,
+          emergency2Relationship: newClientEmergency2Relationship || null,
         }),
       });
       const data = await res.json();
@@ -674,6 +696,13 @@ export default function Home() {
       setNewClientAddress(''); setNewClientCity(''); setNewClientState('');
       setNewClientZip(''); setNewClientPhone('');
       setNewClientEmergencyFirstName(''); setNewClientEmergencyLastName(''); setNewClientEmergencyPhone('');
+      setNewClientDob(''); setNewClientGender(''); setNewClientMedicalConditions(''); setNewClientAllergies('');
+      setNewClientMobility(''); setNewClientMedicationDetails(''); setNewClientEnergyLevel(''); setNewClientPainLevel('');
+      setNewClientMood([]); setNewClientAlertness([]); setNewClientAppetite(''); setNewClientHydration(''); setNewClientSleep('');
+      setNewClientCarePreferences([]); setNewClientPersonality(''); setNewClientDailyRoutine('');
+      setNewClientPreferredCaregiverType(''); setNewClientAdditionalObservations('');
+      setNewClientEmergency2FirstName(''); setNewClientEmergency2LastName(''); setNewClientEmergency2Phone(''); setNewClientEmergency2Relationship('');
+      setClientFillDetailsLater(false);
       await loadData();
     } catch (err: any) {
       setAddClientError(err.message || 'An unexpected error occurred.');
@@ -6785,150 +6814,541 @@ export default function Home() {
                       </ul>
                     </div>
 
-                    {/* Provisioning Form */}
-                    <form onSubmit={handleProvisionClient} className="space-y-4 text-xs">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Client First Name <span className="text-red-500">*</span></label>
-                          <input
-                            type="text"
-                            required
-                            placeholder="e.g. Robert"
-                            value={newClientFirstName}
-                            onChange={(e) => setNewClientFirstName(e.target.value)}
-                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
-                          />
+                                        {/* Provisioning Form */}
+                    <form onSubmit={handleProvisionClient} className="space-y-6 text-xs">
+                      {/* Basic Client Account Details */}
+                      <div className="bg-gray-50/70 border border-gray-200 rounded-2xl p-5 space-y-4">
+                        <div className="flex justify-between items-center border-b border-gray-200 pb-3">
+                          <h4 className="font-extrabold text-sm text-[#77248c] flex items-center gap-2">
+                            <i className="fa-solid fa-user text-[#77248c]"></i> 1. Client Account Credentials & Basic Info
+                          </h4>
+                          <span className="text-[10px] font-bold bg-[#77248c] text-white px-2.5 py-0.5 rounded-full">Required</span>
                         </div>
 
-                        <div>
-                          <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Client Last Name <span className="text-red-500">*</span></label>
-                          <input
-                            type="text"
-                            required
-                            placeholder="e.g. Smith"
-                            value={newClientLastName}
-                            onChange={(e) => setNewClientLastName(e.target.value)}
-                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
-                          />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Client First Name <span className="text-red-500">*</span></label>
+                            <input
+                              type="text"
+                              required
+                              placeholder="e.g. Robert"
+                              value={newClientFirstName}
+                              onChange={(e) => setNewClientFirstName(e.target.value)}
+                              className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Client Last Name <span className="text-red-500">*</span></label>
+                            <input
+                              type="text"
+                              required
+                              placeholder="e.g. Smith"
+                              value={newClientLastName}
+                              onChange={(e) => setNewClientLastName(e.target.value)}
+                              className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="md:col-span-2">
+                            <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Client / Family Email (Normal Email) <span className="text-red-500">*</span></label>
+                            <input
+                              type="email"
+                              required
+                              placeholder="robert.smith@gmail.com"
+                              value={newClientEmail}
+                              onChange={(e) => setNewClientEmail(e.target.value)}
+                              className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1 font-mono"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div>
+                            <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">First-Time Temporary Password <span className="text-red-500">*</span></label>
+                            <input
+                              type="text"
+                              required
+                              placeholder="e.g. AkirapaClient2026!"
+                              value={newClientPassword}
+                              onChange={(e) => setNewClientPassword(e.target.value)}
+                              className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1 font-mono"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Phone Number</label>
+                            <PhoneInput
+                              value={newClientPhone}
+                              onChange={(val) => setNewClientPhone(val)}
+                              className="mt-1"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Hourly Billing Rate ($/hr)</label>
+                            <input
+                              type="number"
+                              step="1.00"
+                              value={newClientBillingRate}
+                              onChange={(e) => setNewClientBillingRate(e.target.value)}
+                              className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div className="md:col-span-1">
+                            <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Care Tier</label>
+                            <select
+                              value={newClientCareTier}
+                              onChange={(e) => setNewClientCareTier(e.target.value)}
+                              className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
+                            >
+                              <option value="Standard">Standard Care</option>
+                              <option value="Premium">Premium Care</option>
+                              <option value="Specialized">Specialized Care</option>
+                              <option value="Hospice">Hospice Care</option>
+                            </select>
+                          </div>
+
+                          <div className="md:col-span-2">
+                            <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Street Address <span className="text-red-500">*</span></label>
+                            <LocationAutocompleteInput
+                              value={newClientAddress}
+                              onChange={(val) => setNewClientAddress(val)}
+                              onSelectLocation={(loc) => {
+                                setNewClientAddress(loc.street || loc.full);
+                                if (loc.city) setNewClientCity(loc.city);
+                                if (loc.state) setNewClientState(loc.state);
+                                if (loc.zip) setNewClientZip(loc.zip);
+                              }}
+                              placeholder="1234 West 4th Ave..."
+                              className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div>
+                            <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Emergency Contact First Name <span className="text-red-500">*</span></label>
+                            <input
+                              type="text"
+                              required
+                              placeholder="e.g. Mary"
+                              value={newClientEmergencyFirstName}
+                              onChange={(e) => setNewClientEmergencyFirstName(e.target.value)}
+                              className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Emergency Contact Last Name <span className="text-red-500">*</span></label>
+                            <input
+                              type="text"
+                              required
+                              placeholder="e.g. Smith"
+                              value={newClientEmergencyLastName}
+                              onChange={(e) => setNewClientEmergencyLastName(e.target.value)}
+                              className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Emergency Contact Phone</label>
+                            <PhoneInput
+                              value={newClientEmergencyPhone}
+                              onChange={(val) => setNewClientEmergencyPhone(val)}
+                              className="mt-1"
+                            />
+                          </div>
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="md:col-span-2">
-                          <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Client / Family Email (Normal Email) <span className="text-red-500">*</span></label>
-                          <input
-                            type="email"
-                            required
-                            placeholder="robert.smith@gmail.com"
-                            value={newClientEmail}
-                            onChange={(e) => setNewClientEmail(e.target.value)}
-                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1 font-mono"
-                          />
+                      {/* FILL DETAILS LATER TOGGLE BANNER */}
+                      <div className="bg-gradient-to-r from-purple-50 via-teal-50/50 to-purple-50 border border-purple-200 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-[#77248c] text-white flex items-center justify-center shrink-0 shadow-xs">
+                            <i className="fa-solid fa-clipboard-question text-lg"></i>
+                          </div>
+                          <div>
+                            <div className="font-bold text-gray-900 text-xs">Client Intake & Interview Assessment Form</div>
+                            <div className="text-[11px] text-gray-500">Fill in clinical wellbeing, mood, medication, and care notes during client interview, or opt to complete later.</div>
+                          </div>
                         </div>
+                        <label className="flex items-center gap-2 px-3.5 py-2 bg-white border border-purple-300 rounded-xl shadow-2xs cursor-pointer hover:bg-purple-50 transition-all shrink-0">
+                          <input
+                            type="checkbox"
+                            checked={clientFillDetailsLater}
+                            onChange={(e) => setClientFillDetailsLater(e.target.checked)}
+                            className="w-4 h-4 rounded text-[#77248c] focus:ring-[#77248c] cursor-pointer"
+                          />
+                          <span className="font-extrabold text-xs text-[#77248c]">Fill Details Later</span>
+                        </label>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                          <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">First-Time Temporary Password <span className="text-red-500">*</span></label>
-                          <input
-                            type="text"
-                            required
-                            placeholder="e.g. AkirapaClient2026!"
-                            value={newClientPassword}
-                            onChange={(e) => setNewClientPassword(e.target.value)}
-                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1 font-mono"
-                          />
-                        </div>
+                      {/* INTERVIEW INTAKE ASSESSMENT FORM (Hidden if Fill Later is checked) */}
+                      {!clientFillDetailsLater ? (
+                        <div className="space-y-6 animate-fade-up">
+                          {/* Demographics & Physical Wellbeing Header */}
+                          <div className="bg-teal-900 text-white rounded-2xl p-4 flex justify-between items-center shadow-xs">
+                            <div className="flex items-center gap-3">
+                              <i className="fa-solid fa-heart-pulse text-[#4cdbd5] text-lg"></i>
+                              <div>
+                                <div className="font-extrabold text-sm uppercase tracking-wider">Client Intake Assessment</div>
+                                <div className="text-[10px] text-teal-200">Baseline Health, Wellbeing & Daily Status (Interview Worksheet)</div>
+                              </div>
+                            </div>
+                            <span className="text-[10px] bg-[#4cdbd5] text-teal-950 font-black px-2.5 py-1 rounded-full uppercase">Live Interview Mode</span>
+                          </div>
 
-                        <div>
-                          <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Phone Number</label>
-                          <PhoneInput
-                            value={newClientPhone}
-                            onChange={(val) => setNewClientPhone(val)}
-                            className="mt-1"
-                          />
-                        </div>
+                          {/* Section A: Physical Wellbeing */}
+                          <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-4 shadow-xs">
+                            <h4 className="font-bold text-sm text-[#77248c] flex items-center gap-2 border-b border-gray-100 pb-2">
+                              <i className="fa-solid fa-notes-medical text-[#77248c]"></i> Physical Wellbeing
+                            </h4>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                              <div>
+                                <label className="font-semibold text-gray-600 uppercase text-[10px]">Date of Birth</label>
+                                <input
+                                  type="date"
+                                  value={newClientDob}
+                                  onChange={(e) => setNewClientDob(e.target.value)}
+                                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
+                                />
+                              </div>
+                              <div>
+                                <label className="font-semibold text-gray-600 uppercase text-[10px]">Gender</label>
+                                <select
+                                  value={newClientGender}
+                                  onChange={(e) => setNewClientGender(e.target.value)}
+                                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
+                                >
+                                  <option value="">Select Gender</option>
+                                  <option value="Female">Female</option>
+                                  <option value="Male">Male</option>
+                                  <option value="Other">Other / Prefer not to say</option>
+                                </select>
+                              </div>
+                              <div>
+                                <label className="font-semibold text-gray-600 uppercase text-[10px]">Mobility Status</label>
+                                <input
+                                  type="text"
+                                  placeholder="e.g. Independent, Uses Walker, Wheelchair"
+                                  value={newClientMobility}
+                                  onChange={(e) => setNewClientMobility(e.target.value)}
+                                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
+                                />
+                              </div>
+                            </div>
 
-                        <div>
-                          <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Hourly Billing Rate ($/hr)</label>
-                          <input
-                            type="number"
-                            step="1.00"
-                            value={newClientBillingRate}
-                            onChange={(e) => setNewClientBillingRate(e.target.value)}
-                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
-                          />
-                        </div>
-                      </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <label className="font-semibold text-gray-600 uppercase text-[10px] block mb-1.5">Energy Level</label>
+                                <div className="flex gap-2">
+                                  {(['High', 'Moderate', 'Low'] as const).map((lvl) => (
+                                    <button
+                                      key={lvl}
+                                      type="button"
+                                      onClick={() => setNewClientEnergyLevel(prev => prev === lvl ? '' : lvl)}
+                                      className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer ${newClientEnergyLevel === lvl ? 'bg-[#77248c] text-white border-[#77248c] shadow-xs' : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'}`}
+                                    >
+                                      {lvl}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                              <div>
+                                <label className="font-semibold text-gray-600 uppercase text-[10px] block mb-1.5">Pain Level</label>
+                                <div className="flex gap-2">
+                                  {(['None', 'Mild', 'Moderate', 'Severe'] as const).map((lvl) => (
+                                    <button
+                                      key={lvl}
+                                      type="button"
+                                      onClick={() => setNewClientPainLevel(prev => prev === lvl ? '' : lvl)}
+                                      className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer ${newClientPainLevel === lvl ? 'bg-[#77248c] text-white border-[#77248c] shadow-xs' : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'}`}
+                                    >
+                                      {lvl}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="md:col-span-1">
-                          <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Care Tier</label>
-                          <select
-                            value={newClientCareTier}
-                            onChange={(e) => setNewClientCareTier(e.target.value)}
-                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
-                          >
-                            <option value="Standard">Standard Care</option>
-                            <option value="Premium">Premium Care</option>
-                            <option value="Specialized">Specialized Care</option>
-                            <option value="Hospice">Hospice Care</option>
-                          </select>
-                        </div>
+                          {/* Section B: Mental & Emotional State */}
+                          <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-4 shadow-xs">
+                            <h4 className="font-bold text-sm text-[#77248c] flex items-center gap-2 border-b border-gray-100 pb-2">
+                              <i className="fa-solid fa-face-smile text-[#77248c]"></i> Mental & Emotional State
+                            </h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <label className="font-semibold text-gray-600 uppercase text-[10px] block mb-1.5">Mood (Select all that apply)</label>
+                                <div className="grid grid-cols-2 gap-2">
+                                  {['Happy', 'Calm', 'Anxious', 'Irritable'].map((m) => (
+                                    <label key={m} className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold border cursor-pointer transition-all ${newClientMood.includes(m) ? 'bg-purple-100 text-[#77248c] border-purple-300' : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'}`}>
+                                      <input
+                                        type="checkbox"
+                                        checked={newClientMood.includes(m)}
+                                        onChange={() => setNewClientMood(prev => prev.includes(m) ? prev.filter(x => x !== m) : [...prev, m])}
+                                        className="rounded text-[#77248c] cursor-pointer"
+                                      />
+                                      {m}
+                                    </label>
+                                  ))}
+                                </div>
+                              </div>
 
-                        <div className="md:col-span-2">
-                          <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Street Address <span className="text-red-500">*</span></label>
-                          <LocationAutocompleteInput
-                            value={newClientAddress}
-                            onChange={(val) => setNewClientAddress(val)}
-                            onSelectLocation={(loc) => {
-                              setNewClientAddress(loc.street || loc.full);
-                              if (loc.city) setNewClientCity(loc.city);
-                              if (loc.state) setNewClientState(loc.state);
-                              if (loc.zip) setNewClientZip(loc.zip);
-                            }}
-                            placeholder="1234 West 4th Ave..."
-                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
-                          />
-                        </div>
-                      </div>
+                              <div>
+                                <label className="font-semibold text-gray-600 uppercase text-[10px] block mb-1.5">Alertness (Select all that apply)</label>
+                                <div className="grid grid-cols-2 gap-2">
+                                  {['Alert', 'Drowsy', 'Confused', 'Unresponsive'].map((a) => (
+                                    <label key={a} className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold border cursor-pointer transition-all ${newClientAlertness.includes(a) ? 'bg-purple-100 text-[#77248c] border-purple-300' : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'}`}>
+                                      <input
+                                        type="checkbox"
+                                        checked={newClientAlertness.includes(a)}
+                                        onChange={() => setNewClientAlertness(prev => prev.includes(a) ? prev.filter(x => x !== a) : [...prev, a])}
+                                        className="rounded text-[#77248c] cursor-pointer"
+                                      />
+                                      {a}
+                                    </label>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Emergency Contact First Name <span className="text-red-500">*</span></label>
-                          <input
-                            type="text"
-                            required
-                            placeholder="e.g. Mary"
-                            value={newClientEmergencyFirstName}
-                            onChange={(e) => setNewClientEmergencyFirstName(e.target.value)}
-                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
-                          />
-                        </div>
+                          {/* Section C: Daily Health Check */}
+                          <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-4 shadow-xs">
+                            <h4 className="font-bold text-sm text-[#77248c] flex items-center gap-2 border-b border-gray-100 pb-2">
+                              <i className="fa-solid fa-square-check text-[#77248c]"></i> Daily Health Check
+                            </h4>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                              <div>
+                                <label className="font-semibold text-gray-600 uppercase text-[10px] block mb-1.5">Appetite</label>
+                                <div className="flex gap-1.5">
+                                  {(['Good', 'Fair', 'Poor'] as const).map((v) => (
+                                    <button
+                                      key={v}
+                                      type="button"
+                                      onClick={() => setNewClientAppetite(prev => prev === v ? '' : v)}
+                                      className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer ${newClientAppetite === v ? 'bg-[#77248c] text-white border-[#77248c]' : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'}`}
+                                    >
+                                      {v}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
 
-                        <div>
-                          <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Emergency Contact Last Name <span className="text-red-500">*</span></label>
-                          <input
-                            type="text"
-                            required
-                            placeholder="e.g. Smith"
-                            value={newClientEmergencyLastName}
-                            onChange={(e) => setNewClientEmergencyLastName(e.target.value)}
-                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
-                          />
-                        </div>
-                      </div>
+                              <div>
+                                <label className="font-semibold text-gray-600 uppercase text-[10px] block mb-1.5">Hydration</label>
+                                <div className="flex gap-1.5">
+                                  {(['Good', 'Fair', 'Poor'] as const).map((v) => (
+                                    <button
+                                      key={v}
+                                      type="button"
+                                      onClick={() => setNewClientHydration(prev => prev === v ? '' : v)}
+                                      className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer ${newClientHydration === v ? 'bg-[#77248c] text-white border-[#77248c]' : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'}`}
+                                    >
+                                      {v}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="md:col-span-2">
-                          <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Emergency Contact Phone</label>
-                          <PhoneInput
-                            value={newClientEmergencyPhone}
-                            onChange={(val) => setNewClientEmergencyPhone(val)}
-                            className="mt-1"
-                          />
+                              <div>
+                                <label className="font-semibold text-gray-600 uppercase text-[10px] block mb-1.5">Sleep</label>
+                                <div className="flex gap-1.5">
+                                  {(['Good', 'Fair', 'Poor'] as const).map((v) => (
+                                    <button
+                                      key={v}
+                                      type="button"
+                                      onClick={() => setNewClientSleep(prev => prev === v ? '' : v)}
+                                      className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer ${newClientSleep === v ? 'bg-[#77248c] text-white border-[#77248c]' : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'}`}
+                                    >
+                                      {v}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Section D: Medication & Medical Check */}
+                          <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-4 shadow-xs">
+                            <h4 className="font-bold text-sm text-[#77248c] flex items-center gap-2 border-b border-gray-100 pb-2">
+                              <i className="fa-solid fa-pills text-[#77248c]"></i> Medication & Medical Conditions
+                            </h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <label className="font-semibold text-gray-600 uppercase text-[10px]">Medical Conditions & Diagnoses</label>
+                                <textarea
+                                  placeholder="e.g. Hypertension, Type 2 Diabetes, Early Stage Dementia"
+                                  value={newClientMedicalConditions}
+                                  onChange={(e) => setNewClientMedicalConditions(e.target.value)}
+                                  rows={2}
+                                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1 resize-none"
+                                />
+                              </div>
+                              <div>
+                                <label className="font-semibold text-gray-600 uppercase text-[10px]">Allergies & Drug Precautions</label>
+                                <textarea
+                                  placeholder="e.g. Penicillin allergy, Latex allergy, Mobility fall risk"
+                                  value={newClientAllergies}
+                                  onChange={(e) => setNewClientAllergies(e.target.value)}
+                                  rows={2}
+                                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1 resize-none"
+                                />
+                              </div>
+                            </div>
+
+                            <div>
+                              <label className="font-semibold text-gray-600 uppercase text-[10px]">Medication Regimen & Side Effects Notes</label>
+                              <textarea
+                                placeholder="e.g. Daily morning Lisinopril 10mg, Metformin 500mg. No major side effects reported."
+                                value={newClientMedicationDetails}
+                                onChange={(e) => setNewClientMedicationDetails(e.target.value)}
+                                rows={2}
+                                className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1 resize-none"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Section E: Observations, Personality & Routine */}
+                          <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-4 shadow-xs">
+                            <h4 className="font-bold text-sm text-[#77248c] flex items-center gap-2 border-b border-gray-100 pb-2">
+                              <i className="fa-solid fa-clipboard-user text-[#77248c]"></i> Interview Observations & Routine Notes
+                            </h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <label className="font-semibold text-gray-600 uppercase text-[10px]">Client Personality & Traits</label>
+                                <textarea
+                                  placeholder="e.g. Cheerful, soft-spoken, enjoys light conversation about gardening and family"
+                                  value={newClientPersonality}
+                                  onChange={(e) => setNewClientPersonality(e.target.value)}
+                                  rows={2}
+                                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1 resize-none"
+                                />
+                              </div>
+                              <div>
+                                <label className="font-semibold text-gray-600 uppercase text-[10px]">Daily Routine & Schedule</label>
+                                <textarea
+                                  placeholder="e.g. Wakes at 7:30am, morning tea, afternoon walk at 2pm, early dinner at 6pm"
+                                  value={newClientDailyRoutine}
+                                  onChange={(e) => setNewClientDailyRoutine(e.target.value)}
+                                  rows={2}
+                                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1 resize-none"
+                                />
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <label className="font-semibold text-gray-600 uppercase text-[10px]">Preferred Caregiver Qualities</label>
+                                <textarea
+                                  placeholder="e.g. Patient, experienced with dementia care, female caregiver preferred"
+                                  value={newClientPreferredCaregiverType}
+                                  onChange={(e) => setNewClientPreferredCaregiverType(e.target.value)}
+                                  rows={2}
+                                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1 resize-none"
+                                />
+                              </div>
+                              <div>
+                                <label className="font-semibold text-gray-600 uppercase text-[10px]">Alerts, Concerns & Interview Observations</label>
+                                <textarea
+                                  placeholder="e.g. Family visits on Sundays, client requires assistance with stairs, prefers quiet surroundings"
+                                  value={newClientAdditionalObservations}
+                                  onChange={(e) => setNewClientAdditionalObservations(e.target.value)}
+                                  rows={2}
+                                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1 resize-none"
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Section F: Care Preferences Checklist */}
+                          <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-3 shadow-xs">
+                            <h4 className="font-bold text-sm text-[#77248c] flex items-center gap-2 border-b border-gray-100 pb-2">
+                              <i className="fa-solid fa-heart text-[#77248c]"></i> Care Comfort & Activity Preferences
+                            </h4>
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                              {[
+                                'Companionship & Conversation',
+                                'Daily Walks / Mobility Support',
+                                'Light Massage / Comfort Therapy',
+                                'Reading Aloud',
+                                'Music & Entertainment',
+                                'Gardening',
+                                'Games & Mental Stimulation',
+                                'Pet Care Assistance',
+                              ].map((option) => (
+                                <label key={option} className={`flex items-center gap-2 p-2.5 rounded-xl text-xs font-semibold border cursor-pointer transition-all ${newClientCarePreferences.includes(option) ? 'bg-purple-100 text-[#77248c] border-purple-300' : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'}`}>
+                                  <input
+                                    type="checkbox"
+                                    checked={newClientCarePreferences.includes(option)}
+                                    onChange={() => setNewClientCarePreferences(prev => prev.includes(option) ? prev.filter(p => p !== option) : [...prev, option])}
+                                    className="rounded text-[#77248c] cursor-pointer"
+                                  />
+                                  <span>{option}</span>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Section G: Secondary Emergency Contact (Optional) */}
+                          <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-4 shadow-xs">
+                            <h4 className="font-bold text-sm text-[#77248c] flex items-center gap-2 border-b border-gray-100 pb-2">
+                              <i className="fa-solid fa-address-book text-[#77248c]"></i> Secondary Emergency Contact (Optional)
+                            </h4>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                              <div>
+                                <label className="font-semibold text-gray-600 uppercase text-[10px]">Contact First Name</label>
+                                <input
+                                  type="text"
+                                  placeholder="e.g. John"
+                                  value={newClientEmergency2FirstName}
+                                  onChange={(e) => setNewClientEmergency2FirstName(e.target.value)}
+                                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
+                                />
+                              </div>
+                              <div>
+                                <label className="font-semibold text-gray-600 uppercase text-[10px]">Contact Last Name</label>
+                                <input
+                                  type="text"
+                                  placeholder="e.g. Smith"
+                                  value={newClientEmergency2LastName}
+                                  onChange={(e) => setNewClientEmergency2LastName(e.target.value)}
+                                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
+                                />
+                              </div>
+                              <div>
+                                <label className="font-semibold text-gray-600 uppercase text-[10px]">Relationship</label>
+                                <input
+                                  type="text"
+                                  placeholder="e.g. Son"
+                                  value={newClientEmergency2Relationship}
+                                  onChange={(e) => setNewClientEmergency2Relationship(e.target.value)}
+                                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
+                                />
+                              </div>
+                            </div>
+                            <div>
+                              <label className="font-semibold text-gray-600 uppercase text-[10px]">Contact Phone</label>
+                              <PhoneInput
+                                value={newClientEmergency2Phone}
+                                onChange={(val) => setNewClientEmergency2Phone(val)}
+                                className="mt-1"
+                              />
+                            </div>
+                          </div>
                         </div>
-                      </div>
+                      ) : (
+                        <div className="bg-purple-50 border border-purple-200 rounded-2xl p-4 text-center text-xs font-semibold text-[#77248c]">
+                          <i className="fa-solid fa-clock text-base mr-2"></i> Client intake & health assessment form skipped for now. You or family members can complete these details anytime later.
+                        </div>
+                      )}
 
                       {addClientError && (
                         <div className="bg-red-50 text-red-600 p-3.5 rounded-xl text-xs font-semibold flex items-center gap-2">

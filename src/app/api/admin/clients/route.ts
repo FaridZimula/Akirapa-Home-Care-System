@@ -30,6 +30,28 @@ export async function POST(request: Request) {
       billingRatePerHour,
       latitude,
       longitude,
+      // Extended intake fields
+      dob,
+      gender,
+      medicalConditions,
+      allergies,
+      mobility,
+      medicationDetails,
+      energyLevel,
+      painLevel,
+      mood,
+      alertness,
+      appetite,
+      hydration,
+      sleep,
+      carePreferences,
+      personality,
+      dailyRoutine,
+      preferredCaregiverType,
+      additionalObservations,
+      emergency2Name,
+      emergency2Phone,
+      emergency2Relationship,
     } = await request.json();
 
     if (!name || !email || !password) {
@@ -39,6 +61,7 @@ export async function POST(request: Request) {
     const normalizedEmail = email.trim().toLowerCase();
     const formattedPhone = formatUSPhoneWithCountryCode(phoneNumber);
     const formattedEmergencyPhone = formatUSPhoneWithCountryCode(emergencyContactPhone) || '';
+    const formattedEmergency2Phone = emergency2Phone ? formatUSPhoneWithCountryCode(emergency2Phone) || '' : '';
 
     // Check if user already exists
     let user = await prisma.user.findUnique({
@@ -107,13 +130,36 @@ export async function POST(request: Request) {
           city: city || null,
           state: state || null,
           zip: zip || null,
-          dob: null,
-          gender: null,
+          dob: dob || null,
+          gender: gender || null,
           primaryEmergency: emergencyContactName ? {
             name: emergencyContactName,
             phone: formattedEmergencyPhone,
             relationship: emergencyContactRelationship || 'Family Contact',
           } : null,
+          secondaryEmergency: emergency2Name ? {
+            name: emergency2Name,
+            phone: formattedEmergency2Phone,
+            relationship: emergency2Relationship || 'Family Contact',
+          } : null,
+          medicalConditions: medicalConditions || null,
+          allergies: allergies || null,
+          mobility: mobility || null,
+          medicationDetails: medicationDetails || null,
+          wellbeingBaseline: {
+            energyLevel: energyLevel || null,
+            painLevel: painLevel || null,
+            mood: mood || null,
+            alertness: alertness || null,
+            appetite: appetite || null,
+            hydration: hydration || null,
+            sleep: sleep || null,
+          },
+          carePreferences: carePreferences || null,
+          personality: personality || null,
+          dailyRoutine: dailyRoutine || null,
+          preferredCaregiverType: preferredCaregiverType || null,
+          additionalObservations: additionalObservations || null,
         }),
       },
     });
