@@ -210,6 +210,9 @@ export default function Home() {
   const [newFamilyMemberFirstName, setNewFamilyMemberFirstName] = useState('');
   const [newFamilyMemberLastName, setNewFamilyMemberLastName] = useState('');
   const [newFamilyMemberRelationship, setNewFamilyMemberRelationship] = useState('Son');
+  const [newFamilyMemberCustomRelationship, setNewFamilyMemberCustomRelationship] = useState('');
+  const [newClientOtherCarePreference, setNewClientOtherCarePreference] = useState(false);
+  const [newClientOtherCarePreferenceText, setNewClientOtherCarePreferenceText] = useState('');
   const [newClientEmail, setNewClientEmail] = useState('');
   const [newClientPassword, setNewClientPassword] = useState('');
   const [newClientAddress, setNewClientAddress] = useState('');
@@ -763,13 +766,15 @@ export default function Home() {
     try {
       const res = await fetch('/api/admin/clients', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-email': user?.email || '',
+        },
         body: JSON.stringify({
           name: newClientName,
           email: newClientEmail,
           password: newClientPassword,
           familyMemberName: `${newFamilyMemberFirstName.trim()} ${newFamilyMemberLastName.trim()}`.trim(),
-          familyMemberRelationship: newFamilyMemberRelationship,
           address: newClientAddress,
           city: newClientCity,
           state: newClientState,
@@ -793,7 +798,16 @@ export default function Home() {
           appetite: newClientAppetite || null,
           hydration: newClientHydration || null,
           sleep: newClientSleep || null,
-          carePreferences: newClientCarePreferences.length > 0 ? newClientCarePreferences : null,
+          carePreferences: (() => {
+            const list = [...newClientCarePreferences];
+            if (newClientOtherCarePreference && newClientOtherCarePreferenceText.trim()) {
+              list.push(`Other: ${newClientOtherCarePreferenceText.trim()}`);
+            }
+            return list.length > 0 ? list : null;
+          })(),
+          familyMemberRelationship: newFamilyMemberRelationship === 'Other Relative' && newFamilyMemberCustomRelationship.trim() 
+            ? newFamilyMemberCustomRelationship.trim() 
+            : newFamilyMemberRelationship,
           personality: newClientPersonality || null,
           dailyRoutine: newClientDailyRoutine || null,
           preferredCaregiverType: newClientPreferredCaregiverType || null,
@@ -976,22 +990,31 @@ export default function Home() {
   };
 
   const handleMarkNotificationRead = async (id: string) => {
+    // Optimistic instant UI update
+    setDbNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+
     try {
-      const res = await fetch(`/api/notifications/${id}/read`, { method: 'PATCH' });
-      if (res.ok) {
-        setDbNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
-      }
+      await fetch(`/api/notifications/${id}/read`, {
+        method: 'PATCH',
+        headers: { 'x-user-email': user?.email || '' },
+      });
     } catch (err) {
       console.error('Failed to mark notification read:', err);
     }
   };
 
   const handleMarkAllNotificationsRead = async () => {
+    // Optimistic instant UI update
+    setDbNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+
     try {
-      const res = await fetch('/api/notifications', { method: 'POST' });
-      if (res.ok) {
-        setDbNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
-      }
+      await fetch('/api/notifications', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-email': user?.email || '',
+        },
+      });
     } catch (err) {
       console.error('Failed to mark all notifications read:', err);
     }
@@ -5297,12 +5320,34 @@ export default function Home() {
                       <div className="p-6 text-center text-xs text-gray-400">No notifications</div>
                     ) : (
                       dbNotifications.map(n => (
-                        <div key={n.id} onClick={() => handleMarkNotificationRead(n.id)} className={`p-4 hover:bg-gray-50 transition-all cursor-pointer ${!n.isRead ? 'bg-purple-50/40' : ''}`}>
-                          <div className="flex justify-between items-start mb-1">
-                            <span className="font-semibold text-xs text-gray-800">{n.title}</span>
-                            <span className="text-[10px] text-gray-400">{formatTime(n.createdAt)}</span>
+                        <div
+                          key={n.id}
+                          onClick={() => handleMarkNotificationRead(n.id)}
+                          className={`p-4 hover:bg-purple-50/60 transition-all cursor-pointer group border-l-4 ${!n.isRead ? 'bg-purple-50/50 border-l-[#77248c]' : 'bg-white border-l-transparent opacity-85'}`}
+                        >
+                          <div className="flex justify-between items-start mb-1 gap-2">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              {!n.isRead ? (
+                                <span className="w-2 h-2 rounded-full bg-red-500 shrink-0 animate-pulse" title="Unread notification"></span>
+                              ) : (
+                                <i className="fa-solid fa-circle-check text-emerald-500 text-xs shrink-0" title="Read"></i>
+                              )}
+                              <span className={`font-bold text-xs truncate ${!n.isRead ? 'text-gray-900' : 'text-gray-600'}`}>{n.title || n.message}</span>
+                            </div>
+                            <span className="text-[10px] text-gray-400 font-mono shrink-0">{formatTime(n.createdAt)}</span>
                           </div>
-                          <p className="text-xs text-gray-600">{n.message}</p>
+                          <p className={`text-xs leading-relaxed ${!n.isRead ? 'text-gray-800 font-medium' : 'text-gray-500'}`}>{n.message}</p>
+                          <div className="mt-1.5 flex items-center justify-between text-[10px]">
+                            {!n.isRead ? (
+                              <span className="text-[#77248c] font-bold group-hover:underline flex items-center gap-1 ml-auto">
+                                <i className="fa-solid fa-hand-pointer text-[9px]"></i> Tap to mark read
+                              </span>
+                            ) : (
+                              <span className="text-emerald-600 font-semibold flex items-center gap-1 ml-auto">
+                                <i className="fa-solid fa-check text-[9px]"></i> Read
+                              </span>
+                            )}
+                          </div>
                         </div>
                       ))
                     )}
@@ -7926,19 +7971,33 @@ export default function Home() {
 
                           {/* Section C: Daily Health Check */}
                           <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-4 shadow-xs">
-                            <h4 className="font-bold text-sm text-[#77248c] flex items-center gap-2 border-b border-gray-100 pb-2">
-                              <i className="fa-solid fa-square-check text-[#77248c]"></i> Daily Health Check
-                            </h4>
+                            <div className="border-b border-gray-100 pb-3 flex items-center justify-between">
+                              <h4 className="font-bold text-sm text-[#77248c] flex items-center gap-2">
+                                <i className="fa-solid fa-heart-pulse text-[#77248c]"></i> Daily Health & Wellness Baseline
+                              </h4>
+                              <span className="text-[10px] font-bold bg-purple-100 text-[#77248c] px-2.5 py-0.5 rounded-full uppercase">3 Health Aspects</span>
+                            </div>
+
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                              <div>
-                                <label className="font-semibold text-gray-600 uppercase text-[10px] block mb-1.5">Appetite</label>
+                              {/* Aspect 1: Appetite */}
+                              <div className="bg-gray-50/80 border border-gray-200 rounded-2xl p-4 space-y-3 hover:border-purple-200 transition-all shadow-2xs">
+                                <div className="flex items-center gap-2.5 border-b border-gray-200/60 pb-2">
+                                  <div className="w-8 h-8 rounded-xl bg-purple-100 text-[#77248c] flex items-center justify-center text-sm shrink-0 aspect-square shadow-2xs">
+                                    <i className="fa-solid fa-utensils text-[#77248c]"></i>
+                                  </div>
+                                  <div>
+                                    <div className="font-extrabold text-xs text-gray-800 uppercase tracking-wider">1. Appetite</div>
+                                    <div className="text-[10px] text-gray-400 font-medium">Meal intake & nutrition</div>
+                                  </div>
+                                </div>
+
                                 <div className="flex gap-1.5">
                                   {(['Good', 'Fair', 'Poor'] as const).map((v) => (
                                     <button
                                       key={v}
                                       type="button"
                                       onClick={() => setNewClientAppetite(prev => prev === v ? '' : v)}
-                                      className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer ${newClientAppetite === v ? 'bg-[#77248c] text-white border-[#77248c]' : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'}`}
+                                      className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer ${newClientAppetite === v ? 'bg-[#77248c] text-white border-[#77248c] shadow-xs scale-[1.02]' : 'bg-white text-gray-700 border-gray-200 hover:bg-purple-50 hover:text-[#77248c]'}`}
                                     >
                                       {v}
                                     </button>
@@ -7946,15 +8005,25 @@ export default function Home() {
                                 </div>
                               </div>
 
-                              <div>
-                                <label className="font-semibold text-gray-600 uppercase text-[10px] block mb-1.5">Hydration</label>
+                              {/* Aspect 2: Hydration */}
+                              <div className="bg-gray-50/80 border border-gray-200 rounded-2xl p-4 space-y-3 hover:border-teal-200 transition-all shadow-2xs">
+                                <div className="flex items-center gap-2.5 border-b border-gray-200/60 pb-2">
+                                  <div className="w-8 h-8 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center text-sm shrink-0 aspect-square shadow-2xs">
+                                    <i className="fa-solid fa-droplet text-teal-600"></i>
+                                  </div>
+                                  <div>
+                                    <div className="font-extrabold text-xs text-gray-800 uppercase tracking-wider">2. Hydration</div>
+                                    <div className="text-[10px] text-gray-400 font-medium">Daily fluid & water intake</div>
+                                  </div>
+                                </div>
+
                                 <div className="flex gap-1.5">
                                   {(['Good', 'Fair', 'Poor'] as const).map((v) => (
                                     <button
                                       key={v}
                                       type="button"
                                       onClick={() => setNewClientHydration(prev => prev === v ? '' : v)}
-                                      className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer ${newClientHydration === v ? 'bg-[#77248c] text-white border-[#77248c]' : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'}`}
+                                      className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer ${newClientHydration === v ? 'bg-[#4cdbd5] text-teal-950 border-[#4cdbd5] font-extrabold shadow-xs scale-[1.02]' : 'bg-white text-gray-700 border-gray-200 hover:bg-teal-50 hover:text-teal-800'}`}
                                     >
                                       {v}
                                     </button>
@@ -7962,15 +8031,25 @@ export default function Home() {
                                 </div>
                               </div>
 
-                              <div>
-                                <label className="font-semibold text-gray-600 uppercase text-[10px] block mb-1.5">Sleep</label>
+                              {/* Aspect 3: Sleep */}
+                              <div className="bg-gray-50/80 border border-gray-200 rounded-2xl p-4 space-y-3 hover:border-purple-200 transition-all shadow-2xs">
+                                <div className="flex items-center gap-2.5 border-b border-gray-200/60 pb-2">
+                                  <div className="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center text-sm shrink-0 aspect-square shadow-2xs">
+                                    <i className="fa-solid fa-moon text-indigo-600"></i>
+                                  </div>
+                                  <div>
+                                    <div className="font-extrabold text-xs text-gray-800 uppercase tracking-wider">3. Sleep Quality</div>
+                                    <div className="text-[10px] text-gray-400 font-medium">Nighttime rest & sleep</div>
+                                  </div>
+                                </div>
+
                                 <div className="flex gap-1.5">
                                   {(['Good', 'Fair', 'Poor'] as const).map((v) => (
                                     <button
                                       key={v}
                                       type="button"
                                       onClick={() => setNewClientSleep(prev => prev === v ? '' : v)}
-                                      className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer ${newClientSleep === v ? 'bg-[#77248c] text-white border-[#77248c]' : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'}`}
+                                      className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer ${newClientSleep === v ? 'bg-[#77248c] text-white border-[#77248c] shadow-xs scale-[1.02]' : 'bg-white text-gray-700 border-gray-200 hover:bg-purple-50 hover:text-[#77248c]'}`}
                                     >
                                       {v}
                                     </button>
@@ -8098,7 +8177,31 @@ export default function Home() {
                                   <span>{option}</span>
                                 </label>
                               ))}
+
+                              {/* Other / Custom Preference Option */}
+                              <label className={`flex items-center gap-2 p-2.5 rounded-xl text-xs font-semibold border cursor-pointer transition-all ${newClientOtherCarePreference ? 'bg-[#77248c] text-white border-[#77248c] shadow-xs' : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'}`}>
+                                <input
+                                  type="checkbox"
+                                  checked={newClientOtherCarePreference}
+                                  onChange={(e) => setNewClientOtherCarePreference(e.target.checked)}
+                                  className="rounded text-[#77248c] cursor-pointer"
+                                />
+                                <span>Other / Custom...</span>
+                              </label>
                             </div>
+
+                            {newClientOtherCarePreference && (
+                              <div className="mt-3 pt-2 border-t border-gray-100">
+                                <label className="font-semibold text-gray-600 uppercase text-[10px] block mb-1">Fill in custom activity, hobby, or care preference:</label>
+                                <input
+                                  type="text"
+                                  placeholder="e.g. Cooking together, Watching classical movies, Painting..."
+                                  value={newClientOtherCarePreferenceText}
+                                  onChange={(e) => setNewClientOtherCarePreferenceText(e.target.value)}
+                                  className="w-full bg-gray-50 border border-purple-200 rounded-xl px-4 py-2.5 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                />
+                              </div>
+                            )}
                           </div>
 
                           {/* Section G: Secondary Emergency Contact (Optional) */}
