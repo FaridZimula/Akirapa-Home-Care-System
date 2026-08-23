@@ -5136,7 +5136,7 @@ export default function Home() {
                         <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
                           <div className="flex items-center justify-between">
                             <div><div className="text-xs font-bold text-gray-500 uppercase">Client</div><div className="text-lg font-extrabold text-gray-900 truncate max-w-[150px] mt-0.5">{clients.find(c => c.id === selectedFeedClientId)?.name || clients[0]?.name || 'My Family Member'}</div></div>
-                            <div className="w-12 h-12 bg-[#77248c] rounded-2xl flex items-center justify-center text-white shadow-xs"><i className="fa-solid fa-heart text-xl text-white"></i></div>
+                            <div className="w-12 h-12 bg-[#77248c] rounded-2xl flex items-center justify-center text-white shadow-xs"><i className="fa-solid fa-user text-xl text-white"></i></div>
                           </div>
                         </div>
                         {(() => {
