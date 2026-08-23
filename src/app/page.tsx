@@ -519,6 +519,47 @@ export default function Home() {
   const [isAdminSettingPassword, setIsAdminSettingPassword] = useState(false);
   const [adminPasswordError, setAdminPasswordError] = useState<string | null>(null);
 
+  // Admin Edit Caregiver Name Modal
+  const [showEditCaregiverModal, setShowEditCaregiverModal] = useState(false);
+  const [editingCaregiverUser, setEditingCaregiverUser] = useState<any>(null);
+  const [editCaregiverNameInput, setEditCaregiverNameInput] = useState('');
+  const [isSavingCaregiverName, setIsSavingCaregiverName] = useState(false);
+  const [editCaregiverNameError, setEditCaregiverNameError] = useState<string | null>(null);
+
+  const handleOpenEditCaregiverModal = (userObj: any) => {
+    setEditingCaregiverUser(userObj);
+    setEditCaregiverNameInput(userObj.name || '');
+    setEditCaregiverNameError(null);
+    setShowEditCaregiverModal(true);
+  };
+
+  const handleSaveCaregiverName = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingCaregiverUser || !editCaregiverNameInput.trim()) {
+      setEditCaregiverNameError('Caregiver name cannot be empty.');
+      return;
+    }
+    setIsSavingCaregiverName(true);
+    setEditCaregiverNameError(null);
+    try {
+      const res = await fetch(`/api/admin/users/${editingCaregiverUser.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: editCaregiverNameInput.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to update caregiver name.');
+      showNotification(data.message || `Updated caregiver name to "${editCaregiverNameInput.trim()}" successfully!`);
+      setShowEditCaregiverModal(false);
+      setEditingCaregiverUser(null);
+      await loadData();
+    } catch (err: any) {
+      setEditCaregiverNameError(err.message || 'Failed to update caregiver name.');
+    } finally {
+      setIsSavingCaregiverName(false);
+    }
+  };
+
   // Super Admin Instant Deletion & Initial Password Viewing States
   const [visiblePasswords, setVisiblePasswords] = useState<{ [id: string]: boolean }>({});
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
@@ -6753,6 +6794,16 @@ export default function Home() {
                                   <td className="py-3.5 px-2 font-semibold text-emerald-600">${cg.payRate ? cg.payRate.toFixed(2) : '28.00'}/hr</td>
                                   <td className="py-3.5 px-2 text-right">
                                     <div className="flex items-center justify-end gap-2">
+                                      {user && isCaregiverProvisioningAuthorized(user.email) && (
+                                        <button
+                                          onClick={() => handleOpenEditCaregiverModal(cg)}
+                                          className="px-3 py-1.5 bg-[#4cdbd5] hover:bg-[#34b8b2] text-teal-950 font-bold text-xs rounded-xl shadow-xs hover:shadow-md transition-all flex items-center gap-1 cursor-pointer active:scale-95"
+                                          title="Edit caregiver name"
+                                        >
+                                          <i className="fa-solid fa-pen-to-square text-[#2d0936] text-xs"></i> Edit Name
+                                        </button>
+                                      )}
+
                                       <button
                                         onClick={() => {
                                           setTargetPasswordUser(cg);

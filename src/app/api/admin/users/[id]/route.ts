@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { logAudit } from '@/lib/audit';
 import { getSessionUser } from '@/lib/session';
+import { formatUSPhoneWithCountryCode } from '@/lib/phone';
 
 export async function DELETE(
   request: Request,
@@ -131,6 +132,75 @@ export async function DELETE(
     });
   } catch (error) {
     console.error('Failed to delete user account:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+export async function PUT(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const sessionUser = await getSessionUser();
+    if (!sessionUser || sessionUser.role !== 'ADMIN') {
+      return NextResponse.json(
+        { error: 'User updates are restricted to administrators' },
+        { status: 403 }
+      );
+    }
+
+    const { id } = await params;
+    const { name, phoneNumber, payRate } = await request.json();
+
+    const targetUser = await prisma.user.findUnique({
+      where: { id },
+    });
+
+    if (!targetUser) {
+      return NextResponse.json({ error: 'User account not found' }, { status: 404 });
+    }
+
+    if (!name || !name.trim()) {
+      return NextResponse.json({ error: 'Name cannot be empty' }, { status: 400 });
+    }
+
+    const updatedName = name.trim();
+    const updateData: any = { name: updatedName };
+
+    if (phoneNumber !== undefined) {
+      updateData.phoneNumber = phoneNumber ? formatUSPhoneWithCountryCode(phoneNumber) : null;
+    }
+    if (payRate !== undefined && !isNaN(parseFloat(payRate))) {
+      updateData.payRate = parseFloat(payRate);
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id },
+      data: updateData,
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        phoneNumber: true,
+        payRate: true,
+      },
+    });
+
+    await logAudit({
+      userId: sessionUser.id,
+      action: 'ADMIN_UPDATE_USER_NAME',
+      details: `Admin ${sessionUser.email} updated ${targetUser.role} name from "${targetUser.name}" to "${updatedName}".`,
+      outcome: 'SUCCESS',
+    });
+
+    return NextResponse.json({
+      success: true,
+      user: updatedUser,
+      message: `Updated name for ${updatedName} successfully across the system!`,
+    });
+  } catch (error) {
+    console.error('Failed to update user name:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
