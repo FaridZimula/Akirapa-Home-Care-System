@@ -14,7 +14,8 @@ export type NotificationType =
   | 'PAYMENT_RECEIVED'
   | 'SYSTEM_ALERT'
   | 'NEW_MESSAGE'
-  | 'SHIFT_CONFIRMATION_MISSED';
+  | 'SHIFT_CONFIRMATION_MISSED'
+  | 'FAMILY_APPROVAL_PENDING';
 
 export interface CreateNotificationPayload {
   userId: string;
