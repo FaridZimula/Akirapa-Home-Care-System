@@ -6968,17 +6968,17 @@ export default function Home() {
                       </div>
 
                       {/* FILL DETAILS LATER TOGGLE BANNER */}
-                      <div className="bg-gradient-to-r from-purple-50 via-teal-50/50 to-purple-50 border border-purple-200 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+                      <div className="bg-[#77248c] rounded-2xl p-4.5 text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-[#77248c] text-white flex items-center justify-center shrink-0 shadow-xs">
-                            <i className="fa-solid fa-clipboard-question text-lg"></i>
+                          <div className="w-10 h-10 rounded-xl bg-white/20 text-white flex items-center justify-center shrink-0 shadow-xs">
+                            <i className="fa-solid fa-clipboard-question text-white text-lg"></i>
                           </div>
                           <div>
-                            <div className="font-bold text-gray-900 text-xs">Client Intake & Interview Assessment Form</div>
-                            <div className="text-[11px] text-gray-500">Fill in clinical wellbeing, mood, medication, and care notes during client interview, or opt to complete later.</div>
+                            <div className="font-bold text-white text-xs">Client Intake & Interview Assessment Form</div>
+                            <div className="text-[11px] text-purple-100/90">Fill in clinical wellbeing, mood, medication, and care notes during client interview, or opt to complete later.</div>
                           </div>
                         </div>
-                        <label className="flex items-center gap-2 px-3.5 py-2 bg-white border border-purple-300 rounded-xl shadow-2xs cursor-pointer hover:bg-purple-50 transition-all shrink-0">
+                        <label className="flex items-center gap-2 px-4 py-2.5 bg-white text-[#77248c] rounded-xl shadow-sm cursor-pointer hover:bg-purple-50 transition-all shrink-0">
                           <input
                             type="checkbox"
                             checked={clientFillDetailsLater}
@@ -7088,7 +7088,7 @@ export default function Home() {
                                 <label className="font-semibold text-gray-600 uppercase text-[10px] block mb-1.5">Mood (Select all that apply)</label>
                                 <div className="grid grid-cols-2 gap-2">
                                   {['Happy', 'Calm', 'Anxious', 'Irritable'].map((m) => (
-                                    <label key={m} className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold border cursor-pointer transition-all ${newClientMood.includes(m) ? 'bg-purple-100 text-[#77248c] border-purple-300' : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'}`}>
+                                    <label key={m} className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold border cursor-pointer transition-all ${newClientMood.includes(m) ? 'bg-[#77248c] text-white border-[#77248c] shadow-xs' : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'}`}>
                                       <input
                                         type="checkbox"
                                         checked={newClientMood.includes(m)}
@@ -7105,7 +7105,7 @@ export default function Home() {
                                 <label className="font-semibold text-gray-600 uppercase text-[10px] block mb-1.5">Alertness (Select all that apply)</label>
                                 <div className="grid grid-cols-2 gap-2">
                                   {['Alert', 'Drowsy', 'Confused', 'Unresponsive'].map((a) => (
-                                    <label key={a} className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold border cursor-pointer transition-all ${newClientAlertness.includes(a) ? 'bg-purple-100 text-[#77248c] border-purple-300' : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'}`}>
+                                    <label key={a} className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold border cursor-pointer transition-all ${newClientAlertness.includes(a) ? 'bg-[#77248c] text-white border-[#77248c] shadow-xs' : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'}`}>
                                       <input
                                         type="checkbox"
                                         checked={newClientAlertness.includes(a)}
@@ -7284,7 +7284,7 @@ export default function Home() {
                                 'Games & Mental Stimulation',
                                 'Pet Care Assistance',
                               ].map((option) => (
-                                <label key={option} className={`flex items-center gap-2 p-2.5 rounded-xl text-xs font-semibold border cursor-pointer transition-all ${newClientCarePreferences.includes(option) ? 'bg-purple-100 text-[#77248c] border-purple-300' : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'}`}>
+                                <label key={option} className={`flex items-center gap-2 p-2.5 rounded-xl text-xs font-semibold border cursor-pointer transition-all ${newClientCarePreferences.includes(option) ? 'bg-[#77248c] text-white border-[#77248c] shadow-xs' : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'}`}>
                                   <input
                                     type="checkbox"
                                     checked={newClientCarePreferences.includes(option)}
@@ -7345,8 +7345,8 @@ export default function Home() {
                           </div>
                         </div>
                       ) : (
-                        <div className="bg-purple-50 border border-purple-200 rounded-2xl p-4 text-center text-xs font-semibold text-[#77248c]">
-                          <i className="fa-solid fa-clock text-base mr-2"></i> Client intake & health assessment form skipped for now. You or family members can complete these details anytime later.
+                        <div className="bg-[#77248c] text-white rounded-2xl p-4.5 text-center text-xs font-semibold shadow-md">
+                          <i className="fa-solid fa-clock text-white text-base mr-2"></i> Client intake & health assessment form skipped for now. You or family members can complete these details anytime later.
                         </div>
                       )}
 
