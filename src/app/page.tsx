@@ -3665,8 +3665,192 @@ export default function Home() {
     <div className="h-screen w-full bg-gray-50 flex flex-col overflow-hidden">
 
 
+      {/* ===== Caregiver Profile Modal ===== */}
+      {showCaregiverProfileModal && viewingCaregiverProfile && (
+        <div
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={() => setShowCaregiverProfileModal(false)}
+        >
+          <div
+            className="max-w-md w-full bg-white rounded-3xl shadow-2xl overflow-hidden animate-fade-up"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Purple header banner */}
+            <div className="bg-gradient-to-br from-[#77248c] to-[#4a1560] px-8 pt-8 pb-12 relative">
+              <button
+                onClick={() => setShowCaregiverProfileModal(false)}
+                className="absolute top-4 right-4 text-white/70 hover:text-white text-xl font-bold transition-colors"
+              >
+                <i className="fa-solid fa-xmark"></i>
+              </button>
+              <div className="flex flex-col items-center gap-3 text-center">
+                <div className="w-20 h-20 rounded-full bg-white border-4 border-white/30 shadow-xl flex items-center justify-center text-[#77248c] font-extrabold text-3xl">
+                  {viewingCaregiverProfile.name ? viewingCaregiverProfile.name.charAt(0).toUpperCase() : 'C'}
+                </div>
+                <div>
+                  <h2 className="text-white font-extrabold text-xl">{viewingCaregiverProfile.name}</h2>
+                  <span className="inline-block mt-1 px-3 py-0.5 rounded-full bg-white/20 text-white text-[11px] font-bold tracking-wider uppercase">
+                    Caregiver
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Info card — pulls up over the banner */}
+            <div className="px-6 -mt-6 pb-6 space-y-3">
+              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-5 space-y-3.5">
+
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-purple-50 flex items-center justify-center shrink-0">
+                    <i className="fa-solid fa-envelope text-[#77248c] text-sm"></i>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Email</p>
+                    <p className="text-sm font-semibold text-gray-800 font-mono">{viewingCaregiverProfile.email}</p>
+                  </div>
+                </div>
+
+                <div className="border-t border-gray-50"></div>
+
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-purple-50 flex items-center justify-center shrink-0">
+                    <i className="fa-solid fa-phone text-[#77248c] text-sm"></i>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Phone</p>
+                    <p className="text-sm font-semibold text-gray-800">
+                      {viewingCaregiverProfile.phoneNumber ? formatUSPhoneDisplay(viewingCaregiverProfile.phoneNumber) : <span className="text-gray-400 italic font-normal text-xs">Not saved</span>}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="border-t border-gray-50"></div>
+
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-purple-50 flex items-center justify-center shrink-0">
+                    <i className="fa-solid fa-dollar-sign text-[#77248c] text-sm"></i>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Hourly Rate</p>
+                    <p className="text-sm font-semibold text-emerald-600">
+                      ${viewingCaregiverProfile.payRate ? viewingCaregiverProfile.payRate.toFixed(2) : '28.00'}/hr
+                    </p>
+                  </div>
+                </div>
+
+                {getInitialPassword(viewingCaregiverProfile) && (
+                  <>
+                    <div className="border-t border-gray-50"></div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-xl bg-purple-50 flex items-center justify-center shrink-0">
+                        <i className="fa-solid fa-key text-[#77248c] text-sm"></i>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Initial Password</p>
+                        <p className="text-sm font-mono font-bold text-[#77248c]">{getInitialPassword(viewingCaregiverProfile)}</p>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Action buttons */}
+              {user && isCaregiverProvisioningAuthorized(user.email) && (
+                <div className="flex gap-3 pt-1">
+                  <button
+                    onClick={() => {
+                      setShowCaregiverProfileModal(false);
+                      handleOpenEditCaregiverModal(viewingCaregiverProfile);
+                    }}
+                    className="flex-1 px-4 py-2.5 bg-[#4cdbd5] hover:bg-[#34b8b2] text-teal-950 font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5"
+                  >
+                    <i className="fa-solid fa-pen-to-square"></i> Edit Name
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowCaregiverProfileModal(false);
+                      setTargetPasswordUser(viewingCaregiverProfile);
+                      setAdminNewPasswordInput('');
+                      setShowAdminPasswordModal(true);
+                    }}
+                    className="flex-1 px-4 py-2.5 bg-[#77248c] hover:bg-[#5a1a6b] text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5"
+                  >
+                    <i className="fa-solid fa-key"></i> Set Password
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== Edit Caregiver Name Modal ===== */}
+      {showEditCaregiverModal && editingCaregiverUser && (
+
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="max-w-sm w-full bg-white rounded-3xl shadow-2xl p-8 animate-fade-up">
+            <div className="flex justify-between items-center border-b border-gray-100 pb-4 mb-5">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 bg-[#77248c] text-white rounded-xl flex items-center justify-center font-bold shadow-xs">
+                  <i className="fa-solid fa-pen-to-square text-white"></i>
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-900 text-sm">Edit Caregiver Name</h3>
+                  <p className="text-[11px] text-gray-400">{editingCaregiverUser.email}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => { setShowEditCaregiverModal(false); setEditingCaregiverUser(null); }}
+                className="text-gray-400 hover:text-gray-600 text-lg font-bold"
+              >
+                <i className="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveCaregiverName} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1.5">Full Name</label>
+                <input
+                  type="text"
+                  value={editCaregiverNameInput}
+                  onChange={e => setEditCaregiverNameInput(e.target.value)}
+                  placeholder="e.g. Janet Nakamya"
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#77248c]/40 focus:border-[#77248c]"
+                  autoFocus
+                />
+                {editCaregiverNameError && (
+                  <p className="mt-1.5 text-xs text-red-500">{editCaregiverNameError}</p>
+                )}
+              </div>
+
+              <div className="flex gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={() => { setShowEditCaregiverModal(false); setEditingCaregiverUser(null); }}
+                  className="flex-1 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-sm rounded-xl transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingCaregiverName}
+                  className="flex-1 px-4 py-2.5 bg-[#77248c] hover:bg-[#5a1a6b] text-white font-bold text-sm rounded-xl shadow-sm hover:shadow-md transition-all disabled:opacity-60 flex items-center justify-center gap-2"
+                >
+                  {isSavingCaregiverName ? (
+                    <><i className="fa-solid fa-circle-notch animate-spin"></i> Saving…</>
+                  ) : (
+                    <><i className="fa-solid fa-check"></i> Save Name</>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Admin Set First-Time Caregiver Password Modal */}
       {showAdminPasswordModal && targetPasswordUser && (
+
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl p-8 animate-fade-up">
             <div className="flex justify-between items-center border-b border-gray-100 pb-4 mb-4">
