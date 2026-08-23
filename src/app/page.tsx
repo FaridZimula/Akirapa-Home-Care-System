@@ -5424,9 +5424,9 @@ export default function Home() {
               </button>
               <button onClick={() => { setCurrentView('care_updates'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all relative ${currentView === 'care_updates' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                 <i className="fa-solid fa-bell-concierge w-4 text-center"></i> Care Updates
-                {dbNotifications.filter(n => !n.isRead).length > 0 && (
+                {dbNotifications.filter(n => !n.isRead && n.type !== 'NEW_MESSAGE').length > 0 && (
                   <span className="ml-auto w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center shadow shrink-0">
-                    {dbNotifications.filter(n => !n.isRead).length > 9 ? '9+' : dbNotifications.filter(n => !n.isRead).length}
+                    {dbNotifications.filter(n => !n.isRead && n.type !== 'NEW_MESSAGE').length > 9 ? '9+' : dbNotifications.filter(n => !n.isRead && n.type !== 'NEW_MESSAGE').length}
                   </span>
                 )}
               </button>
@@ -5514,9 +5514,9 @@ export default function Home() {
             <div className="relative">
               <button onClick={() => setShowNotificationDrawer(!showNotificationDrawer)} className="p-2 hover:bg-gray-100 rounded-xl text-gray-500 transition-all relative">
                 <i className="fa-solid fa-bell text-lg"></i>
-                {dbNotifications.filter(n => !n.isRead).length > 0 && (
+                {dbNotifications.filter(n => !n.isRead && n.type !== 'NEW_MESSAGE').length > 0 && (
                   <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-4.5 h-4.5 rounded-full flex items-center justify-center animate-pulse shrink-0 aspect-square">
-                    {dbNotifications.filter(n => !n.isRead).length}
+                    {dbNotifications.filter(n => !n.isRead && n.type !== 'NEW_MESSAGE').length}
                   </span>
                 )}
               </button>
@@ -5528,7 +5528,7 @@ export default function Home() {
                       <i className="fa-solid fa-bell text-[#77248c]"></i>
                       <span className="font-bold text-sm text-gray-800">Notifications</span>
                       <span className="bg-[#77248c] text-white text-xs font-bold px-2.5 py-0.5 rounded-full shadow-2xs">
-                        {dbNotifications.filter(n => !n.isRead).length} unread
+                        {dbNotifications.filter(n => !n.isRead && n.type !== 'NEW_MESSAGE').length} unread
                       </span>
                     </div>
                     <button onClick={handleMarkAllNotificationsRead} className="text-xs font-bold text-[#77248c] hover:underline">
@@ -6434,7 +6434,7 @@ export default function Home() {
                       <h3 className="font-extrabold text-xl text-white !text-white tracking-wide" style={{ color: '#ffffff' }}>Care Updates</h3>
                       <p className="text-xs text-white/95 !text-white font-medium mt-0.5" style={{ color: '#ffffff' }}>Real-time alerts, caregiver assignments, shift updates, and emergency notices for your loved one&apos;s care.</p>
                     </div>
-                    {dbNotifications.filter(n => !n.isRead).length > 0 && (
+                    {dbNotifications.filter(n => !n.isRead && n.type !== 'NEW_MESSAGE').length > 0 && (
                       <button
                         onClick={handleMarkAllNotificationsRead}
                         className="shrink-0 px-4 py-2.5 bg-white text-[#77248c] font-extrabold text-xs rounded-xl shadow-xs hover:bg-purple-50 transition-all cursor-pointer flex items-center gap-1.5"
@@ -6445,14 +6445,14 @@ export default function Home() {
                   </div>
 
                   {/* Unread Count Badge */}
-                  {dbNotifications.filter(n => !n.isRead).length > 0 && (
+                  {dbNotifications.filter(n => !n.isRead && n.type !== 'NEW_MESSAGE').length > 0 && (
                     <div className="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-3.5 flex items-center gap-3 shadow-xs">
                       <div className="w-8 h-8 rounded-full bg-amber-400 text-white flex items-center justify-center shrink-0 aspect-square shadow-xs">
                         <i className="fa-solid fa-bell text-sm text-white"></i>
                       </div>
                       <div>
                         <span className="font-bold text-amber-800 text-sm">
-                          {dbNotifications.filter(n => !n.isRead).length} unread update{dbNotifications.filter(n => !n.isRead).length !== 1 ? 's' : ''}
+                          {dbNotifications.filter(n => !n.isRead && n.type !== 'NEW_MESSAGE').length} unread update{dbNotifications.filter(n => !n.isRead && n.type !== 'NEW_MESSAGE').length !== 1 ? 's' : ''}
                         </span>
                         <p className="text-xs text-amber-600">Tap any update to mark it as read.</p>
                       </div>
@@ -9049,7 +9049,7 @@ export default function Home() {
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                   <div className="flex justify-between items-center mb-4">
                     <h3 className="font-semibold text-gray-800">Alerts & Notifications</h3>
-                    {dbNotifications.some(n => !n.isRead) && (
+                    {dbNotifications.some(n => !n.isRead && n.type !== 'NEW_MESSAGE') && (
                       <button onClick={handleMarkAllNotificationsRead} className="text-xs font-semibold text-purple-600 hover:underline cursor-pointer">
                         Mark all read
                       </button>
