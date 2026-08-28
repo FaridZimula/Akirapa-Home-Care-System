@@ -17,6 +17,7 @@ enum UserRole {
 
 enum ShiftStatus {
   UNCONFIRMED
+  CAREGIVER_CONFIRMED
   CONFIRMED
   IN_PROGRESS
   COMPLETED
@@ -118,7 +119,9 @@ model Shift {
   
   // Confirmation Tracking
   confirmationDeadline DateTime
-  confirmedAt          DateTime?
+  confirmedAt          DateTime?   // Caregiver confirmed at
+  familyConfirmedAt    DateTime?   // Family/client approved the visit
+  familyDeclinedAt     DateTime?   // Family/client declined the visit
 
   // Geofencing & Exceptions
   clockInLat           Float?

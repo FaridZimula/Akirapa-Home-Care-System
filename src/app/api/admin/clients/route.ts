@@ -258,6 +258,37 @@ export async function POST(request: Request) {
       outcome: 'SUCCESS',
     });
 
+    // ── Default Secondary Caregiver: Stuart Sssemwogerere ────────────────────
+    // Every new client gets Stuart auto-assigned as their default SECONDARY
+    // caregiver pod member. This runs silently and never blocks provisioning.
+    try {
+      const DEFAULT_SECONDARY_EMAIL = 'sstuart@akirapahomecareus.com';
+      const defaultSecondary = await prisma.user.findUnique({
+        where: { email: DEFAULT_SECONDARY_EMAIL },
+      });
+
+      if (defaultSecondary && defaultSecondary.role === 'CAREGIVER') {
+        await prisma.caregiverPod.create({
+          data: {
+            clientId: client.id,
+            caregiverId: defaultSecondary.id,
+            role: 'SECONDARY',
+          },
+        });
+
+        await logAudit({
+          userId: sessionUser.id,
+          action: 'AUTO_POD_ASSIGN',
+          details: `Default secondary caregiver ${defaultSecondary.name} (${defaultSecondary.email}) auto-assigned to new client ${name} (${client.id})`,
+          outcome: 'SUCCESS',
+        });
+      }
+    } catch (podErr) {
+      // Non-fatal: log but don't fail the overall provisioning
+      console.warn('Default secondary caregiver auto-assign failed:', podErr);
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
     return NextResponse.json({
       success: true,
       client,

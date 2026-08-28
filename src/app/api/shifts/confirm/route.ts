@@ -3,9 +3,8 @@ import { prisma } from '@/lib/prisma';
 import { logAudit } from '@/lib/audit';
 import { getSessionUser } from '@/lib/session';
 import { ShiftStatus } from '@prisma/client';
-import { encrypt } from '@/lib/crypto';
 import { formatDate, formatTime } from '@/lib/dateFormat';
-import { createNotification, notifyAdmins, notifyClientFamily, notifyCaregiver } from '@/lib/notifications';
+import { notifyAdmins, notifyClientFamily, notifyCaregiver } from '@/lib/notifications';
 
 export async function POST(request: Request) {
   try {
@@ -37,16 +36,15 @@ export async function POST(request: Request) {
 
     const now = new Date();
 
-    // 1. Caregiver Confirming Presence / Pre-shift Readiness check-in for CONFIRMED shift
+    // ── Pre-shift presence check-in (already CONFIRMED shift) ─────────────────
     if (confirmPresence && shift.status === ShiftStatus.CONFIRMED) {
       await logAudit({
         userId: shift.caregiverId,
         action: 'CAREGIVER_PRESENCE_CONFIRMED',
-        details: `Caregiver ${shift.caregiver.name} confirmed pre-shift presence and readiness for visit with client ${shift.client.name}.`,
+        details: `Caregiver ${shift.caregiver.name} confirmed pre-shift presence for visit with client ${shift.client.name}.`,
         outcome: 'SUCCESS',
       });
 
-      // Notify Client / Family
       await notifyClientFamily({
         clientId: shift.clientId,
         title: 'Caregiver En Route / Ready',
@@ -54,7 +52,6 @@ export async function POST(request: Request) {
         type: 'SHIFT_CONFIRMED',
       });
 
-      // Notify Admins
       await notifyAdmins({
         title: 'Pre-Shift Presence Confirmed',
         message: `Caregiver ${shift.caregiver.name} confirmed pre-shift readiness for client ${shift.client.name} (${formatTime(shift.scheduledStart)}).`,
@@ -63,51 +60,33 @@ export async function POST(request: Request) {
 
       return NextResponse.json({
         success: true,
-        message: `Pre-shift presence confirmed for ${shift.caregiver.name}! Client site readiness verified.`,
+        message: `Pre-shift presence confirmed for ${shift.caregiver.name}!`,
         shift,
       });
     }
 
-    // 2. Standard Shift Confirmation (Unconfirmed -> Confirmed by Caregiver or Admin)
-    if (shift.status !== ShiftStatus.UNCONFIRMED) {
-      return NextResponse.json({ error: 'Shift is already confirmed or in progress' }, { status: 400 });
-    }
-
-    const updatedShift = await prisma.shift.update({
-      where: { id: shiftId },
-      data: {
-        status: ShiftStatus.CONFIRMED,
-        confirmedAt: now,
+    // ── Admin force-confirm: skips the family approval step ──────────────────
+    if (confirmedByAdmin && isSupervisor) {
+      if (shift.status === ShiftStatus.CONFIRMED) {
+        return NextResponse.json({ error: 'Shift is already confirmed' }, { status: 400 });
       }
-    });
 
-    // Log confirmation audit event
-    const actionName = confirmedByAdmin ? 'ADMIN_FORCE_CONFIRM_SHIFT' : 'SHIFT_CONFIRMATION';
-    const auditDetails = confirmedByAdmin
-      ? `[ADMIN APPROVAL] Admin confirmed shift for caregiver ${shift.caregiver.name} and client ${shift.client.name} (Scheduled: ${shift.scheduledStart.toISOString()}).`
-      : `Caregiver ${shift.caregiver.name} confirmed shift availability for client ${shift.client.name} (Scheduled: ${shift.scheduledStart.toISOString()}).`;
+      const updatedShift = await prisma.shift.update({
+        where: { id: shiftId },
+        data: {
+          status: ShiftStatus.CONFIRMED,
+          confirmedAt: shift.confirmedAt ?? now,
+          familyConfirmedAt: now,
+        },
+      });
 
-    await logAudit({
-      userId: sessionUser.id,
-      action: actionName,
-      details: auditDetails,
-      outcome: 'SUCCESS',
-    });
+      await logAudit({
+        userId: sessionUser.id,
+        action: 'ADMIN_FORCE_CONFIRM_SHIFT',
+        details: `Admin ${sessionUser.name} force-confirmed shift for caregiver ${shift.caregiver.name} and client ${shift.client.name} (${shift.scheduledStart.toISOString()}).`,
+        outcome: 'SUCCESS',
+      });
 
-    // Log shift confirmation activity for family member view
-    await logAudit({
-      userId: sessionUser.id,
-      action: 'SHIFT_CONFIRMED',
-      details: confirmedByAdmin
-        ? `[ADMIN APPROVED] Admin confirmed caregiver ${shift.caregiver.name} for scheduled visit on ${formatDate(shift.scheduledStart)} (Client: ${shift.client.name}).`
-        : `Caregiver ${shift.caregiver.name} confirmed scheduled visit on ${formatDate(shift.scheduledStart)} starting at ${formatTime(shift.scheduledStart)} (Client: ${shift.client.name}).`,
-      outcome: 'SUCCESS',
-    });
-
-    // MULTI-PARTY NOTIFICATIONS:
-    if (confirmedByAdmin) {
-      // 3-Party Notification when Admin Approves:
-      // (a) Caregiver is notified
       await notifyCaregiver({
         caregiverId: shift.caregiverId,
         title: 'Shift Approved by Admin',
@@ -115,49 +94,79 @@ export async function POST(request: Request) {
         type: 'SHIFT_CONFIRMED',
       });
 
-      // (b) Client / Family is notified
       await notifyClientFamily({
         clientId: shift.clientId,
-        title: 'Shift Confirmed by Administration',
+        title: 'Care Visit Confirmed by Administration',
         message: `The care visit for ${shift.client.name} with caregiver ${shift.caregiver.name} on ${formatDate(shift.scheduledStart)} at ${formatTime(shift.scheduledStart)} has been confirmed by administration.`,
         type: 'SHIFT_CONFIRMED',
       });
 
-      // (c) Admins receive confirmation record
       await notifyAdmins({
-        title: 'Shift Approved & Confirmed',
-        message: `Admin ${sessionUser.name} confirmed shift for caregiver ${shift.caregiver.name} with client ${shift.client.name} (${formatDate(shift.scheduledStart)}).`,
+        title: 'Shift Force-Confirmed by Admin',
+        message: `Admin ${sessionUser.name} force-confirmed shift for ${shift.caregiver.name} with client ${shift.client.name} (${formatDate(shift.scheduledStart)}).`,
         type: 'SHIFT_CONFIRMED',
-      });
-    } else {
-      // 2-Party / 3-Party Notification when Caregiver Confirms:
-      // (a) Client / Family is notified
-      await notifyClientFamily({
-        clientId: shift.clientId,
-        title: 'Caregiver Confirmed Visit',
-        message: `Caregiver ${shift.caregiver.name} has confirmed attendance for the care visit on ${formatDate(shift.scheduledStart)} at ${formatTime(shift.scheduledStart)}.`,
-        type: 'SHIFT_CONFIRMED',
+        excludeUserId: sessionUser.id,
       });
 
-      // (b) Admins are notified
-      await notifyAdmins({
-        title: 'Shift Confirmed by Caregiver',
-        message: `Caregiver ${shift.caregiver.name} confirmed their shift for ${shift.client.name} on ${formatDate(shift.scheduledStart)} at ${formatTime(shift.scheduledStart)}.`,
-        type: 'SHIFT_CONFIRMED',
-      });
-
-      // (c) Caregiver confirmation receipt
-      await notifyCaregiver({
-        caregiverId: shift.caregiverId,
-        title: 'Shift Confirmed',
-        message: `You successfully confirmed your shift for ${shift.client.name} on ${formatDate(shift.scheduledStart)} at ${formatTime(shift.scheduledStart)}.`,
-        type: 'SHIFT_CONFIRMED',
-      });
+      return NextResponse.json({ success: true, shift: updatedShift, confirmedByAdmin: true });
     }
 
-    return NextResponse.json({ success: true, shift: updatedShift, confirmedByAdmin: Boolean(confirmedByAdmin) });
+    // ── Caregiver self-confirms: UNCONFIRMED → CAREGIVER_CONFIRMED ────────────
+    if (shift.status !== ShiftStatus.UNCONFIRMED) {
+      return NextResponse.json(
+        { error: 'Shift has already been confirmed or is no longer pending caregiver confirmation' },
+        { status: 400 }
+      );
+    }
+
+    const updatedShift = await prisma.shift.update({
+      where: { id: shiftId },
+      data: {
+        status: ShiftStatus.CAREGIVER_CONFIRMED,
+        confirmedAt: now,
+      },
+    });
+
+    await logAudit({
+      userId: sessionUser.id,
+      action: 'CAREGIVER_CONFIRMED_SHIFT',
+      details: `Caregiver ${shift.caregiver.name} confirmed availability for shift with client ${shift.client.name} (${shift.scheduledStart.toISOString()}). Awaiting family approval.`,
+      outcome: 'SUCCESS',
+    });
+
+    // ── Notify caregiver: confirmation receipt ─────────────────────────────
+    await notifyCaregiver({
+      caregiverId: shift.caregiverId,
+      title: '✅ Shift Confirmed — Awaiting Family Approval',
+      message: `You confirmed your shift for ${shift.client.name} on ${formatDate(shift.scheduledStart)} at ${formatTime(shift.scheduledStart)}. The family has been notified to approve your visit.`,
+      type: 'SHIFT_CONFIRMED',
+    });
+
+    // ── Notify family: action required to approve the visit ───────────────
+    await notifyClientFamily({
+      clientId: shift.clientId,
+      title: '🔔 Action Required: Approve Caregiver Visit',
+      message: `Caregiver ${shift.caregiver.name} has confirmed their visit for ${shift.client.name} on ${formatDate(shift.scheduledStart)} at ${formatTime(shift.scheduledStart)}. Please open the portal to Approve or Decline this visit.`,
+      type: 'SHIFT_CONFIRMED',
+    });
+
+    // ── Notify admins: caregiver confirmed, waiting on family ─────────────
+    await notifyAdmins({
+      title: 'Caregiver Confirmed — Awaiting Family Approval',
+      message: `Caregiver ${shift.caregiver.name} confirmed the shift for ${shift.client.name} on ${formatDate(shift.scheduledStart)}. Waiting for family to approve the visit.`,
+      type: 'SHIFT_CONFIRMED',
+    });
+
+    return NextResponse.json({
+      success: true,
+      shift: updatedShift,
+      confirmedByAdmin: false,
+      message: `Shift confirmed! The family of ${shift.client.name} has been notified to approve your visit.`,
+    });
+
   } catch (error) {
     console.error('Failed to confirm shift:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+
