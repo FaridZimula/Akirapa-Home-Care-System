@@ -114,12 +114,63 @@ export default function Home() {
   const [shiftNotes, setShiftNotes] = useState('');
   const [selectedShiftId, setSelectedShiftId] = useState<string | null>(null);
 
+interface HandoverNotesForm {
+  incomingCaregiver: string;
+  supervisorNotified: 'YES' | 'NO';
+  shiftSummary: string;
+  careProvided: {
+    personalCare: boolean;
+    medicationGiven: boolean;
+    mealsPrepared: boolean;
+    mobilitySupport: boolean;
+    companionship: boolean;
+    housekeeping: boolean;
+    vitalSigns: boolean;
+    other: boolean;
+    otherText: string;
+  };
+  physicalStatus: 'Stable' | 'Improving' | 'Declining';
+  moodBehavior: 'Calm' | 'Anxious' | 'Irritable' | 'Confused';
+  medicationStatus: 'All Given' | 'Missed Dose' | 'Refused';
+  medicationNotes: string;
+  nextShiftNotes: string;
+  hasIncidents: 'YES' | 'NO';
+  incidentDetails: string;
+  signedOff: boolean;
+}
+
+const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
+  incomingCaregiver: '',
+  supervisorNotified: 'NO',
+  shiftSummary: '',
+  careProvided: {
+    personalCare: false,
+    medicationGiven: false,
+    mealsPrepared: false,
+    mobilitySupport: false,
+    companionship: false,
+    housekeeping: false,
+    vitalSigns: false,
+    other: false,
+    otherText: '',
+  },
+  physicalStatus: 'Stable',
+  moodBehavior: 'Calm',
+  medicationStatus: 'All Given',
+  medicationNotes: '',
+  nextShiftNotes: '',
+  hasIncidents: 'NO',
+  incidentDetails: '',
+  signedOff: false,
+};
+
   // Mandatory Clock-Out Questionnaire (manual or auto-triggered at shift end)
   const [showClockOutModal, setShowClockOutModal] = useState(false);
   const [clockOutTargetShiftId, setClockOutTargetShiftId] = useState<string | null>(null);
   const [isForcedClockOut, setIsForcedClockOut] = useState(false);
   const [clockOutOvertimeReason, setClockOutOvertimeReason] = useState('');
   const [isSubmittingClockOut, setIsSubmittingClockOut] = useState(false);
+  const [handoverForm, setHandoverForm] = useState<HandoverNotesForm>(EMPTY_HANDOVER_FORM);
   const autoClockOutTriggeredRef = useRef<Set<string>>(new Set());
   
   // Structured welfare check answers (Y/N per WELFARE_QUESTIONS)
@@ -2329,6 +2380,7 @@ export default function Home() {
           isOverride,
           overrideReason: isOverride ? clockOutOverrideReason : undefined,
           mediaFiles: selectedMediaFiles.map(f => ({ name: f.name, type: f.type })),
+          handover: handoverForm,
           overtimeReason: overtime ? clockOutOvertimeReason : undefined,
           overtimeEvidenceFile: overtime && selectedMediaFiles[0] ? { name: selectedMediaFiles[0].name, type: selectedMediaFiles[0].type } : undefined,
         }),
@@ -2339,6 +2391,7 @@ export default function Home() {
         setShiftNotes('');
         setSelectedMediaFiles([]);
         setWelfareAnswers(EMPTY_WELFARE_ANSWERS);
+        setHandoverForm(EMPTY_HANDOVER_FORM);
         setShowClockOutOverrideInput(false);
         setClockOutOverrideReason('');
         setClockOutOvertimeReason('');
@@ -4411,13 +4464,248 @@ export default function Home() {
                       End-of-Shift Notes <span className="text-red-500">*</span>
                     </label>
                     <textarea
-                      rows={3}
+                      rows={2}
                       required
                       placeholder="Summarize the visit: tasks completed, patient condition, handover notes..."
                       value={shiftNotes}
                       onChange={(e) => setShiftNotes(e.target.value)}
                       className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1 font-medium"
                     />
+                  </div>
+
+                  {/* SHIFT HANDOVER NOTES — FORM HCA-SH-01 */}
+                  <div className="bg-slate-50 border-2 border-teal-600 rounded-2xl p-4 space-y-4 shadow-sm">
+                    {/* Header */}
+                    <div className="border-b border-teal-200 pb-3 flex justify-between items-center">
+                      <div>
+                        <div className="text-xs font-black tracking-widest text-teal-800 uppercase flex items-center gap-1.5">
+                          <i className="fa-solid fa-clipboard-check text-teal-600"></i> SHIFT HANDOVER NOTES
+                        </div>
+                        <div className="text-[10px] text-teal-600 font-semibold">FORM HCA-SH-01 • COMPLETE AT END OF EVERY SHIFT</div>
+                      </div>
+                      <span className="bg-teal-100 text-teal-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-teal-300">
+                        Official Record
+                      </span>
+                    </div>
+
+                    {/* Header Metadata Grid */}
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <label className="text-[10px] font-bold text-gray-500 uppercase block mb-0.5">Outgoing Caregiver</label>
+                        <input type="text" disabled value={user?.name || ''} className="w-full bg-gray-100 border border-gray-200 rounded-lg p-2 text-xs font-bold text-gray-700" />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-gray-500 uppercase block mb-0.5">Incoming Caregiver</label>
+                        <input
+                          type="text"
+                          placeholder="Name of incoming caregiver..."
+                          value={handoverForm.incomingCaregiver}
+                          onChange={(e) => setHandoverForm(prev => ({ ...prev, incomingCaregiver: e.target.value }))}
+                          className="w-full bg-white border border-gray-200 rounded-lg p-2 text-xs font-medium focus:ring-2 focus:ring-teal-500"
+                        />
+                      </div>
+                      <div className="col-span-2 flex items-center justify-between bg-white border border-gray-200 rounded-lg p-2">
+                        <span className="text-[11px] font-bold text-gray-700">Supervisor Notified?</span>
+                        <div className="flex gap-1">
+                          <button
+                            type="button"
+                            onClick={() => setHandoverForm(prev => ({ ...prev, supervisorNotified: 'YES' }))}
+                            className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${handoverForm.supervisorNotified === 'YES' ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                          >YES</button>
+                          <button
+                            type="button"
+                            onClick={() => setHandoverForm(prev => ({ ...prev, supervisorNotified: 'NO' }))}
+                            className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${handoverForm.supervisorNotified === 'NO' ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                          >NO</button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 1. Shift Summary */}
+                    <div>
+                      <label className="text-[10px] font-bold text-gray-600 uppercase block mb-1">1. Shift Summary</label>
+                      <textarea
+                        rows={2}
+                        placeholder="General summary of client care during shift..."
+                        value={handoverForm.shiftSummary}
+                        onChange={(e) => setHandoverForm(prev => ({ ...prev, shiftSummary: e.target.value }))}
+                        className="w-full bg-white border border-gray-200 rounded-lg p-2.5 text-xs font-medium focus:ring-2 focus:ring-teal-500"
+                      />
+                    </div>
+
+                    {/* 2. Care Provided This Shift */}
+                    <div>
+                      <label className="text-[10px] font-bold text-gray-600 uppercase block mb-1.5">2. Care Provided This Shift</label>
+                      <div className="grid grid-cols-2 gap-1.5 text-[11px]">
+                        {[
+                          { key: 'personalCare', label: 'Personal Care' },
+                          { key: 'medicationGiven', label: 'Medication Given' },
+                          { key: 'mealsPrepared', label: 'Meals Prepared' },
+                          { key: 'mobilitySupport', label: 'Mobility Support' },
+                          { key: 'companionship', label: 'Companionship' },
+                          { key: 'housekeeping', label: 'Housekeeping' },
+                          { key: 'vitalSigns', label: 'Vital Signs' },
+                          { key: 'other', label: 'Other' },
+                        ].map((item) => {
+                          const isChecked = (handoverForm.careProvided as any)[item.key];
+                          return (
+                            <button
+                              key={item.key}
+                              type="button"
+                              onClick={() => setHandoverForm(prev => ({
+                                ...prev,
+                                careProvided: {
+                                  ...prev.careProvided,
+                                  [item.key]: !isChecked,
+                                }
+                              }))}
+                              className={`p-2 rounded-lg border text-left font-semibold transition-all flex items-center gap-2 cursor-pointer ${
+                                isChecked ? 'bg-teal-50 border-teal-500 text-teal-900 shadow-2xs' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                              }`}
+                            >
+                              <i className={`fa-solid ${isChecked ? 'fa-square-check text-teal-600' : 'fa-square text-gray-300'}`}></i>
+                              {item.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {handoverForm.careProvided.other && (
+                        <input
+                          type="text"
+                          placeholder="Specify other care provided..."
+                          value={handoverForm.careProvided.otherText}
+                          onChange={(e) => setHandoverForm(prev => ({ ...prev, careProvided: { ...prev.careProvided, otherText: e.target.value } }))}
+                          className="w-full bg-white border border-gray-200 rounded-lg p-2 text-xs mt-1.5"
+                        />
+                      )}
+                    </div>
+
+                    {/* 3. Client Condition */}
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-gray-600 uppercase block">3. Client Condition</label>
+                      <div>
+                        <span className="text-[10px] font-bold text-gray-500 block mb-1">Physical Status</span>
+                        <div className="flex gap-1.5">
+                          {(['Stable', 'Improving', 'Declining'] as const).map(status => (
+                            <button
+                              key={status}
+                              type="button"
+                              onClick={() => setHandoverForm(prev => ({ ...prev, physicalStatus: status }))}
+                              className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold border transition-all cursor-pointer ${
+                                handoverForm.physicalStatus === status
+                                  ? (status === 'Declining' ? 'bg-red-600 text-white border-red-700' : 'bg-teal-600 text-white border-teal-700')
+                                  : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                              }`}
+                            >
+                              {status}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-bold text-gray-500 block mb-1">Mood / Behavior</span>
+                        <div className="grid grid-cols-4 gap-1">
+                          {(['Calm', 'Anxious', 'Irritable', 'Confused'] as const).map(m => (
+                            <button
+                              key={m}
+                              type="button"
+                              onClick={() => setHandoverForm(prev => ({ ...prev, moodBehavior: m }))}
+                              className={`py-1.5 rounded-lg text-[10px] font-bold border transition-all cursor-pointer ${
+                                handoverForm.moodBehavior === m
+                                  ? 'bg-teal-600 text-white border-teal-700'
+                                  : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                              }`}
+                            >
+                              {m}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 4. Medication Update */}
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-gray-600 uppercase block">4. Medication Update</label>
+                      <div className="flex gap-1.5">
+                        {(['All Given', 'Missed Dose', 'Refused'] as const).map(mStat => (
+                          <button
+                            key={mStat}
+                            type="button"
+                            onClick={() => setHandoverForm(prev => ({ ...prev, medicationStatus: mStat }))}
+                            className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold border transition-all cursor-pointer ${
+                              handoverForm.medicationStatus === mStat
+                                ? (mStat === 'All Given' ? 'bg-teal-600 text-white border-teal-700' : 'bg-amber-500 text-white border-amber-600')
+                                : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                            }`}
+                          >
+                            {mStat}
+                          </button>
+                        ))}
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="Medication notes (doses, timing)..."
+                        value={handoverForm.medicationNotes}
+                        onChange={(e) => setHandoverForm(prev => ({ ...prev, medicationNotes: e.target.value }))}
+                        className="w-full bg-white border border-gray-200 rounded-lg p-2 text-xs"
+                      />
+                    </div>
+
+                    {/* Important Notes for Next Shift */}
+                    <div className="bg-teal-50 border-l-4 border-teal-500 p-2.5 rounded-r-lg space-y-1">
+                      <label className="text-[10px] font-extrabold text-teal-800 uppercase flex items-center gap-1">
+                        <i className="fa-solid fa-bolt text-teal-600"></i> Important Notes for Next Shift
+                      </label>
+                      <textarea
+                        rows={2}
+                        placeholder="Critical instructions or warnings for incoming caregiver..."
+                        value={handoverForm.nextShiftNotes}
+                        onChange={(e) => setHandoverForm(prev => ({ ...prev, nextShiftNotes: e.target.value }))}
+                        className="w-full bg-white border border-teal-200 rounded-lg p-2 text-xs font-medium focus:ring-2 focus:ring-teal-500"
+                      />
+                    </div>
+
+                    {/* 5. Incidents / Concerns */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[10px] font-bold text-gray-600 uppercase">5. Incidents / Concerns</label>
+                        <div className="flex gap-1">
+                          <button
+                            type="button"
+                            onClick={() => setHandoverForm(prev => ({ ...prev, hasIncidents: 'YES' }))}
+                            className={`px-3 py-0.5 rounded text-[10px] font-bold cursor-pointer ${handoverForm.hasIncidents === 'YES' ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                          >YES</button>
+                          <button
+                            type="button"
+                            onClick={() => setHandoverForm(prev => ({ ...prev, hasIncidents: 'NO' }))}
+                            className={`px-3 py-0.5 rounded text-[10px] font-bold cursor-pointer ${handoverForm.hasIncidents === 'NO' ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                          >NO</button>
+                        </div>
+                      </div>
+                      {handoverForm.hasIncidents === 'YES' && (
+                        <textarea
+                          rows={2}
+                          placeholder="Describe incident or safety concerns..."
+                          value={handoverForm.incidentDetails}
+                          onChange={(e) => setHandoverForm(prev => ({ ...prev, incidentDetails: e.target.value }))}
+                          className="w-full bg-white border border-red-200 rounded-lg p-2 text-xs text-red-900 font-medium"
+                        />
+                      )}
+                    </div>
+
+                    {/* Sign-off */}
+                    <div className="border-t border-teal-200 pt-2 flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="signedOffCheck"
+                        checked={handoverForm.signedOff}
+                        onChange={(e) => setHandoverForm(prev => ({ ...prev, signedOff: e.target.checked }))}
+                        className="w-4 h-4 text-teal-600 rounded cursor-pointer"
+                      />
+                      <label htmlFor="signedOffCheck" className="text-[11px] font-bold text-teal-900 cursor-pointer">
+                        Sign-off: Confirm Form HCA-SH-01 accuracy ({user?.name || 'Caregiver'})
+                      </label>
+                    </div>
                   </div>
 
                   <div className="bg-purple-50/60 border border-purple-200 rounded-xl p-3 text-xs space-y-2">
@@ -6878,6 +7166,89 @@ export default function Home() {
                                   </span>
                                   {log.details?.notes || 'Care shift update logged.'}
                                 </div>
+
+                                {/* SHIFT HANDOVER NOTES (FORM HCA-SH-01) RECORD VIEWER */}
+                                {log.details?.handover && (
+                                  <div className="mt-4 bg-slate-50 border-2 border-teal-600 rounded-2xl p-4 space-y-3">
+                                    <div className="flex justify-between items-center border-b border-teal-200 pb-2">
+                                      <div>
+                                        <span className="text-xs font-black tracking-wider text-teal-800 uppercase flex items-center gap-1.5">
+                                          <i className="fa-solid fa-clipboard-check text-teal-600"></i> Form HCA-SH-01 • Handover Record
+                                        </span>
+                                        <span className="text-[10px] text-teal-600 block">Caregiver Communication Record</span>
+                                      </div>
+                                      <span className="bg-teal-100 text-teal-800 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border border-teal-300">
+                                        Completed
+                                      </span>
+                                    </div>
+
+                                    {/* Metadata Grid */}
+                                    <div className="grid grid-cols-3 gap-2 text-[11px] bg-white p-2.5 rounded-xl border border-gray-200">
+                                      <div><span className="text-gray-400 block text-[9px] uppercase font-bold">Outgoing Caregiver</span><span className="font-bold text-gray-800">{log.details.handover.outgoingCaregiver || log.details.caregiverName || 'Caregiver'}</span></div>
+                                      <div><span className="text-gray-400 block text-[9px] uppercase font-bold">Incoming Caregiver</span><span className="font-bold text-gray-800">{log.details.handover.incomingCaregiver || 'Not specified'}</span></div>
+                                      <div><span className="text-gray-400 block text-[9px] uppercase font-bold">Supervisor Notified</span><span className={`font-bold ${log.details.handover.supervisorNotified === 'YES' ? 'text-teal-700' : 'text-gray-600'}`}>{log.details.handover.supervisorNotified || 'NO'}</span></div>
+                                    </div>
+
+                                    {/* Care Provided Badges */}
+                                    {log.details.handover.careProvided && (
+                                      <div>
+                                        <span className="text-[10px] font-bold text-gray-500 block uppercase mb-1">Care Provided</span>
+                                        <div className="flex flex-wrap gap-1 text-[10px]">
+                                          {Object.entries(log.details.handover.careProvided).map(([k, val]) => {
+                                            if (val && k !== 'otherText') {
+                                              const labelMap: Record<string, string> = {
+                                                personalCare: 'Personal Care',
+                                                medicationGiven: 'Medication Given',
+                                                mealsPrepared: 'Meals Prepared',
+                                                mobilitySupport: 'Mobility Support',
+                                                companionship: 'Companionship',
+                                                housekeeping: 'Housekeeping',
+                                                vitalSigns: 'Vital Signs',
+                                                other: `Other (${log.details.handover.careProvided.otherText || 'Specified'})`,
+                                              };
+                                              return (
+                                                <span key={k} className="px-2 py-0.5 rounded-md bg-teal-50 border border-teal-300 text-teal-900 font-bold">
+                                                  ✓ {labelMap[k] || k}
+                                                </span>
+                                              );
+                                            }
+                                            return null;
+                                          })}
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {/* Physical Status & Mood */}
+                                    <div className="grid grid-cols-2 gap-2 text-xs">
+                                      <div className="bg-white border border-gray-200 p-2 rounded-lg">
+                                        <span className="text-[9px] text-gray-400 font-bold uppercase block">Physical Status</span>
+                                        <span className={`font-extrabold ${log.details.handover.physicalStatus === 'Declining' ? 'text-red-600' : 'text-teal-700'}`}>{log.details.handover.physicalStatus || 'Stable'}</span>
+                                      </div>
+                                      <div className="bg-white border border-gray-200 p-2 rounded-lg">
+                                        <span className="text-[9px] text-gray-400 font-bold uppercase block">Mood / Behavior</span>
+                                        <span className="font-extrabold text-teal-700">{log.details.handover.moodBehavior || 'Calm'}</span>
+                                      </div>
+                                    </div>
+
+                                    {/* Medication & Next Shift Notes */}
+                                    {log.details.handover.nextShiftNotes && (
+                                      <div className="bg-teal-50 border-l-4 border-teal-600 p-2.5 rounded-r-xl">
+                                        <span className="text-[10px] font-extrabold text-teal-900 uppercase block flex items-center gap-1">
+                                          <i className="fa-solid fa-bolt text-teal-600"></i> Important Notes for Next Shift
+                                        </span>
+                                        <p className="text-xs text-teal-950 font-medium mt-0.5 leading-snug">{log.details.handover.nextShiftNotes}</p>
+                                      </div>
+                                    )}
+
+                                    {/* Incidents if any */}
+                                    {log.details.handover.hasIncidents === 'YES' && (
+                                      <div className="bg-red-50 border border-red-200 p-2.5 rounded-xl text-xs text-red-900">
+                                        <span className="font-bold block text-[10px] uppercase text-red-700">⚠️ Incidents / Concerns Reported</span>
+                                        <p className="mt-0.5 font-medium">{log.details.handover.incidentDetails || 'Incident reported during shift.'}</p>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
 
                                 {/* Wellness Status Chips */}
                                 {log.details?.wellness && (
