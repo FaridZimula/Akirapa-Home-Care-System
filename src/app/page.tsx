@@ -3951,15 +3951,6 @@ export default function Home() {
           </div>
         </div>
       )}
-                  className="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold transition-all disabled:opacity-50 cursor-pointer flex items-center gap-2"
-                >
-                  {isAdminSettingPassword ? <><i className="fa-solid fa-spinner animate-spin"></i> Saving...</> : <><i className="fa-solid fa-check"></i> Assign Password</>}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* Admin User Account Provisioning Modal */}
       {showAddUserModal && (

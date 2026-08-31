@@ -272,7 +272,7 @@ export async function POST(request: Request) {
           data: {
             clientId: client.id,
             caregiverId: defaultSecondary.id,
-            role: 'SECONDARY',
+            role: 'SECONDARY_1',
           },
         });
 

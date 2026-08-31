@@ -54,9 +54,10 @@ export async function GET() {
     let totalPayroll = 0;
     let totalOvertimeShifts = 0;
 
-    const statusCounts = {
+    const statusCounts: Record<ShiftStatus, number> = {
       COMPLETED: 0,
       CONFIRMED: 0,
+      CAREGIVER_CONFIRMED: 0,
       UNCONFIRMED: 0,
       DROPPED: 0,
       IN_PROGRESS: 0,

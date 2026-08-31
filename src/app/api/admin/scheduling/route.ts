@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { logAudit } from '@/lib/audit';
 import { getSessionUser } from '@/lib/session';
 import { ShiftStatus, PodRole } from '@prisma/client';
-import { createNotification, notifyAdmins, notifyClientFamily, notifyCaregiver } from '@/lib/notifications';
+import { createNotification, notifyAdmins, notifyClientFamily, notifyCaregiver, sendShiftAssignmentEmail } from '@/lib/notifications';
 import { formatDate, formatTime, formatDateTime } from '@/lib/dateFormat';
 
 const clientInclude = {
@@ -211,13 +211,25 @@ export async function POST(request: Request) {
       outcome: 'SUCCESS',
     });
 
-    // 1. Notify Caregiver in real-time of new shift assignment
+    // 1. Notify Caregiver in real-time of new shift assignment (in-app & email)
     await notifyCaregiver({
       caregiverId: shift.caregiverId,
       title: 'New Shift Assigned',
       message: `You have been assigned to care for ${shift.client.name} on ${formatDate(start)} (${formatTime(start)} - ${formatTime(end)}). Please confirm availability before ${formatDateTime(confirmationDeadline)}.`,
       type: 'SHIFT_ASSIGNED',
     });
+
+    if (shift.caregiver?.email) {
+      sendShiftAssignmentEmail({
+        caregiverEmail: shift.caregiver.email,
+        caregiverName: shift.caregiver.name,
+        clientName: shift.client.name,
+        clientAddress: shift.client.address,
+        scheduledStart: start,
+        scheduledEnd: end,
+        confirmationDeadline,
+      }).catch(err => console.error('Failed to send shift assignment email to caregiver:', err));
+    }
 
     // 2. Notify Client / Linked Family Members in real-time of scheduled visit
     await notifyClientFamily({

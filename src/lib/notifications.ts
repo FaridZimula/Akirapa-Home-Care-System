@@ -158,6 +158,96 @@ export async function notifyClientFamily({
   }
 }
 
+import { sendEmail } from './email';
+import { formatDate, formatTime, formatDateTime } from './dateFormat';
+
+/**
+ * Send an email alert to the caregiver when a shift is assigned.
+ */
+export async function sendShiftAssignmentEmail({
+  caregiverEmail,
+  caregiverName,
+  clientName,
+  clientAddress,
+  scheduledStart,
+  scheduledEnd,
+  confirmationDeadline,
+}: {
+  caregiverEmail: string;
+  caregiverName: string;
+  clientName: string;
+  clientAddress?: string;
+  scheduledStart: Date | string;
+  scheduledEnd: Date | string;
+  confirmationDeadline: Date | string;
+}): Promise<boolean> {
+  if (!caregiverEmail) return false;
+
+  const dateStr = formatDate(scheduledStart);
+  const startStr = formatTime(scheduledStart);
+  const endStr = formatTime(scheduledEnd);
+  const deadlineStr = formatDateTime(confirmationDeadline);
+
+  const subject = `🗓️ Action Required: New Shift Assigned for ${clientName} (${dateStr})`;
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #ffffff;">
+      <div style="background-color: #0f172a; padding: 20px; text-align: center; border-radius: 6px 6px 0 0;">
+        <h2 style="color: #ffffff; margin: 0; font-size: 22px;">Akirapa Home Care</h2>
+        <p style="color: #38bdf8; margin: 5px 0 0 0; font-size: 14px;">Shift Assignment Notification</p>
+      </div>
+
+      <div style="padding: 24px; color: #334155; line-height: 1.6;">
+        <p style="font-size: 16px;">Hello <strong>${caregiverName}</strong>,</p>
+        <p>You have been assigned a new care shift. Please review the details below and log in to your Akirapa portal to confirm your availability.</p>
+
+        <div style="background-color: #f8fafc; border-left: 4px solid #0284c7; padding: 16px; margin: 20px 0; border-radius: 4px;">
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="padding: 6px 0; font-weight: bold; color: #64748b; width: 140px;">Client Name:</td>
+              <td style="padding: 6px 0; font-weight: bold; color: #0f172a;">${clientName}</td>
+            </tr>
+            ${clientAddress ? `
+            <tr>
+              <td style="padding: 6px 0; font-weight: bold; color: #64748b;">Location:</td>
+              <td style="padding: 6px 0; color: #334155;">${clientAddress}</td>
+            </tr>` : ''}
+            <tr>
+              <td style="padding: 6px 0; font-weight: bold; color: #64748b;">Date:</td>
+              <td style="padding: 6px 0; color: #334155;">${dateStr}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; font-weight: bold; color: #64748b;">Time Window:</td>
+              <td style="padding: 6px 0; color: #334155;">${startStr} – ${endStr}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; font-weight: bold; color: #dc2626;">Confirm By:</td>
+              <td style="padding: 6px 0; font-weight: bold; color: #dc2626;">${deadlineStr}</td>
+            </tr>
+          </table>
+        </div>
+
+        <div style="text-align: center; margin: 30px 0 20px 0;">
+          <a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}" 
+             style="background-color: #0284c7; color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 6px; font-weight: bold; font-size: 16px; display: inline-block;">
+            Open Portal & Confirm Shift
+          </a>
+        </div>
+
+        <p style="font-size: 13px; color: #64748b; margin-top: 24px; text-align: center;">
+          If you are unable to fulfill this shift, please log in immediately to notify administration or contact your Care Coordinator.
+        </p>
+      </div>
+
+      <div style="background-color: #f1f5f9; padding: 14px; text-align: center; font-size: 12px; color: #64748b; border-radius: 0 0 6px 6px;">
+        &copy; ${new Date().getFullYear()} Akirapa Home Care System. All rights reserved.
+      </div>
+    </div>
+  `;
+
+  return await sendEmail({ to: caregiverEmail, subject, html });
+}
+
 /**
  * Notify a specific caregiver.
  */
@@ -179,6 +269,7 @@ export async function notifyCaregiver({
     type,
   });
 }
+
 
 /**
  * Multi-party notification orchestrator for shifts.
