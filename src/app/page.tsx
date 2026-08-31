@@ -149,6 +149,7 @@ export default function Home() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isHoldingRecordRef = useRef<boolean>(false);
   const [activeMediaModal, setActiveMediaModal] = useState<{
     url: string;
     type: string;
@@ -2846,12 +2847,25 @@ export default function Home() {
     setShowPostUpdateModal(true);
   };
 
+  const formatRecordingTime = (totalSeconds: number) => {
+    const mins = Math.floor(totalSeconds / 60);
+    const secs = totalSeconds % 60;
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  };
+
   const handleStartVoiceRecording = async () => {
     try {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         throw new Error('MediaRecorder not supported');
       }
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+      // If user released hold while waiting for permission prompt
+      if (!isHoldingRecordRef.current) {
+        stream.getTracks().forEach(track => track.stop());
+        return;
+      }
+
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
@@ -2864,9 +2878,12 @@ export default function Home() {
 
       mediaRecorder.onstop = () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        const audioUrl = URL.createObjectURL(audioBlob);
-        const fileName = `voice_note_${new Date().toISOString().substring(11, 19).replace(/:/g, '')}.webm`;
-        setSelectedMediaFiles(prev => [...prev, { name: fileName, type: 'audio/webm', preview: audioUrl, file: audioBlob }]);
+        if (audioBlob.size > 0) {
+          const audioUrl = URL.createObjectURL(audioBlob);
+          const fileName = `voice_note_${new Date().toISOString().substring(11, 19).replace(/:/g, '')}.webm`;
+          setSelectedMediaFiles(prev => [...prev, { name: fileName, type: 'audio/webm', preview: audioUrl, file: audioBlob }]);
+          showNotification('Voice Note Recorded & Attached!');
+        }
         stream.getTracks().forEach(track => track.stop());
       };
 
@@ -2877,20 +2894,55 @@ export default function Home() {
       recordingTimerRef.current = setInterval(() => {
         setRecordingSeconds(prev => prev + 1);
       }, 1000);
-      showNotification('Voice Recording Started... Speak now!');
     } catch (err) {
       console.warn('Microphone recording unavailable:', err);
+      isHoldingRecordRef.current = false;
       showNotification('Could not access your microphone. Check browser/device permissions and try again.');
     }
   };
 
   const handleStopVoiceRecording = () => {
-    if (mediaRecorderRef.current && isRecordingAudio) {
+    isHoldingRecordRef.current = false;
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
-      setIsRecordingAudio(false);
-      if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
-      showNotification('Voice Note Recorded & Attached!');
     }
+    setIsRecordingAudio(false);
+    if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+  };
+
+  const handleCancelVoiceRecording = () => {
+    isHoldingRecordRef.current = false;
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      audioChunksRef.current = [];
+      mediaRecorderRef.current.stop();
+    }
+    setIsRecordingAudio(false);
+    if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+    showNotification('Voice recording cancelled.');
+  };
+
+  const handleVoiceRecordPressStart = (e: React.MouseEvent | React.TouchEvent) => {
+    if (e.cancelable && e.type === 'touchstart') {
+      e.preventDefault();
+    }
+    if (isHoldingRecordRef.current) return;
+    isHoldingRecordRef.current = true;
+
+    const handleRelease = (ev?: Event) => {
+      window.removeEventListener('mouseup', handleRelease);
+      window.removeEventListener('touchend', handleRelease);
+      window.removeEventListener('touchcancel', handleRelease);
+
+      if (isHoldingRecordRef.current) {
+        handleStopVoiceRecording();
+      }
+    };
+
+    window.addEventListener('mouseup', handleRelease, { once: true });
+    window.addEventListener('touchend', handleRelease, { once: true });
+    window.addEventListener('touchcancel', handleRelease, { once: true });
+
+    handleStartVoiceRecording();
   };
 
   // ============================================================
@@ -9963,38 +10015,107 @@ export default function Home() {
                           </div>
                         )}
                         {selectedMediaFiles.length > 0 && (
-                          <div className="mb-2 flex items-center gap-2 bg-purple-50 rounded-lg px-3 py-1.5 text-xs text-purple-700">
-                            <i className="fa-solid fa-paperclip"></i> {selectedMediaFiles[0].name}
-                            <button onClick={() => handleRemoveMedia(0)} className="ml-auto text-purple-400 hover:text-purple-700">✕</button>
+                          <div className="mb-2.5 p-2 bg-purple-50 border border-purple-200 rounded-xl flex items-center justify-between gap-2 shadow-2xs">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div className="w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center shrink-0">
+                                <i className={`fa-solid ${selectedMediaFiles[0].type?.startsWith('audio') ? 'fa-microphone-lines animate-pulse' : 'fa-paperclip'}`}></i>
+                              </div>
+                              <div className="truncate">
+                                <p className="text-xs font-bold text-purple-950 truncate">{selectedMediaFiles[0].name}</p>
+                                {selectedMediaFiles[0].preview && selectedMediaFiles[0].type?.startsWith('audio') && (
+                                  <audio src={selectedMediaFiles[0].preview} controls className="h-6 mt-0.5 max-w-[220px]" />
+                                )}
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveMedia(0)}
+                              className="w-7 h-7 rounded-full bg-purple-200/70 hover:bg-purple-300 text-purple-900 flex items-center justify-center font-bold text-xs transition-colors shrink-0"
+                              title="Remove attachment"
+                            >
+                              ✕
+                            </button>
                           </div>
                         )}
                         <div className="flex items-center gap-2">
-                          <div className="relative">
-                            <input type="file" accept="image/*,video/*,audio/*" onChange={handleMediaChange} className="absolute inset-0 opacity-0 w-9 h-9 cursor-pointer z-10" />
-                            <button type="button" className="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-900 flex items-center justify-center shrink-0 aspect-square"><i className="fa-solid fa-paperclip text-gray-900"></i></button>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={isRecordingAudio ? handleStopVoiceRecording : handleStartVoiceRecording}
-                            className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${isRecordingAudio ? 'bg-red-600 text-white animate-pulse' : 'bg-gray-100 hover:bg-gray-200 text-gray-900'}`}
-                          >
-                            <i className="fa-solid fa-microphone text-gray-900"></i>
-                          </button>
-                          <input
-                            type="text"
-                            value={messageText}
-                            onChange={(e) => setMessageText(e.target.value)}
-                            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }}
-                            placeholder="Type a message..."
-                            className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-gray-900 placeholder:text-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                          />
-                          <button
-                            onClick={handleSendMessage}
-                            disabled={isSendingMessage || (!messageText.trim() && selectedMediaFiles.length === 0)}
-                            className="w-10 h-10 rounded-full bg-purple-600 hover:bg-purple-700 text-white flex items-center justify-center disabled:opacity-50 transition-all shrink-0 aspect-square"
-                          >
-                            <i className="fa-solid fa-paper-plane"></i>
-                          </button>
+                          {isRecordingAudio ? (
+                            /* WhatsApp Active Audio Recording Bar */
+                            <div className="flex-1 bg-red-50 border border-red-200 rounded-2xl px-3.5 py-2 flex items-center justify-between animate-fade-in shadow-xs">
+                              <div className="flex items-center gap-3">
+                                <span className="relative flex h-3 w-3">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                  <span className="relative inline-flex rounded-full h-3 w-3 bg-red-600"></span>
+                                </span>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs font-bold text-red-900">Recording...</span>
+                                  <span className="text-xs font-mono font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded-md">
+                                    {formatRecordingTime(recordingSeconds)}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <span className="hidden sm:inline-block text-[11px] font-semibold text-gray-500 italic mr-1">
+                                  Release to send note
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={handleCancelVoiceRecording}
+                                  className="p-1.5 text-gray-400 hover:text-red-600 transition-colors"
+                                  title="Cancel recording"
+                                >
+                                  <i className="fa-solid fa-trash-can text-sm"></i>
+                                </button>
+                                <button
+                                  type="button"
+                                  onMouseDown={handleVoiceRecordPressStart}
+                                  onTouchStart={handleVoiceRecordPressStart}
+                                  onContextMenu={(e) => e.preventDefault()}
+                                  className="w-9 h-9 rounded-full bg-red-600 text-white flex items-center justify-center shadow-md shadow-red-500/40 animate-pulse scale-105 select-none touch-none cursor-pointer"
+                                  title="Hold microphone to record"
+                                >
+                                  <i className="fa-solid fa-microphone text-white text-base"></i>
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            /* Standard Input Bar with Hold-to-Record WhatsApp Mic Button */
+                            <>
+                              <div className="relative">
+                                <input type="file" accept="image/*,video/*,audio/*" onChange={handleMediaChange} className="absolute inset-0 opacity-0 w-9 h-9 cursor-pointer z-10" />
+                                <button type="button" className="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-900 flex items-center justify-center shrink-0 aspect-square" title="Attach file"><i className="fa-solid fa-paperclip text-gray-900"></i></button>
+                              </div>
+
+                              <button
+                                type="button"
+                                onMouseDown={handleVoiceRecordPressStart}
+                                onTouchStart={handleVoiceRecordPressStart}
+                                onContextMenu={(e) => e.preventDefault()}
+                                className="w-9 h-9 rounded-full bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 flex items-center justify-center transition-all shrink-0 aspect-square select-none touch-none cursor-pointer active:scale-110 active:bg-emerald-600 active:text-white"
+                                title="Hold microphone to record voice note"
+                              >
+                                <i className="fa-solid fa-microphone text-base"></i>
+                              </button>
+
+                              <input
+                                type="text"
+                                value={messageText}
+                                onChange={(e) => setMessageText(e.target.value)}
+                                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }}
+                                placeholder="Type a message or hold mic to record..."
+                                className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                              />
+
+                              <button
+                                onClick={handleSendMessage}
+                                disabled={isSendingMessage || (!messageText.trim() && selectedMediaFiles.length === 0)}
+                                className="w-10 h-10 rounded-full bg-purple-600 hover:bg-purple-700 text-white flex items-center justify-center disabled:opacity-50 transition-all shrink-0 aspect-square"
+                                title="Send message"
+                              >
+                                <i className="fa-solid fa-paper-plane"></i>
+                              </button>
+                            </>
+                          )}
                         </div>
                       </div>
                     )}
