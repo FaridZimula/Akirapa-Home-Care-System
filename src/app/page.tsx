@@ -522,12 +522,32 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
   const [isSavingLocation, setIsSavingLocation] = useState(false);
   const [savedLocation, setSavedLocation] = useState<{ latitude: number; longitude: number } | null>(null);
 
-  // Admin Payroll Dashboard
+  // Time Zone Preference State (US Eastern / MA vs Uganda EAT vs Device Local)
+  const [activeTimeZone, setActiveTimeZone] = useState<'LOCAL' | 'AMERICA_NEW_YORK' | 'AFRICA_KAMPALA'>('AMERICA_NEW_YORK');
+
+  // Admin Payroll Dashboard & Employee Payroll Upload States
   const [financialsData, setFinancialsData] = useState<any>(null);
   const [isLoadingFinancials, setIsLoadingFinancials] = useState(false);
   const [editingPayRateFor, setEditingPayRateFor] = useState<string | null>(null);
   const [payRateInput, setPayRateInput] = useState('');
   const [isSavingPayRate, setIsSavingPayRate] = useState(false);
+  const [payrollRecords, setPayrollRecords] = useState<any[]>([]);
+  const [isLoadingPayrollRecords, setIsLoadingPayrollRecords] = useState(false);
+  const [showPayrollModal, setShowPayrollModal] = useState(false);
+  const [payrollEmployeeId, setPayrollEmployeeId] = useState('');
+  const [payrollPeriodStart, setPayrollPeriodStart] = useState('');
+  const [payrollPeriodEnd, setPayrollPeriodEnd] = useState('');
+  const [payrollHourlyRate, setPayrollHourlyRate] = useState('28.00');
+  const [payrollRegularHours, setPayrollRegularHours] = useState('40');
+  const [payrollOvertimeHours, setPayrollOvertimeHours] = useState('0');
+  const [payrollBonus, setPayrollBonus] = useState('0');
+  const [payrollDeductions, setPayrollDeductions] = useState('0');
+  const [payrollPaymentMethod, setPayrollPaymentMethod] = useState('Direct Deposit');
+  const [payrollReferenceNum, setPayrollReferenceNum] = useState('');
+  const [payrollNotes, setPayrollNotes] = useState('');
+  const [isSubmittingPayroll, setIsSubmittingPayroll] = useState(false);
+  const [payrollError, setPayrollError] = useState<string | null>(null);
+  const [csvParsedPreview, setCsvParsedPreview] = useState<any[]>([]);
 
   // Admin Billing / Payment Tracker
   const [invoicesData, setInvoicesData] = useState<any>(null);
@@ -1183,6 +1203,70 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
     }
   };
 
+  const loadPayrollRecords = async () => {
+    setIsLoadingPayrollRecords(true);
+    try {
+      const res = await fetch('/api/admin/financials/payroll');
+      const data = await res.json();
+      if (res.ok) {
+        setPayrollRecords(data.records || []);
+      }
+    } catch (err) {
+      console.error('Failed to load payroll records:', err);
+    } finally {
+      setIsLoadingPayrollRecords(false);
+    }
+  };
+
+  const handleCreatePayrollRecord = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (csvParsedPreview.length === 0 && (!payrollEmployeeId || !payrollPeriodStart || !payrollPeriodEnd)) {
+      setPayrollError('Employee and Pay Period dates are required.');
+      return;
+    }
+    setIsSubmittingPayroll(true);
+    setPayrollError(null);
+    try {
+      const payload = csvParsedPreview.length > 0 ? { records: csvParsedPreview } : {
+        userId: payrollEmployeeId,
+        payPeriodStart: payrollPeriodStart,
+        payPeriodEnd: payrollPeriodEnd,
+        hourlyRate: parseFloat(payrollHourlyRate) || 0,
+        regularHours: parseFloat(payrollRegularHours) || 0,
+        overtimeHours: parseFloat(payrollOvertimeHours) || 0,
+        bonus: parseFloat(payrollBonus) || 0,
+        deductions: parseFloat(payrollDeductions) || 0,
+        paymentMethod: payrollPaymentMethod,
+        referenceNumber: payrollReferenceNum,
+        notes: payrollNotes,
+        status: 'PAID',
+      };
+
+      const res = await fetch('/api/admin/financials/payroll', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showNotification(data.message || 'Payroll record created successfully!');
+        setShowPayrollModal(false);
+        setCsvParsedPreview([]);
+        setPayrollReferenceNum('');
+        setPayrollNotes('');
+        await loadPayrollRecords();
+        await loadFinancials();
+      } else {
+        setPayrollError(data.error || 'Failed to submit payroll record.');
+      }
+    } catch (err) {
+      console.error(err);
+      setPayrollError('Network error submitting payroll.');
+    } finally {
+      setIsSubmittingPayroll(false);
+    }
+  };
+
   const loadInvoices = async () => {
     setIsLoadingInvoices(true);
     try {
@@ -1609,6 +1693,7 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
   useEffect(() => {
     if (currentView === 'financials' && user?.role === 'ADMIN') {
       loadFinancials();
+      loadPayrollRecords();
     }
   }, [currentView, user]);
 
@@ -5885,7 +5970,21 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
               <input type="text" placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all" />
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 md:gap-3">
+            {/* Time Zone Switcher Dropdown */}
+            <div className="relative">
+              <select
+                value={activeTimeZone}
+                onChange={(e) => setActiveTimeZone(e.target.value as any)}
+                className="bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-900 text-[11px] md:text-xs font-bold rounded-xl px-2.5 py-2 cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-2xs transition-all"
+                title="Switch Display Time Zone (US Eastern MA vs Uganda EAT)"
+              >
+                <option value="AMERICA_NEW_YORK">🇺🇸 US Eastern (MA)</option>
+                <option value="AFRICA_KAMPALA">🇺🇬 Uganda (EAT)</option>
+                <option value="LOCAL">🌐 Local Device</option>
+              </select>
+            </div>
+
             <button onClick={loadData} className="p-2 hover:bg-gray-100 rounded-xl text-gray-400 transition-all"><i className="fa-solid fa-arrows-rotate"></i></button>
 
             {/* Notification Drawer */}
@@ -9569,6 +9668,27 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
               {/* ===== PAYROLL / FINANCIALS VIEW ===== */}
               {currentView === 'financials' && user && isBusinessHubAuthorized(user.email) && (
                 <div className="space-y-6">
+                  {/* Payroll Action Bar */}
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white p-4.5 rounded-2xl border border-gray-100 shadow-xs">
+                    <div>
+                      <h3 className="font-bold text-gray-900 text-base flex items-center gap-2">
+                        <i className="fa-solid fa-money-bill-wave text-green-600"></i> Payroll Management & Employee Disbursement
+                      </h3>
+                      <p className="text-xs text-gray-500 mt-0.5">Manage caregiver hourly pay rates, issue payroll statements, and upload bulk payroll CSV files.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowPayrollModal(true);
+                        setPayrollError(null);
+                        setCsvParsedPreview([]);
+                      }}
+                      className="px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center gap-2 cursor-pointer shrink-0"
+                    >
+                      <i className="fa-solid fa-file-invoice-dollar"></i> Create / Upload Payroll Record
+                    </button>
+                  </div>
+
                   {isLoadingFinancials ? (
                     <div className="py-16 text-center">
                       <div className="w-10 h-10 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-3 shrink-0 aspect-square" />
@@ -9684,6 +9804,79 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
                                           {c.payRate != null ? 'Edit Rate' : 'Set Rate'}
                                         </button>
                                       )}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Processed Payroll Statements & Payslip History Table */}
+                      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                        <div className="flex justify-between items-center mb-4">
+                          <div>
+                            <h3 className="font-bold text-gray-800 text-base">Processed Payroll Statements & Payslips</h3>
+                            <p className="text-xs text-gray-400">Issued caregiver salary statements, gross/net breakdowns, and disbursements</p>
+                          </div>
+                          <button
+                            onClick={loadPayrollRecords}
+                            className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer"
+                          >
+                            <i className="fa-solid fa-arrows-rotate text-xs"></i> Refresh Statements
+                          </button>
+                        </div>
+
+                        {isLoadingPayrollRecords ? (
+                          <div className="py-8 text-center text-xs text-gray-400">Loading payroll statement history...</div>
+                        ) : payrollRecords.length === 0 ? (
+                          <div className="text-center py-10 border border-dashed border-gray-200 rounded-xl">
+                            <i className="fa-solid fa-file-invoice text-3xl text-gray-300 mb-2 block"></i>
+                            <p className="text-xs text-gray-500 font-medium">No processed payroll statements recorded yet.</p>
+                            <p className="text-[11px] text-gray-400 mt-0.5">Click "Create / Upload Payroll Record" above to issue employee payroll.</p>
+                          </div>
+                        ) : (
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-xs text-left">
+                              <thead>
+                                <tr className="text-gray-400 uppercase font-semibold border-b border-gray-100 text-[10px]">
+                                  <th className="pb-2">Employee</th>
+                                  <th className="pb-2">Pay Period</th>
+                                  <th className="pb-2">Hours (Reg / OT)</th>
+                                  <th className="pb-2">Rate</th>
+                                  <th className="pb-2">Gross Pay</th>
+                                  <th className="pb-2">Deductions</th>
+                                  <th className="pb-2">Net Pay</th>
+                                  <th className="pb-2">Method / Ref</th>
+                                  <th className="pb-2">Status</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-gray-50">
+                                {payrollRecords.map((r: any) => (
+                                  <tr key={r.id} className="hover:bg-gray-50/50">
+                                    <td className="py-2.5 font-bold text-gray-800">
+                                      {r.user?.name || 'Employee'}
+                                      <span className="block text-[10px] text-gray-400 font-mono font-normal">{r.user?.email}</span>
+                                    </td>
+                                    <td className="py-2.5 font-medium text-gray-600">
+                                      {formatDate(r.payPeriodStart, activeTimeZone)} – {formatDate(r.payPeriodEnd, activeTimeZone)}
+                                    </td>
+                                    <td className="py-2.5 text-gray-700 font-mono">
+                                      {r.regularHours}h {r.overtimeHours > 0 && <span className="text-amber-600 font-bold">({r.overtimeHours}h OT)</span>}
+                                    </td>
+                                    <td className="py-2.5 font-mono text-gray-600">${r.hourlyRate}/hr</td>
+                                    <td className="py-2.5 font-bold text-gray-800">${r.grossPay.toFixed(2)}</td>
+                                    <td className="py-2.5 font-mono text-red-600">-${r.deductions.toFixed(2)}</td>
+                                    <td className="py-2.5 font-black text-green-700 text-sm">${r.netPay.toFixed(2)}</td>
+                                    <td className="py-2.5 text-gray-600">
+                                      <span className="font-semibold block">{r.paymentMethod || 'Direct Deposit'}</span>
+                                      {r.referenceNumber && <span className="text-[10px] text-gray-400 font-mono">Ref: {r.referenceNumber}</span>}
+                                    </td>
+                                    <td className="py-2.5">
+                                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-green-100 text-green-800 border border-green-200">
+                                        ✓ {r.status}
+                                      </span>
                                     </td>
                                   </tr>
                                 ))}
@@ -11116,6 +11309,259 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+      {/* Admin Create / Upload Payroll Record Modal */}
+      {showPayrollModal && (
+        <div className="modal-backdrop">
+          <div className="modal-content max-w-xl p-6 animate-fade-up">
+            <div className="flex justify-between items-center border-b border-gray-100 pb-3 mb-4">
+              <h3 className="font-bold text-gray-800 text-base flex items-center gap-2">
+                <i className="fa-solid fa-file-invoice-dollar text-green-600 text-lg"></i>
+                Create / Upload Employee Payroll Record
+              </h3>
+              <button
+                type="button"
+                onClick={() => { setShowPayrollModal(false); setPayrollError(null); setCsvParsedPreview([]); }}
+                className="text-gray-400 hover:text-gray-600 font-bold p-1 cursor-pointer"
+              >
+                <i className="fa-solid fa-xmark text-lg"></i>
+              </button>
+            </div>
+
+            <form onSubmit={handleCreatePayrollRecord} className="space-y-4">
+              {/* Option A: Bulk CSV Upload */}
+              <div className="bg-green-50/60 border border-green-200 rounded-2xl p-4 space-y-2">
+                <div className="font-bold text-green-900 text-xs flex items-center gap-1.5">
+                  <i className="fa-solid fa-file-csv text-green-600 text-sm"></i> Option A: Bulk Payroll CSV Upload
+                </div>
+                <p className="text-[11px] text-green-800 leading-relaxed">
+                  Upload a CSV file containing employee payroll lines formatted as: <code className="bg-white px-1.5 py-0.5 rounded border border-green-200 font-mono">Email, PeriodStart, PeriodEnd, Rate, RegHours, OTHours, Bonus, Deductions, Method, Ref</code>
+                </p>
+                <input
+                  type="file"
+                  accept=".csv,text/csv"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      const file = e.target.files[0];
+                      const reader = new FileReader();
+                      reader.onload = (evt) => {
+                        const text = evt.target?.result as string;
+                        if (!text) return;
+                        const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+                        if (lines.length < 2) return;
+                        const parsed: any[] = [];
+                        for (let i = 1; i < lines.length; i++) {
+                          const parts = lines[i].split(',').map(p => p.trim().replace(/^"|"$/g, ''));
+                          if (parts.length < 3) continue;
+                          const [email, start, end, rate, reg, ot, bonus, ded, method, ref] = parts;
+                          const matchedUser = caregivers.find(c => c.email.toLowerCase() === email.toLowerCase());
+                          if (matchedUser) {
+                            parsed.push({
+                              userId: matchedUser.id,
+                              userName: matchedUser.name,
+                              userEmail: matchedUser.email,
+                              payPeriodStart: start,
+                              payPeriodEnd: end,
+                              hourlyRate: parseFloat(rate) || matchedUser.payRate || 28,
+                              regularHours: parseFloat(reg) || 0,
+                              overtimeHours: parseFloat(ot) || 0,
+                              bonus: parseFloat(bonus) || 0,
+                              deductions: parseFloat(ded) || 0,
+                              paymentMethod: method || 'Direct Deposit',
+                              referenceNumber: ref || '',
+                            });
+                          }
+                        }
+                        setCsvParsedPreview(parsed);
+                      };
+                      reader.readAsText(file);
+                    }
+                  }}
+                  className="w-full text-xs text-gray-600 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-green-600 file:text-white hover:file:bg-green-700 cursor-pointer"
+                />
+                {csvParsedPreview.length > 0 && (
+                  <div className="mt-2 bg-white border border-green-200 rounded-xl p-2.5 text-xs text-green-900 font-bold flex items-center justify-between">
+                    <span>✓ Parsed {csvParsedPreview.length} employee payroll line(s)</span>
+                    <button type="button" onClick={() => setCsvParsedPreview([])} className="text-red-600 hover:underline text-[10px]">Clear</button>
+                  </div>
+                )}
+              </div>
+
+              {csvParsedPreview.length === 0 && (
+                <>
+                  <div className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest text-center py-1">
+                    — OR Option B: Manual Single Employee Payroll Entry —
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div className="col-span-2">
+                      <label className="font-bold text-gray-700 block mb-1">Select Employee / Caregiver <span className="text-red-500">*</span></label>
+                      <select
+                        required
+                        value={payrollEmployeeId}
+                        onChange={(e) => {
+                          setPayrollEmployeeId(e.target.value);
+                          const selected = caregivers.find(c => c.id === e.target.value);
+                          if (selected && selected.payRate) setPayrollHourlyRate(selected.payRate.toString());
+                        }}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 text-xs font-semibold focus:ring-2 focus:ring-green-500"
+                      >
+                        <option value="">-- Choose Caregiver / Staff Member --</option>
+                        {caregivers.map(cg => (
+                          <option key={cg.id} value={cg.id}>{cg.name} ({cg.email}) {cg.payRate ? `- $${cg.payRate}/hr` : ''}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="font-bold text-gray-700 block mb-1">Pay Period Start <span className="text-red-500">*</span></label>
+                      <input
+                        type="date"
+                        required
+                        value={payrollPeriodStart}
+                        onChange={(e) => setPayrollPeriodStart(e.target.value)}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2 text-xs font-medium"
+                      />
+                    </div>
+                    <div>
+                      <label className="font-bold text-gray-700 block mb-1">Pay Period End <span className="text-red-500">*</span></label>
+                      <input
+                        type="date"
+                        required
+                        value={payrollPeriodEnd}
+                        onChange={(e) => setPayrollPeriodEnd(e.target.value)}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2 text-xs font-medium"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="font-bold text-gray-700 block mb-1">Hourly Pay Rate ($/hr)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={payrollHourlyRate}
+                        onChange={(e) => setPayrollHourlyRate(e.target.value)}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2 text-xs font-mono font-bold text-gray-800"
+                      />
+                    </div>
+                    <div>
+                      <label className="font-bold text-gray-700 block mb-1">Regular Hours Worked</label>
+                      <input
+                        type="number"
+                        step="0.5"
+                        min="0"
+                        value={payrollRegularHours}
+                        onChange={(e) => setPayrollRegularHours(e.target.value)}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2 text-xs font-mono"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="font-bold text-gray-700 block mb-1">Overtime Hours (1.5x)</label>
+                      <input
+                        type="number"
+                        step="0.5"
+                        min="0"
+                        value={payrollOvertimeHours}
+                        onChange={(e) => setPayrollOvertimeHours(e.target.value)}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2 text-xs font-mono text-amber-700"
+                      />
+                    </div>
+                    <div>
+                      <label className="font-bold text-gray-700 block mb-1">Bonuses / Stipends ($)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={payrollBonus}
+                        onChange={(e) => setPayrollBonus(e.target.value)}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2 text-xs font-mono text-green-700"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="font-bold text-gray-700 block mb-1">Taxes / Deductions ($)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={payrollDeductions}
+                        onChange={(e) => setPayrollDeductions(e.target.value)}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2 text-xs font-mono text-red-700"
+                      />
+                    </div>
+                    <div>
+                      <label className="font-bold text-gray-700 block mb-1">Payment Method</label>
+                      <select
+                        value={payrollPaymentMethod}
+                        onChange={(e) => setPayrollPaymentMethod(e.target.value)}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2 text-xs font-semibold"
+                      >
+                        <option value="Direct Deposit">Direct Deposit</option>
+                        <option value="ACH Transfer">ACH Transfer</option>
+                        <option value="Check">Paper Check</option>
+                        <option value="Cash">Cash</option>
+                      </select>
+                    </div>
+
+                    <div className="col-span-2">
+                      <label className="font-bold text-gray-700 block mb-1">Transaction Ref / Check Number</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. TXN-8849201 or Check #402"
+                        value={payrollReferenceNum}
+                        onChange={(e) => setPayrollReferenceNum(e.target.value)}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2 text-xs font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Calculated Pay Preview Box */}
+                  <div className="bg-slate-900 text-white rounded-2xl p-4 flex justify-between items-center shadow-inner text-xs">
+                    <div>
+                      <span className="text-gray-400 block text-[10px] uppercase font-bold">Gross Calculation</span>
+                      <span className="font-mono text-gray-300">
+                        (${payrollHourlyRate} x {payrollRegularHours}h) + (${payrollHourlyRate} x 1.5 x {payrollOvertimeHours}h OT) + ${payrollBonus}
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-gray-400 block text-[10px] uppercase font-bold">Net Salary Payable</span>
+                      <span className="text-xl font-black text-green-400 font-mono">
+                        ${Math.max(0, ((parseFloat(payrollRegularHours) || 0) * (parseFloat(payrollHourlyRate) || 0) + (parseFloat(payrollOvertimeHours) || 0) * (parseFloat(payrollHourlyRate) || 0) * 1.5 + (parseFloat(payrollBonus) || 0) - (parseFloat(payrollDeductions) || 0))).toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {payrollError && (
+                <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-xl p-2.5">{payrollError}</div>
+              )}
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="submit"
+                  disabled={isSubmittingPayroll}
+                  className="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white font-bold text-xs rounded-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+                >
+                  {isSubmittingPayroll ? (
+                    <><i className="fa-solid fa-circle-notch animate-spin"></i> Processing Disbursement...</>
+                  ) : (
+                    <><i className="fa-solid fa-check"></i> Process & Issue Payroll Statement</>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setShowPayrollModal(false); setPayrollError(null); setCsvParsedPreview([]); }}
+                  className="px-5 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-xs rounded-xl transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

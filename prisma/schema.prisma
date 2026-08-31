@@ -66,6 +66,7 @@ model User {
   messages       Message[]
   reviewsReceived CaregiverReview[] @relation("CaregiverReviewsAsCaregiver")
   reviewsWritten  CaregiverReview[] @relation("CaregiverReviewsAsReviewer")
+  payrollRecords  PayrollRecord[]
 }
 
 model Client {
@@ -334,5 +335,27 @@ model CaregiverReview {
   reviewer      User     @relation("CaregiverReviewsAsReviewer", fields: [reviewerId], references: [id], onDelete: Cascade)
 
   @@unique([clientId, caregiverId, weekStart])
+}
+
+model PayrollRecord {
+  id              String    @id @default(uuid())
+  userId          String
+  payPeriodStart  DateTime
+  payPeriodEnd    DateTime
+  hourlyRate      Float
+  regularHours    Float     @default(0)
+  overtimeHours   Float     @default(0)
+  bonus           Float     @default(0)
+  deductions      Float     @default(0)
+  grossPay        Float
+  netPay          Float
+  paymentMethod   String?   // e.g. "Direct Deposit", "ACH Transfer", "Check", "Cash"
+  referenceNumber String?   // Transaction ID / Check #
+  status          String    @default("PAID") // "DRAFT", "APPROVED", "PAID"
+  paidAt          DateTime? @default(now())
+  notes           String?
+  createdAt       DateTime  @default(now())
+
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
