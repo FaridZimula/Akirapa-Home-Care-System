@@ -228,7 +228,7 @@ export async function sendShiftAssignmentEmail({
         </div>
 
         <div style="text-align: center; margin: 30px 0 20px 0;">
-          <a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}" 
+          <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://akirapa-home-care-system-ynmt.vercel.app'}" 
              style="background-color: #0284c7; color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 6px; font-weight: bold; font-size: 16px; display: inline-block;">
             Open Portal & Confirm Shift
           </a>
