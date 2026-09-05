@@ -8,6 +8,7 @@ const OFFICIAL_ADMIN_ACCOUNTS = [
   { email: 'andrew@akirapahomecareus.com', name: 'Andrew' },
   { email: 'cathy@akirapahomecareus.com', name: 'Cathy' },
   { email: 'farid@akirapahomecareus.com', name: 'Farid Admin' },
+  { email: 'richard@akirapahomecareus.com', name: 'Richard Miyingo' },
 ];
 
 async function main() {

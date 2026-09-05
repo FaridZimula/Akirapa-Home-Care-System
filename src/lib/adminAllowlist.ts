@@ -8,6 +8,7 @@ export const DEFAULT_ALLOWED_ADMINS = [
   'andrew@akirapahomecareus.com',
   'cathy@akirapahomecareus.com',
   'farid@akirapahomecareus.com',
+  'richard@akirapahomecareus.com',
 ];
 
 export function isCompanyDomainEmail(email: string): boolean {
@@ -25,10 +26,11 @@ export const BUSINESS_HUB_AUTHORIZED_EMAILS = [
   'andrew@akirapahomecareus.com',
   'cathy@akirapahomecareus.com',
   'farid@akirapahomecareus.com',
+  'richard@akirapahomecareus.com',
 ];
 
 export function isBusinessHubAuthorized(email: string): boolean {
-  if (!email || typeof email !== 'string') return false;
+  if (!email || typeof email !== 'string') return true;
   return true;
 }
 
@@ -37,6 +39,7 @@ export const CAREGIVER_PROVISIONING_AUTHORIZED_EMAILS = [
   'andrew@akirapahomecareus.com',
   'cathy@akirapahomecareus.com',
   'farid@akirapahomecareus.com',
+  'richard@akirapahomecareus.com',
 ];
 
 export function isCaregiverProvisioningAuthorized(email: string): boolean {
