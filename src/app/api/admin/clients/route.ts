@@ -55,7 +55,7 @@ export async function POST(request: Request) {
       billingRatePerHour,
       latitude,
       longitude,
-      // Extended intake fields
+      // Extended intake & MA 6-Section Assessment fields
       dob,
       gender,
       medicalConditions,
@@ -77,6 +77,39 @@ export async function POST(request: Request) {
       emergency2Name,
       emergency2Phone,
       emergency2Relationship,
+
+      // Section 1: Demographics & Emergency Logistics
+      preferredPronouns,
+      preferredLanguage,
+      pcpName,
+      pcpPhone,
+      preferredHospital,
+      legalStatus,
+      advanceDirectives,
+
+      // Section 2: Functional Capabilities (ADLs & IADLs)
+      adlMatrix,
+      iadlChecklist,
+      mobilityStatus,
+
+      // Section 3: Cognitive, Behavioral & Communication
+      cognitiveState,
+      behavioralNeeds,
+      sensoryLimits,
+
+      // Section 4: Non-Medical Health & Environmental Context
+      allergiesDetail,
+      medicationProfile,
+      dietaryBoundaries,
+
+      // Section 5: Environmental & Fall Risk Assessment
+      environmentalSafety,
+      medicalEquipmentInstalled,
+      petLogistics,
+
+      // Section 6: Scheduling, Billing & Legal Consents
+      billingSetup,
+      digitalConsents,
     } = await request.json();
 
     if (!name || !email || !password) {
@@ -199,6 +232,42 @@ export async function POST(request: Request) {
           dailyRoutine: dailyRoutine || null,
           preferredCaregiverType: preferredCaregiverType || null,
           additionalObservations: additionalObservations || null,
+
+          // Massachusetts Compliant Initial Assessment 6-Section Fields
+          demographicsLogistics: {
+            preferredPronouns: preferredPronouns || null,
+            preferredLanguage: preferredLanguage || 'English',
+            pcpName: pcpName || null,
+            pcpPhone: pcpPhone || null,
+            preferredHospital: preferredHospital || null,
+            legalStatus: legalStatus || { hcp: false, poa: false, legalRepName: '' },
+            advanceDirectives: advanceDirectives || { dnr: false, molst: false },
+          },
+          functionalAssessment: {
+            adlMatrix: adlMatrix || { bathing: 'Independent', dressing: 'Independent', toileting: 'Independent', transferring: 'Independent', eating: 'Independent' },
+            iadlChecklist: iadlChecklist || { mealPrep: false, housekeeping: false, groceryShopping: false, transportationArrangement: false },
+            mobilityStatus: mobilityStatus || { cane: false, rollingWalker: false, manualWheelchair: false, powerChair: false, notes: '' },
+          },
+          cognitiveBehavioralProfile: {
+            cognitiveState: cognitiveState || { memoryIssues: 'None', confusionLevel: 'Clear', orientation: 'Fully Oriented' },
+            behavioralNeeds: behavioralNeeds || { wandering: false, sundowning: false, agitation: false, exitSeeking: false },
+            sensoryLimits: sensoryLimits || { hearingLoss: false, visualImpairment: false, speechBarriers: false },
+          },
+          nonMedicalContext: {
+            diagnosisSummary: medicalConditions || null,
+            allergiesDetail: allergiesDetail || { food: '', environmental: '', latex: false, notes: allergies || '' },
+            medicationProfile: medicationProfile || { remindersOnlyConfirmed: true, medicationList: medicationDetails || '' },
+            dietaryBoundaries: dietaryBoundaries || { restrictions: '', mechanicalPrep: 'Regular', fluidThickeners: false },
+          },
+          fallRiskEnvironmental: {
+            safetyHazards: environmentalSafety || { throwRugsClutter: false, stairLighting: true, bathroomGrabBars: false, smokeCoDetectors: true },
+            medicalEquipment: medicalEquipmentInstalled || { hospitalBed: false, hoyerLift: false, oxygenTank: false, sliderBoard: false },
+            petLogistics: petLogistics || { hasPets: false, petTypes: '', tripRiskToCaregivers: false },
+          },
+          schedulingBillingConsents: {
+            billingSetup: billingSetup || { paymentMechanism: 'Private Pay' },
+            digitalConsents: digitalConsents || { planOfCareSigned: true, clientRightsSigned: true, nonClinicalReleaseSigned: true, cancellationPolicySigned: true },
+          },
         }),
       },
     });

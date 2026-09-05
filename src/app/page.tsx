@@ -5808,7 +5808,7 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
               </button>
               {user && isCaregiverProvisioningAuthorized(user.email) && (
                 <button onClick={() => { setCurrentView('add_caregiver'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${currentView === 'add_caregiver' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
-                  <i className="fa-solid fa-user-plus w-4 text-center"></i> Add Caregiver
+                  <i className="fa-solid fa-user-plus w-4 text-center"></i> Add Staff Members
                 </button>
               )}
               {user && isCaregiverProvisioningAuthorized(user.email) && (
@@ -5959,7 +5959,7 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
               {currentView === 'profile' && 'My Profile'}
               {currentView === 'listings' && (user.role === 'ADMIN' || user.role === 'CARE_COORDINATOR' ? 'Shift Management' : user.role === 'CAREGIVER' ? 'My Shifts' : 'Care Feed')}
               {currentView === 'create' && 'Create Shift'}
-              {currentView === 'add_caregiver' && 'Add & Provision Caregiver'}
+              {currentView === 'add_caregiver' && 'Add & Provision Staff Members'}
               {currentView === 'add_client' && 'Add & Provision Client'}
               {currentView === 'purchases' && (user.role === 'FAMILY_MEMBER' ? 'Documents' : 'Purchases & Sales')}
               {currentView === 'business' && 'Business Hub'}
@@ -7881,8 +7881,8 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
                         <i className="fa-solid fa-user-plus text-white"></i>
                       </div>
                       <div>
-                        <h3 className="text-xl font-bold text-gray-900">Add & Provision Caregiver</h3>
-                        <p className="text-xs text-gray-500">Assign first-time credentials for new caregivers. Access will be automatically restricted to the Caregiver Portal by the database.</p>
+                        <h3 className="text-xl font-bold text-gray-900">Add & Provision Staff Members</h3>
+                        <p className="text-xs text-gray-500">Assign first-time credentials for Caregivers, Care Coordinators, and Administrators with role-based portal access controls.</p>
                       </div>
                     </div>
 
@@ -7898,7 +7898,19 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
                     </div>
 
                     {/* Provisioning Form */}
-                    <form onSubmit={(e) => { setNewUserRole('CAREGIVER'); handleAdminCreateUser(e); }} className="space-y-4 text-xs">
+                    <form onSubmit={(e) => handleAdminCreateUser(e)} className="space-y-4 text-xs">
+                      <div>
+                        <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Staff Account Role <span className="text-red-500">*</span></label>
+                        <select
+                          value={newUserRole}
+                          onChange={(e) => setNewUserRole(e.target.value as any)}
+                          className="w-full bg-purple-50 border border-purple-200 rounded-xl px-4 py-3 text-sm font-bold text-[#77248c] focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1 cursor-pointer"
+                        >
+                          <option value="CAREGIVER">Caregiver</option>
+                          <option value="CARE_COORDINATOR">Care Coordinator</option>
+                          <option value="ADMIN">Administrator</option>
+                        </select>
+                      </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                           <label className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Caregiver First Name <span className="text-red-500">*</span></label>
