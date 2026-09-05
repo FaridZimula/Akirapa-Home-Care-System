@@ -309,7 +309,75 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
   const [newClientEmergency2FirstName, setNewClientEmergency2FirstName] = useState('');
   const [newClientEmergency2LastName, setNewClientEmergency2LastName] = useState('');
   const [newClientEmergency2Phone, setNewClientEmergency2Phone] = useState('');
-  const [newClientEmergency2Relationship, setNewClientEmergency2Relationship] = useState('');
+  const [newClientEmergency2Relationship, setNewClientEmergency2Relationship] = useState('Family Contact');
+
+  // MA Non-Medical Assessment 6-Section State
+  const [maPreferredPronouns, setMaPreferredPronouns] = useState('They/Them');
+  const [maPreferredLanguage, setMaPreferredLanguage] = useState('English');
+  const [maPcpName, setMaPcpName] = useState('');
+  const [maPcpPhone, setMaPcpPhone] = useState('');
+  const [maPreferredHospital, setMaPreferredHospital] = useState('');
+  const [maHasHcp, setMaHasHcp] = useState(false);
+  const [maHasPoa, setMaHasPoa] = useState(false);
+  const [maLegalRepName, setMaLegalRepName] = useState('');
+  const [maHasDnr, setMaHasDnr] = useState(false);
+  const [maHasMolst, setMaHasMolst] = useState(false);
+
+  const [maAdlBathing, setMaAdlBathing] = useState<'Independent' | 'Needs Assistance' | 'Dependent'>('Independent');
+  const [maAdlDressing, setMaAdlDressing] = useState<'Independent' | 'Needs Assistance' | 'Dependent'>('Independent');
+  const [maAdlToileting, setMaAdlToileting] = useState<'Independent' | 'Needs Assistance' | 'Dependent'>('Independent');
+  const [maAdlTransferring, setMaAdlTransferring] = useState<'Independent' | 'Needs Assistance' | 'Dependent'>('Independent');
+  const [maAdlEating, setMaAdlEating] = useState<'Independent' | 'Needs Assistance' | 'Dependent'>('Independent');
+
+  const [maIadlMealPrep, setMaIadlMealPrep] = useState(false);
+  const [maIadlHousekeeping, setMaIadlHousekeeping] = useState(false);
+  const [maIadlGrocery, setMaIadlGrocery] = useState(false);
+  const [maIadlTransport, setMaIadlTransport] = useState(false);
+
+  const [maMobilityCane, setMaMobilityCane] = useState(false);
+  const [maMobilityWalker, setMaMobilityWalker] = useState(false);
+  const [maMobilityWheelchair, setMaMobilityWheelchair] = useState(false);
+  const [maMobilityPowerChair, setMaMobilityPowerChair] = useState(false);
+
+  const [maCognitiveMemory, setMaCognitiveMemory] = useState('None');
+  const [maCognitiveConfusion, setMaCognitiveConfusion] = useState('Clear');
+  const [maCognitiveOrientation, setMaCognitiveOrientation] = useState('Fully Oriented');
+  const [maBehaviorWandering, setMaBehaviorWandering] = useState(false);
+  const [maBehaviorSundowning, setMaBehaviorSundowning] = useState(false);
+  const [maBehaviorAgitation, setMaBehaviorAgitation] = useState(false);
+  const [maBehaviorExitSeeking, setMaBehaviorExitSeeking] = useState(false);
+
+  const [maSensoryHearing, setMaSensoryHearing] = useState(false);
+  const [maSensoryVision, setMaSensoryVision] = useState(false);
+  const [maSensorySpeech, setMaSensorySpeech] = useState(false);
+
+  const [maAllergiesFood, setMaAllergiesFood] = useState('');
+  const [maAllergiesEnvironmental, setMaAllergiesEnvironmental] = useState('');
+  const [maAllergiesLatex, setMaAllergiesLatex] = useState(false);
+  const [maMedRemindersNoticeConfirmed, setMaMedRemindersNoticeConfirmed] = useState(true);
+  const [maDietaryRestrictions, setMaDietaryRestrictions] = useState('');
+  const [maDietaryMechanicalPrep, setMaDietaryMechanicalPrep] = useState<'Regular' | 'Chopped' | 'Pureed'>('Regular');
+  const [maDietaryThickeners, setMaDietaryThickeners] = useState(false);
+
+  const [maSafetyThrowRugs, setMaSafetyThrowRugs] = useState(false);
+  const [maSafetyStairLighting, setMaSafetyStairLighting] = useState(true);
+  const [maSafetyBathroomGrabBars, setMaSafetyBathroomGrabBars] = useState(false);
+  const [maSafetySmokeCoDetectors, setMaSafetySmokeCoDetectors] = useState(true);
+
+  const [maEquipHospitalBed, setMaEquipHospitalBed] = useState(false);
+  const [maEquipHoyerLift, setMaEquipHoyerLift] = useState(false);
+  const [maEquipOxygenTank, setMaEquipOxygenTank] = useState(false);
+  const [maEquipSliderBoard, setMaEquipSliderBoard] = useState(false);
+
+  const [maPetHasPets, setMaPetHasPets] = useState(false);
+  const [maPetTypes, setMaPetTypes] = useState('');
+  const [maPetTripRisk, setMaPetTripRisk] = useState(false);
+
+  const [maBillingPaymentMechanism, setMaBillingPaymentMechanism] = useState<'Private Pay' | 'Long-Term Care Insurance (LTCI)' | 'Veterans Aid & Attendance'>('Private Pay');
+  const [maConsentPlanOfCare, setMaConsentPlanOfCare] = useState(true);
+  const [maConsentClientRights, setMaConsentClientRights] = useState(true);
+  const [maConsentLiabilityRelease, setMaConsentLiabilityRelease] = useState(true);
+  const [maConsentCancellationPolicy, setMaConsentCancellationPolicy] = useState(true);
 
   // In-Portal Self Password Change Modal State
   const [showSelfPasswordModal, setShowSelfPasswordModal] = useState(false);
@@ -890,6 +958,29 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
           emergency2Name: newClientEmergency2Name || null,
           emergency2Phone: newClientEmergency2Phone || null,
           emergency2Relationship: newClientEmergency2Relationship || null,
+
+          // MA 6-Section Assessment API Payload
+          preferredPronouns: maPreferredPronouns,
+          preferredLanguage: maPreferredLanguage,
+          pcpName: maPcpName,
+          pcpPhone: maPcpPhone,
+          preferredHospital: maPreferredHospital,
+          legalStatus: { hcp: maHasHcp, poa: maHasPoa, legalRepName: maLegalRepName },
+          advanceDirectives: { dnr: maHasDnr, molst: maHasMolst },
+          adlMatrix: { bathing: maAdlBathing, dressing: maAdlDressing, toileting: maAdlToileting, transferring: maAdlTransferring, eating: maAdlEating },
+          iadlChecklist: { mealPrep: maIadlMealPrep, housekeeping: maIadlHousekeeping, groceryShopping: maIadlGrocery, transportationArrangement: maIadlTransport },
+          mobilityStatus: { cane: maMobilityCane, rollingWalker: maMobilityWalker, manualWheelchair: maMobilityWheelchair, powerChair: maMobilityPowerChair },
+          cognitiveState: { memoryIssues: maCognitiveMemory, confusionLevel: maCognitiveConfusion, orientationTimePlacePerson: maCognitiveOrientation },
+          behavioralNeeds: { wandering: maBehaviorWandering, sundowning: maBehaviorSundowning, agitation: maBehaviorAgitation, exitSeeking: maBehaviorExitSeeking },
+          sensoryLimits: { hearingLoss: maSensoryHearing, visualImpairment: maSensoryVision, speechBarriers: maSensorySpeech },
+          allergiesDetail: { food: maAllergiesFood, environmental: maAllergiesEnvironmental, latex: maAllergiesLatex, notes: newClientAllergies },
+          medicationProfile: { remindersOnlyConfirmed: maMedRemindersNoticeConfirmed, medicationList: newClientMedicationDetails },
+          dietaryBoundaries: { restrictions: maDietaryRestrictions, mechanicalPrep: maDietaryMechanicalPrep, fluidThickeners: maDietaryThickeners },
+          environmentalSafety: { throwRugsClutter: maSafetyThrowRugs, stairLighting: maSafetyStairLighting, bathroomGrabBars: maSafetyBathroomGrabBars, smokeCoDetectors: maSafetySmokeCoDetectors },
+          medicalEquipmentInstalled: { hospitalBed: maEquipHospitalBed, hoyerLift: maEquipHoyerLift, oxygenTank: maEquipOxygenTank, sliderBoard: maEquipSliderBoard },
+          petLogistics: { hasPets: maPetHasPets, petTypes: maPetTypes, tripRiskToCaregivers: maPetTripRisk },
+          billingSetup: { paymentMechanism: maBillingPaymentMechanism },
+          digitalConsents: { planOfCareSigned: maConsentPlanOfCare, clientRightsSigned: maConsentClientRights, nonClinicalReleaseSigned: maConsentLiabilityRelease, cancellationPolicySigned: maConsentCancellationPolicy },
         }),
       });
       const data = await res.json();
@@ -8584,6 +8675,286 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
                             placeholder="1234 West 4th Ave..."
                             className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
                           />
+                        </div>
+                      </div>
+
+                      {/* MASSACHUSETTS INITIAL ASSESSMENT SECTION 1: DEMOGRAPHICS & EMERGENCY LOGISTICS */}
+                      <div className="bg-purple-50/60 border border-purple-200 rounded-2xl p-5 space-y-4">
+                        <div className="flex justify-between items-center border-b border-purple-200 pb-3">
+                          <h4 className="font-extrabold text-sm text-[#77248c] flex items-center gap-2">
+                            <i className="fa-solid fa-address-card text-[#77248c]"></i> Section 1: Demographics & Emergency Logistics (MA Non-Medical)
+                          </h4>
+                          <span className="text-[10px] font-bold bg-[#77248c] text-white px-2.5 py-0.5 rounded-full">Legal & PCP</span>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div>
+                            <label className="font-bold text-gray-700 uppercase tracking-wider text-[10px]">Preferred Pronouns</label>
+                            <input type="text" placeholder="e.g. They/Them, She/Her" value={maPreferredPronouns} onChange={(e) => setMaPreferredPronouns(e.target.value)} className="w-full bg-white border border-purple-200 rounded-xl px-4 py-2.5 text-xs focus:ring-2 focus:ring-purple-500 mt-1" />
+                          </div>
+                          <div>
+                            <label className="font-bold text-gray-700 uppercase tracking-wider text-[10px]">Language Preferences</label>
+                            <input type="text" placeholder="e.g. English, Spanish" value={maPreferredLanguage} onChange={(e) => setMaPreferredLanguage(e.target.value)} className="w-full bg-white border border-purple-200 rounded-xl px-4 py-2.5 text-xs focus:ring-2 focus:ring-purple-500 mt-1" />
+                          </div>
+                          <div>
+                            <label className="font-bold text-gray-700 uppercase tracking-wider text-[10px]">Preferred Hospital Choice</label>
+                            <input type="text" placeholder="e.g. Mass General Hospital" value={maPreferredHospital} onChange={(e) => setMaPreferredHospital(e.target.value)} className="w-full bg-white border border-purple-200 rounded-xl px-4 py-2.5 text-xs focus:ring-2 focus:ring-purple-500 mt-1" />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="font-bold text-gray-700 uppercase tracking-wider text-[10px]">Primary Care Physician (PCP)</label>
+                            <input type="text" placeholder="Dr. Jane Smith" value={maPcpName} onChange={(e) => setMaPcpName(e.target.value)} className="w-full bg-white border border-purple-200 rounded-xl px-4 py-2.5 text-xs focus:ring-2 focus:ring-purple-500 mt-1" />
+                          </div>
+                          <div>
+                            <label className="font-bold text-gray-700 uppercase tracking-wider text-[10px]">PCP Contact Phone</label>
+                            <input type="text" placeholder="+1-617-555-0199" value={maPcpPhone} onChange={(e) => setMaPcpPhone(e.target.value)} className="w-full bg-white border border-purple-200 rounded-xl px-4 py-2.5 text-xs focus:ring-2 focus:ring-purple-500 mt-1" />
+                          </div>
+                        </div>
+
+                        <div className="p-3.5 bg-white border border-purple-200 rounded-xl space-y-3">
+                          <div className="font-bold text-xs text-[#77248c]">Legal Representative Status & Advance Directives:</div>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input type="checkbox" checked={maHasHcp} onChange={(e) => setMaHasHcp(e.target.checked)} className="rounded text-purple-600 focus:ring-purple-500 w-4 h-4" />
+                              <span className="font-semibold text-gray-700">Health Care Proxy (HCP)</span>
+                            </label>
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input type="checkbox" checked={maHasPoa} onChange={(e) => setMaHasPoa(e.target.checked)} className="rounded text-purple-600 focus:ring-purple-500 w-4 h-4" />
+                              <span className="font-semibold text-gray-700">Power of Attorney (POA)</span>
+                            </label>
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input type="checkbox" checked={maHasDnr} onChange={(e) => setMaHasDnr(e.target.checked)} className="rounded text-purple-600 focus:ring-purple-500 w-4 h-4" />
+                              <span className="font-semibold text-gray-700">DNR (Do Not Resuscitate)</span>
+                            </label>
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input type="checkbox" checked={maHasMolst} onChange={(e) => setMaHasMolst(e.target.checked)} className="rounded text-purple-600 focus:ring-purple-500 w-4 h-4" />
+                              <span className="font-semibold text-gray-700">MOLST Form Signed</span>
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* MASSACHUSETTS INITIAL ASSESSMENT SECTION 2: ADLs & IADLs MATRIX */}
+                      <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 space-y-4">
+                        <div className="flex justify-between items-center border-b border-slate-200 pb-3">
+                          <h4 className="font-extrabold text-sm text-slate-800 flex items-center gap-2">
+                            <i className="fa-solid fa-person-walking text-slate-800"></i> Section 2: Functional Capability (ADLs & IADLs Matrix)
+                          </h4>
+                          <span className="text-[10px] font-bold bg-slate-700 text-white px-2.5 py-0.5 rounded-full">ADLs & IADLs</span>
+                        </div>
+
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left text-xs border border-slate-200 bg-white rounded-xl overflow-hidden">
+                            <thead className="bg-slate-100 font-bold uppercase text-[10px] text-slate-600">
+                              <tr>
+                                <th className="p-2.5">Activities of Daily Living (ADL)</th>
+                                <th className="p-2.5 text-center">Independent</th>
+                                <th className="p-2.5 text-center">Needs Assistance</th>
+                                <th className="p-2.5 text-center">Dependent</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                              <tr>
+                                <td className="p-2.5 font-bold text-gray-700">Bathing & Showering</td>
+                                <td className="p-2.5 text-center"><input type="radio" name="adl_bathing" checked={maAdlBathing === 'Independent'} onChange={() => setMaAdlBathing('Independent')} className="text-purple-600" /></td>
+                                <td className="p-2.5 text-center"><input type="radio" name="adl_bathing" checked={maAdlBathing === 'Needs Assistance'} onChange={() => setMaAdlBathing('Needs Assistance')} className="text-purple-600" /></td>
+                                <td className="p-2.5 text-center"><input type="radio" name="adl_bathing" checked={maAdlBathing === 'Dependent'} onChange={() => setMaAdlBathing('Dependent')} className="text-purple-600" /></td>
+                              </tr>
+                              <tr>
+                                <td className="p-2.5 font-bold text-gray-700">Dressing & Grooming</td>
+                                <td className="p-2.5 text-center"><input type="radio" name="adl_dressing" checked={maAdlDressing === 'Independent'} onChange={() => setMaAdlDressing('Independent')} className="text-purple-600" /></td>
+                                <td className="p-2.5 text-center"><input type="radio" name="adl_dressing" checked={maAdlDressing === 'Needs Assistance'} onChange={() => setMaAdlDressing('Needs Assistance')} className="text-purple-600" /></td>
+                                <td className="p-2.5 text-center"><input type="radio" name="adl_dressing" checked={maAdlDressing === 'Dependent'} onChange={() => setMaAdlDressing('Dependent')} className="text-purple-600" /></td>
+                              </tr>
+                              <tr>
+                                <td className="p-2.5 font-bold text-gray-700">Toileting & Incontinence Care</td>
+                                <td className="p-2.5 text-center"><input type="radio" name="adl_toileting" checked={maAdlToileting === 'Independent'} onChange={() => setMaAdlToileting('Independent')} className="text-purple-600" /></td>
+                                <td className="p-2.5 text-center"><input type="radio" name="adl_toileting" checked={maAdlToileting === 'Needs Assistance'} onChange={() => setMaAdlToileting('Needs Assistance')} className="text-purple-600" /></td>
+                                <td className="p-2.5 text-center"><input type="radio" name="adl_toileting" checked={maAdlToileting === 'Dependent'} onChange={() => setMaAdlToileting('Dependent')} className="text-purple-600" /></td>
+                              </tr>
+                              <tr>
+                                <td className="p-2.5 font-bold text-gray-700">Transferring (Bed/Chair/Standing)</td>
+                                <td className="p-2.5 text-center"><input type="radio" name="adl_transferring" checked={maAdlTransferring === 'Independent'} onChange={() => setMaAdlTransferring('Independent')} className="text-purple-600" /></td>
+                                <td className="p-2.5 text-center"><input type="radio" name="adl_transferring" checked={maAdlTransferring === 'Needs Assistance'} onChange={() => setMaAdlTransferring('Needs Assistance')} className="text-purple-600" /></td>
+                                <td className="p-2.5 text-center"><input type="radio" name="adl_transferring" checked={maAdlTransferring === 'Dependent'} onChange={() => setMaAdlTransferring('Dependent')} className="text-purple-600" /></td>
+                              </tr>
+                              <tr>
+                                <td className="p-2.5 font-bold text-gray-700">Eating & Feeding</td>
+                                <td className="p-2.5 text-center"><input type="radio" name="adl_eating" checked={maAdlEating === 'Independent'} onChange={() => setMaAdlEating('Independent')} className="text-purple-600" /></td>
+                                <td className="p-2.5 text-center"><input type="radio" name="adl_eating" checked={maAdlEating === 'Needs Assistance'} onChange={() => setMaAdlEating('Needs Assistance')} className="text-purple-600" /></td>
+                                <td className="p-2.5 text-center"><input type="radio" name="adl_eating" checked={maAdlEating === 'Dependent'} onChange={() => setMaAdlEating('Dependent')} className="text-purple-600" /></td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-2">
+                            <div className="font-bold text-xs text-slate-800">IADL Non-Medical Caregiver Tasks:</div>
+                            <div className="space-y-1.5 text-xs">
+                              <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={maIadlMealPrep} onChange={(e) => setMaIadlMealPrep(e.target.checked)} className="rounded text-purple-600" /><span>Meal Planning & Preparation</span></label>
+                              <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={maIadlHousekeeping} onChange={(e) => setMaIadlHousekeeping(e.target.checked)} className="rounded text-purple-600" /><span>Light Housekeeping & Laundry</span></label>
+                              <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={maIadlGrocery} onChange={(e) => setMaIadlGrocery(e.target.checked)} className="rounded text-purple-600" /><span>Grocery Shopping & Errands</span></label>
+                              <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={maIadlTransport} onChange={(e) => setMaIadlTransport(e.target.checked)} className="rounded text-purple-600" /><span>Arranging Medical Transportation</span></label>
+                            </div>
+                          </div>
+
+                          <div className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-2">
+                            <div className="font-bold text-xs text-slate-800">Mobility Aids & Devices Installed:</div>
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                              <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={maMobilityCane} onChange={(e) => setMaMobilityCane(e.target.checked)} className="rounded text-purple-600" /><span>Cane</span></label>
+                              <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={maMobilityWalker} onChange={(e) => setMaMobilityWalker(e.target.checked)} className="rounded text-purple-600" /><span>Rolling Walker</span></label>
+                              <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={maMobilityWheelchair} onChange={(e) => setMaMobilityWheelchair(e.target.checked)} className="rounded text-purple-600" /><span>Manual Wheelchair</span></label>
+                              <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={maMobilityPowerChair} onChange={(e) => setMaMobilityPowerChair(e.target.checked)} className="rounded text-purple-600" /><span>Power Chair</span></label>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* MASSACHUSETTS INITIAL ASSESSMENT SECTION 3: COGNITIVE & BEHAVIORAL PROFILE */}
+                      <div className="bg-amber-50/60 border border-amber-200 rounded-2xl p-5 space-y-4">
+                        <div className="flex justify-between items-center border-b border-amber-200 pb-3">
+                          <h4 className="font-extrabold text-sm text-amber-900 flex items-center gap-2">
+                            <i className="fa-solid fa-brain text-amber-700"></i> Section 3: Cognitive, Behavioral & Communication Profile
+                          </h4>
+                          <span className="text-[10px] font-bold bg-amber-600 text-white px-2.5 py-0.5 rounded-full">Dementia & Behaviors</span>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div>
+                            <label className="font-bold text-gray-700 uppercase tracking-wider text-[10px]">Memory Loss Screening</label>
+                            <select value={maCognitiveMemory} onChange={(e) => setMaCognitiveMemory(e.target.value)} className="w-full bg-white border border-amber-200 rounded-xl px-4 py-2.5 text-xs focus:ring-2 focus:ring-purple-500 mt-1">
+                              <option value="None">None (Clear Memory)</option>
+                              <option value="Mild Memory Loss">Mild Memory Loss</option>
+                              <option value="Moderate Dementia">Moderate Dementia</option>
+                              <option value="Severe Dementia">Severe Dementia</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="font-bold text-gray-700 uppercase tracking-wider text-[10px]">Confusion Level</label>
+                            <select value={maCognitiveConfusion} onChange={(e) => setMaCognitiveConfusion(e.target.value)} className="w-full bg-white border border-amber-200 rounded-xl px-4 py-2.5 text-xs focus:ring-2 focus:ring-purple-500 mt-1">
+                              <option value="Clear">Clear Alertness</option>
+                              <option value="Occasional Disorientation">Occasional Disorientation</option>
+                              <option value="Frequent Confusion">Frequent Confusion</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="font-bold text-gray-700 uppercase tracking-wider text-[10px]">Orientation (Time/Place/Person)</label>
+                            <select value={maCognitiveOrientation} onChange={(e) => setMaCognitiveOrientation(e.target.value)} className="w-full bg-white border border-amber-200 rounded-xl px-4 py-2.5 text-xs focus:ring-2 focus:ring-purple-500 mt-1">
+                              <option value="Fully Oriented">Fully Oriented (x3)</option>
+                              <option value="Oriented x2">Oriented x2</option>
+                              <option value="Disoriented">Disoriented</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <div className="p-3.5 bg-white border border-amber-200 rounded-xl space-y-3">
+                          <div className="font-bold text-xs text-amber-900">Behavioral Patterns (Dementia Staffing Parameters):</div>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                            <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={maBehaviorWandering} onChange={(e) => setMaBehaviorWandering(e.target.checked)} className="rounded text-amber-600" /><span className="font-semibold text-gray-700">Wandering Tendencies</span></label>
+                            <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={maBehaviorSundowning} onChange={(e) => setMaBehaviorSundowning(e.target.checked)} className="rounded text-amber-600" /><span className="font-semibold text-gray-700">Sundowning Patterns</span></label>
+                            <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={maBehaviorAgitation} onChange={(e) => setMaBehaviorAgitation(e.target.checked)} className="rounded text-amber-600" /><span className="font-semibold text-gray-700">Agitation / Anxiety</span></label>
+                            <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={maBehaviorExitSeeking} onChange={(e) => setMaBehaviorExitSeeking(e.target.checked)} className="rounded text-amber-600" /><span className="font-semibold text-gray-700">Exit-Seeking Behavior</span></label>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* MASSACHUSETTS INITIAL ASSESSMENT SECTION 4: NON-MEDICAL HEALTH CONTEXT */}
+                      <div className="bg-emerald-50/60 border border-emerald-200 rounded-2xl p-5 space-y-4">
+                        <div className="flex justify-between items-center border-b border-emerald-200 pb-3">
+                          <h4 className="font-extrabold text-sm text-emerald-900 flex items-center gap-2">
+                            <i className="fa-solid fa-notes-medical text-emerald-700"></i> Section 4: Non-Medical Health & Environmental Context
+                          </h4>
+                          <span className="text-[10px] font-bold bg-emerald-700 text-white px-2.5 py-0.5 rounded-full">Medication Reminders Policy</span>
+                        </div>
+
+                        <div className="p-3.5 bg-white border border-emerald-300 rounded-xl text-xs space-y-2">
+                          <div className="font-bold text-emerald-900 flex items-center gap-2">
+                            <i className="fa-solid fa-shield-halved text-emerald-600"></i> MA Non-Clinical Policy Confirmation:
+                          </div>
+                          <p className="text-gray-700 text-[11px]">
+                            Caregiver services are strictly limited to verbal medication reminders and cues. Staff do not administer injections, pre-pour pills, or perform skilled nursing tasks.
+                          </p>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="font-bold text-gray-700 uppercase tracking-wider text-[10px]">Allergies (Food, Environmental, Latex)</label>
+                            <input type="text" placeholder="e.g. Latex allergy, Peanuts, Penicillin" value={newClientAllergies} onChange={(e) => setNewClientAllergies(e.target.value)} className="w-full bg-white border border-emerald-200 rounded-xl px-4 py-2.5 text-xs focus:ring-2 focus:ring-purple-500 mt-1" />
+                          </div>
+                          <div>
+                            <label className="font-bold text-gray-700 uppercase tracking-wider text-[10px]">Dietary Preparation & Thickeners</label>
+                            <select value={maDietaryMechanicalPrep} onChange={(e) => setMaDietaryMechanicalPrep(e.target.value as any)} className="w-full bg-white border border-emerald-200 rounded-xl px-4 py-2.5 text-xs focus:ring-2 focus:ring-purple-500 mt-1">
+                              <option value="Regular">Regular Diet</option>
+                              <option value="Chopped">Chopped Meal Prep</option>
+                              <option value="Pureed">Pureed Diet</option>
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* MASSACHUSETTS INITIAL ASSESSMENT SECTION 5: FALL RISK & EQUIPMENT */}
+                      <div className="bg-red-50/50 border border-red-200 rounded-2xl p-5 space-y-4">
+                        <div className="flex justify-between items-center border-b border-red-200 pb-3">
+                          <h4 className="font-extrabold text-sm text-red-900 flex items-center gap-2">
+                            <i className="fa-solid fa-triangle-exclamation text-red-700"></i> Section 5: Environmental & Fall Risk Checklist
+                          </h4>
+                          <span className="text-[10px] font-bold bg-red-600 text-white px-2.5 py-0.5 rounded-full">Safety Hazards</span>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="p-3.5 bg-white border border-red-200 rounded-xl space-y-2">
+                            <div className="font-bold text-xs text-red-900">Home Structural Safety Hazards:</div>
+                            <div className="space-y-1.5 text-xs">
+                              <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={maSafetyThrowRugs} onChange={(e) => setMaSafetyThrowRugs(e.target.checked)} className="rounded text-red-600" /><span>Throw rugs / cluttered walkways</span></label>
+                              <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={maSafetyStairLighting} onChange={(e) => setMaSafetyStairLighting(e.target.checked)} className="rounded text-red-600" /><span>Adequate stairwell & hallway lighting</span></label>
+                              <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={maSafetyBathroomGrabBars} onChange={(e) => setMaSafetyBathroomGrabBars(e.target.checked)} className="rounded text-red-600" /><span>Bathroom grab bars installed</span></label>
+                              <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={maSafetySmokeCoDetectors} onChange={(e) => setMaSafetySmokeCoDetectors(e.target.checked)} className="rounded text-red-600" /><span>Operational Smoke & CO detectors</span></label>
+                            </div>
+                          </div>
+
+                          <div className="p-3.5 bg-white border border-red-200 rounded-xl space-y-2">
+                            <div className="font-bold text-xs text-red-900">Installed Medical Equipment:</div>
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                              <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={maEquipHospitalBed} onChange={(e) => setMaEquipHospitalBed(e.target.checked)} className="rounded text-red-600" /><span>Hospital Bed</span></label>
+                              <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={maEquipHoyerLift} onChange={(e) => setMaEquipHoyerLift(e.target.checked)} className="rounded text-red-600" /><span>Hoyer Lift</span></label>
+                              <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={maEquipOxygenTank} onChange={(e) => setMaEquipOxygenTank(e.target.checked)} className="rounded text-red-600" /><span>Oxygen Tank</span></label>
+                              <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={maEquipSliderBoard} onChange={(e) => setMaEquipSliderBoard(e.target.checked)} className="rounded text-red-600" /><span>Slider Board</span></label>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* MASSACHUSETTS INITIAL ASSESSMENT SECTION 6: BILLING & LEGAL CONSENTS */}
+                      <div className="bg-purple-50/80 border border-purple-200 rounded-2xl p-5 space-y-4">
+                        <div className="flex justify-between items-center border-b border-purple-200 pb-3">
+                          <h4 className="font-extrabold text-sm text-[#77248c] flex items-center gap-2">
+                            <i className="fa-solid fa-file-contract text-[#77248c]"></i> Section 6: Scheduling, Billing & Legal Consents
+                          </h4>
+                          <span className="text-[10px] font-bold bg-[#77248c] text-white px-2.5 py-0.5 rounded-full">Legal Agreement</span>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="font-bold text-gray-700 uppercase tracking-wider text-[10px]">Payment Mechanism</label>
+                            <select value={maBillingPaymentMechanism} onChange={(e) => setMaBillingPaymentMechanism(e.target.value as any)} className="w-full bg-white border border-purple-200 rounded-xl px-4 py-2.5 text-xs focus:ring-2 focus:ring-purple-500 mt-1 font-bold text-[#77248c]">
+                              <option value="Private Pay">Private Pay (Credit / ACH / Check)</option>
+                              <option value="Long-Term Care Insurance (LTCI)">Long-Term Care Insurance (LTCI)</option>
+                              <option value="Veterans Aid & Attendance">Veterans Aid & Attendance Benefits</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <div className="p-3.5 bg-white border border-purple-200 rounded-xl space-y-2">
+                          <div className="font-bold text-xs text-[#77248c]">Required Digital Legal Consents & Timestamps:</div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                            <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={maConsentPlanOfCare} onChange={(e) => setMaConsentPlanOfCare(e.target.checked)} className="rounded text-purple-600" /><span>Plan of Care Agreement</span></label>
+                            <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={maConsentClientRights} onChange={(e) => setMaConsentClientRights(e.target.checked)} className="rounded text-purple-600" /><span>Client Rights & Responsibilities</span></label>
+                            <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={maConsentLiabilityRelease} onChange={(e) => setMaConsentLiabilityRelease(e.target.checked)} className="rounded text-purple-600" /><span>Non-Clinical Liability Release</span></label>
+                            <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={maConsentCancellationPolicy} onChange={(e) => setMaConsentCancellationPolicy(e.target.checked)} className="rounded text-purple-600" /><span>Agency Service & Cancellation Policy</span></label>
+                          </div>
                         </div>
                       </div>
 
