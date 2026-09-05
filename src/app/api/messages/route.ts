@@ -258,7 +258,7 @@ export async function POST(request: Request) {
       if (recipientId) {
         recipientSet.add(recipientId);
       } else {
-        const admins = await prisma.user.findMany({ where: { role: { in: ['ADMIN', 'CARE_COORDINATOR'] } }, select: { id: true } });
+        const admins = await prisma.user.findMany({ where: { role: 'ADMIN' }, select: { id: true } });
         admins.forEach(a => recipientSet.add(a.id));
       }
       recipientSet.delete(sessionUser.id);
@@ -316,7 +316,7 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Message not found' }, { status: 404 });
     }
 
-    const isSupervisor = sessionUser.role === 'ADMIN' || sessionUser.role === 'CARE_COORDINATOR';
+    const isSupervisor = sessionUser.role === 'ADMIN';
     const isSender = message.senderId === sessionUser.id;
 
     if (!isSender && !isSupervisor) {

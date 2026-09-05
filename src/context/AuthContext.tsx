@@ -7,7 +7,7 @@ export interface User {
   id: string;
   email: string;
   name: string;
-  role: 'ADMIN' | 'CARE_COORDINATOR' | 'CAREGIVER' | 'FAMILY_MEMBER';
+  role: 'ADMIN' | 'CAREGIVER' | 'FAMILY_MEMBER';
   phoneNumber?: string;
   latitude?: number | null;
   longitude?: number | null;

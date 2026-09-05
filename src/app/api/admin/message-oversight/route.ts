@@ -28,7 +28,7 @@ function groupThreadKey(clientId: string) {
 export async function GET(request: Request) {
   try {
     const sessionUser = await getSessionUser();
-    if (!sessionUser || (sessionUser.role !== 'ADMIN' && sessionUser.role !== 'CARE_COORDINATOR')) {
+    if (!sessionUser || sessionUser.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Message oversight is restricted to administrators' }, { status: 403 });
     }
 

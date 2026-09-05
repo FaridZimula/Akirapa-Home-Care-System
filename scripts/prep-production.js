@@ -83,6 +83,23 @@ async function prepProduction() {
     console.log(`   ✔ Created Admin: ${admin.email} (${admin.name})`);
   }
 
+  // Seed default Secondary Caregiver: Stuart Ssemwogerere
+  const secondaryCaregiver = await prisma.user.create({
+    data: {
+      email: 'sstuart@akirapahomecareus.com',
+      passwordHash: defaultPasswordHash,
+      name: 'Stuart Ssemwogerere',
+      role: UserRole.CAREGIVER,
+      phoneNumber: '+13399701214',
+      payRate: 28.0,
+      profileMetadata: JSON.stringify({
+        bio: 'Default Secondary & Immediate Backup Caregiver',
+        certifications: ['Certified Nursing Assistant (CNA)', 'CPR / First Aid'],
+      }),
+    },
+  });
+  console.log(`   ✔ Created Default Secondary Caregiver: ${secondaryCaregiver.email} (${secondaryCaregiver.name})`);
+
   console.log('✅ Virgin database successfully initialized!');
   console.log('-> Clean slate state: 5 Admins | 0 Clients | 0 Caregivers | 0 Shifts');
   console.log('-> Default Password (if logging in without Google): Akirapa2026!');

@@ -16,8 +16,8 @@ export async function POST(request: Request) {
 
     if (!isCronRequest) {
       const sessionUser = await getSessionUser();
-      if (!sessionUser || (sessionUser.role !== 'ADMIN' && sessionUser.role !== 'CARE_COORDINATOR')) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      if (!sessionUser || sessionUser.role !== 'ADMIN') {
+        return NextResponse.json({ error: 'System escalation checks are restricted to administrators' }, { status: 403 });
       }
     }
 
@@ -39,7 +39,7 @@ export async function POST(request: Request) {
 
     const adminUsers = missedShifts.length > 0
       ? await prisma.user.findMany({
-          where: { role: { in: ['ADMIN', 'CARE_COORDINATOR'] } },
+          where: { role: 'ADMIN' },
           select: { id: true },
         })
       : [];

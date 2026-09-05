@@ -20,7 +20,7 @@ export async function POST(request: Request) {
 
     // Verify the caller actually has a relationship to this client before letting
     // them attach media/notes to that client's care record.
-    const isSupervisor = sessionUser.role === 'ADMIN' || sessionUser.role === 'CARE_COORDINATOR';
+    const isSupervisor = sessionUser.role === 'ADMIN';
     if (!isSupervisor) {
       if (sessionUser.role === 'FAMILY_MEMBER') {
         const link = await prisma.linkedFamilyMember.findUnique({

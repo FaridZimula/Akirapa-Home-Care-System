@@ -39,11 +39,13 @@ function decodeToken(token: string): { sub: string; exp: number } | null {
   }
 }
 
+import { UserRole } from '@prisma/client';
+
 export interface SessionUser {
   id: string;
   email: string;
   name: string;
-  role: 'ADMIN' | 'CARE_COORDINATOR' | 'CAREGIVER' | 'FAMILY_MEMBER';
+  role: UserRole;
   phoneNumber: string | null;
   latitude: number | null;
   longitude: number | null;

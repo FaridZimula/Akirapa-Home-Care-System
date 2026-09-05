@@ -50,12 +50,11 @@ function computeWelfareRedFlags(answers: WelfareAnswers): Record<string, boolean
   return Object.fromEntries(WELFARE_QUESTIONS.map(q => [q.key, answers[q.key] === q.concerningAnswer]));
 }
 
-type AdminPreviewRole = 'ADMIN' | 'CAREGIVER' | 'CARE_COORDINATOR' | 'FAMILY_MEMBER';
+type AdminPreviewRole = 'ADMIN' | 'CAREGIVER' | 'FAMILY_MEMBER';
 
 const ADMIN_PORTAL_VIEWS: Array<{ role: AdminPreviewRole; label: string; icon: string }> = [
   { role: 'ADMIN', label: 'Admin', icon: 'fa-shield-halved' },
   { role: 'CAREGIVER', label: 'Caregiver', icon: 'fa-user-nurse' },
-  { role: 'CARE_COORDINATOR', label: 'Coordinator', icon: 'fa-clipboard-user' },
   { role: 'FAMILY_MEMBER', label: 'Family', icon: 'fa-house-medical' },
 ];
 
@@ -418,7 +417,7 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
   const [newUserPassword, setNewUserPassword] = useState('');
   const [newUserFirstName, setNewUserFirstName] = useState('');
   const [newUserLastName, setNewUserLastName] = useState('');
-  const [newUserRole, setNewUserRole] = useState<'CAREGIVER' | 'CARE_COORDINATOR'>('CAREGIVER');
+  const [newUserRole, setNewUserRole] = useState<'CAREGIVER' | 'ADMIN'>('CAREGIVER');
   const [newUserPhone, setNewUserPhone] = useState('');
   const [newUserPayRate, setNewUserPayRate] = useState('28.00');
   const [isCreatingUser, setIsCreatingUser] = useState(false);
@@ -1647,7 +1646,7 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
   // Trigger mandatory first-time onboarding for non-admin users missing phone number
   useEffect(() => {
     if (!user) return;
-    if (user.role === 'ADMIN' || user.role === 'CARE_COORDINATOR') return;
+    if (user.role === 'ADMIN') return;
     if (!user.phoneNumber && !showMandatoryOnboardingModal) {
       setShowMandatoryOnboardingModal(true);
     }
@@ -1733,7 +1732,7 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
   };
 
   useEffect(() => {
-    if (currentView === 'caregiverReviews' && (user?.role === 'ADMIN' || user?.role === 'CARE_COORDINATOR')) {
+    if (currentView === 'caregiverReviews' && user?.role === 'ADMIN') {
       loadAdminCaregiverReviews();
     }
   }, [currentView, user]);
@@ -1757,7 +1756,7 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
   };
 
   useEffect(() => {
-    if (currentView === 'messageOversight' && (user?.role === 'ADMIN' || user?.role === 'CARE_COORDINATOR')) {
+    if (currentView === 'messageOversight' && user?.role === 'ADMIN') {
       loadMessageOversight();
     }
   }, [currentView, user]);
@@ -4318,7 +4317,7 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
                     className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1"
                   >
                     <option value="CAREGIVER">Caregiver</option>
-                    <option value="CARE_COORDINATOR">Care Coordinator</option>
+                    <option value="ADMIN">Administrator</option>
                   </select>
                 </div>
 
@@ -5888,8 +5887,8 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
             <i className="fa-solid fa-gauge-high w-4 text-center"></i> Dashboard
           </button>
           
-          {/* Admin/Coordinator Views */}
-          {(user.role === 'ADMIN' || user.role === 'CARE_COORDINATOR') && (
+          {/* Admin Views */}
+          {user.role === 'ADMIN' && (
             <>
               <button onClick={() => { setCurrentView('listings'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${currentView === 'listings' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                 <i className="fa-solid fa-calendar-check w-4 text-center"></i> Shifts
@@ -5922,11 +5921,9 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
                   <i className="fa-solid fa-file-invoice-dollar w-4 text-center"></i> Billing
                 </button>
               )}
-              {(user.role === 'ADMIN' || user.role === 'CARE_COORDINATOR') && (
-                <button onClick={() => { setCurrentView('caregiverReviews'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${currentView === 'caregiverReviews' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
-                  <i className="fa-solid fa-star-half-stroke w-4 text-center"></i> Caregiver Reviews
-                </button>
-              )}
+              <button onClick={() => { setCurrentView('caregiverReviews'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${currentView === 'caregiverReviews' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
+                <i className="fa-solid fa-star-half-stroke w-4 text-center"></i> Caregiver Reviews
+              </button>
               <button onClick={() => { setCurrentView('messages'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all relative ${currentView === 'messages' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                 <i className="fa-solid fa-comments w-4 text-center"></i> Messages
                 {messageConversations.some(c => (c.unreadCount || 0) > 0) && (
@@ -5935,11 +5932,9 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
                   </span>
                 )}
               </button>
-              {(user.role === 'ADMIN' || user.role === 'CARE_COORDINATOR') && (
-                <button onClick={() => { setCurrentView('messageOversight'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${currentView === 'messageOversight' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
-                  <i className="fa-solid fa-eye w-4 text-center"></i> Message Oversight
-                </button>
-              )}
+              <button onClick={() => { setCurrentView('messageOversight'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${currentView === 'messageOversight' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
+                <i className="fa-solid fa-eye w-4 text-center"></i> Message Oversight
+              </button>
               <button onClick={() => { setCurrentView('audit'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${currentView === 'audit' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                 <i className="fa-solid fa-shield-halved w-4 text-center"></i> Audit Logs
               </button>
@@ -6048,7 +6043,7 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
             <h2 className="text-base md:text-lg font-semibold text-gray-800 truncate">
               {currentView === 'dashboard' && 'Dashboard'}
               {currentView === 'profile' && 'My Profile'}
-              {currentView === 'listings' && (user.role === 'ADMIN' || user.role === 'CARE_COORDINATOR' ? 'Shift Management' : user.role === 'CAREGIVER' ? 'My Shifts' : 'Care Feed')}
+              {currentView === 'listings' && (user.role === 'ADMIN' ? 'Shift Management' : user.role === 'CAREGIVER' ? 'My Shifts' : 'Care Feed')}
               {currentView === 'create' && 'Create Shift'}
               {currentView === 'add_caregiver' && 'Add & Provision Staff Members'}
               {currentView === 'add_client' && 'Add & Provision Client'}
@@ -7615,7 +7610,7 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
                     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 items-center sm:items-stretch">
                         <h3 className="font-extrabold text-gray-900 text-xl md:text-2xl tracking-tight text-center sm:text-left w-full sm:w-auto">
-                          {user.role === 'ADMIN' || user.role === 'CARE_COORDINATOR' ? 'All Scheduled Care Shifts' : 'My Assigned Shifts'}
+                          {user.role === 'ADMIN' ? 'All Scheduled Care Shifts' : 'My Assigned Shifts'}
                         </h3>
                         {user.role === 'CAREGIVER' && (
                           <button
@@ -7710,7 +7705,7 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
                                   )}
 
                                   {/* Admin / Coordinator Force Confirm Action */}
-                                  {(user.role === 'ADMIN' || user.role === 'CARE_COORDINATOR') && shift.status === 'UNCONFIRMED' && (
+                                  {user.role === 'ADMIN' && shift.status === 'UNCONFIRMED' && (
                                     <button onClick={(e) => { e.stopPropagation(); handleConfirmShift(shift.id, true); }} className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-lg cursor-pointer shadow-2xs flex items-center gap-1.5">
                                       <i className="fa-solid fa-shield-halved"></i> Admin Confirm
                                     </button>
@@ -7998,7 +7993,6 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
                           className="w-full bg-purple-50 border border-purple-200 rounded-xl px-4 py-3 text-sm font-bold text-[#77248c] focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1 cursor-pointer"
                         >
                           <option value="CAREGIVER">Caregiver</option>
-                          <option value="CARE_COORDINATOR">Care Coordinator</option>
                           <option value="ADMIN">Administrator</option>
                         </select>
                       </div>
@@ -9694,7 +9688,7 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
               )}
 
               {/* ===== CREATE SHIFT VIEW ===== */}
-              {currentView === 'create' && (user.role === 'ADMIN' || user.role === 'CARE_COORDINATOR') && (
+              {currentView === 'create' && user.role === 'ADMIN' && (
                 <div className="max-w-2xl mx-auto">
                   <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
                     <h3 className="font-semibold text-gray-800 mb-6">Create New Shift</h3>
@@ -10646,8 +10640,8 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
                 </div>
               )}
 
-              {/* ===== CAREGIVER REVIEWS VIEW (admin/coordinator only - never shown to caregivers) ===== */}
-              {currentView === 'caregiverReviews' && (user.role === 'ADMIN' || user.role === 'CARE_COORDINATOR') && (
+              {/* ===== CAREGIVER REVIEWS VIEW (admin only - never shown to caregivers) ===== */}
+              {currentView === 'caregiverReviews' && user.role === 'ADMIN' && (
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                   <h3 className="font-semibold text-gray-800 text-lg mb-1">Weekly Caregiver Reviews</h3>
                   <p className="text-xs text-gray-400 mb-4">Submitted by clients/family members each week. Not visible to caregivers.</p>
@@ -10694,8 +10688,8 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
                 </div>
               )}
 
-              {/* ===== MESSAGE OVERSIGHT VIEW (admin/coordinator only - read-only, no composer) ===== */}
-              {currentView === 'messageOversight' && (user.role === 'ADMIN' || user.role === 'CARE_COORDINATOR') && (
+              {/* ===== MESSAGE OVERSIGHT VIEW (admin only - read-only, no composer) ===== */}
+              {currentView === 'messageOversight' && user.role === 'ADMIN' && (
                 <div className="space-y-6">
                   <div className="bg-[#77248c] border border-[#5a1a6b] rounded-2xl px-4 py-3 text-xs text-white font-semibold flex items-start gap-2 shadow-md">
                     <i className="fa-solid fa-eye text-white mt-0.5"></i>
@@ -10920,7 +10914,7 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
 
                           // Badge styling by role type
                           const badgeType = c.badgeType || (
-                            c.roleLabel === 'ADMIN' || c.roleLabel === 'CARE_COORDINATOR' ? 'admin' :
+                            c.roleLabel === 'ADMIN' ? 'admin' :
                             c.roleLabel === 'CAREGIVER' ? 'caregiver' :
                             c.roleLabel === 'FAMILY_MEMBER' ? 'family' : 'other'
                           );
@@ -10934,7 +10928,7 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
                             badgeType === 'family' ? 'fa-house-medical' : 'fa-user';
 
                           const pillLabel =
-                            badgeType === 'admin' ? (c.roleLabel === 'CARE_COORDINATOR' ? 'Coordinator' : 'ADMIN') :
+                            badgeType === 'admin' ? 'ADMIN' :
                             badgeType === 'caregiver' ? 'CAREGIVER' :
                             badgeType === 'family' ? 'FAMILY' : (c.roleLabel || 'USER');
 
@@ -11001,13 +10995,13 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
 
                   {/* Thread */}
                   <div className="md:col-span-3 bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden">
-                    {(user.role === 'ADMIN' || user.role === 'CARE_COORDINATOR') ? (
+                    {user.role === 'ADMIN' ? (
                       <div className="px-4 py-2.5 bg-[#77248c] border-b border-[#5a1a6b] text-xs text-white font-semibold flex items-center gap-2 shadow-2xs">
                         <i className="fa-solid fa-eye text-white"></i> <span>You can message this client's care team directly — all access and messages sent here are logged for accountability.</span>
                       </div>
                     ) : (
                       <div className="px-4 py-2 bg-gray-50 border-b border-gray-100 text-[11px] text-gray-500 flex items-center gap-1.5">
-                        <i className="fa-solid fa-circle-info"></i> Messages here may be reviewed by your care coordinator for quality and safeguarding.
+                        <i className="fa-solid fa-circle-info"></i> Messages here may be reviewed by admins for quality and safeguarding.
                       </div>
                     )}
 
@@ -11021,7 +11015,7 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
                       ) : (
                         messageThread.map((m: any) => {
                           const isMine = m.senderId === user.id;
-                          const canDelete = isMine || user.role === 'ADMIN' || user.role === 'CARE_COORDINATOR';
+                          const canDelete = isMine || user.role === 'ADMIN';
                           return (
                             <div key={m.id} className={`flex group ${isMine ? 'justify-end' : 'justify-start'}`}>
                               <div className={`relative max-w-[75%] rounded-2xl px-3.5 py-2 shadow-2xs ${isMine ? 'bg-[#77248c] text-white rounded-tr-xs' : 'bg-gray-100 text-gray-900 rounded-tl-xs'}`}>
@@ -11195,7 +11189,7 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
               )}
 
               {/* ===== AUDIT LOGS VIEW ===== */}
-              {currentView === 'audit' && (user.role === 'ADMIN' || user.role === 'CARE_COORDINATOR') && (
+              {currentView === 'audit' && user.role === 'ADMIN' && (
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                   <div className="flex justify-between items-center border-b border-gray-100 pb-4 mb-4">
                     <h3 className="font-semibold text-gray-800">Audit Logs</h3>
@@ -11295,7 +11289,7 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
       )}
 
       {/* Mandatory Onboarding Modal (first-time Caregiver & Family Member) */}
-      {showMandatoryOnboardingModal && user && user.role !== 'ADMIN' && user.role !== 'CARE_COORDINATOR' && (
+      {showMandatoryOnboardingModal && user && user.role !== 'ADMIN' && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-8 animate-fade-up">
             <div className="text-center mb-6">

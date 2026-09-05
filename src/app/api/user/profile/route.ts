@@ -17,7 +17,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
     }
 
-    const isSupervisor = sessionUser.role === 'ADMIN' || sessionUser.role === 'CARE_COORDINATOR';
+    const isSupervisor = sessionUser.role === 'ADMIN';
     if (sessionUser.id !== userId && !isSupervisor) {
       return NextResponse.json({ error: 'You can only update your own profile' }, { status: 403 });
     }

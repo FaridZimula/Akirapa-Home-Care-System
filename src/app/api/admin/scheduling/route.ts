@@ -79,7 +79,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const sessionUser = await getSessionUser();
-    if (!sessionUser || (sessionUser.role !== 'ADMIN' && sessionUser.role !== 'CARE_COORDINATOR')) {
+    if (!sessionUser || sessionUser.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Shift creation & assignment is restricted to administrators' }, { status: 403 });
     }
 
@@ -287,7 +287,7 @@ export async function DELETE(request: Request) {
       }
     }
 
-    if (!sessionUser || (sessionUser.role !== 'ADMIN' && sessionUser.role !== 'CARE_COORDINATOR')) {
+    if (!sessionUser || sessionUser.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Shift cancellation is restricted to administrators' }, { status: 403 });
     }
 

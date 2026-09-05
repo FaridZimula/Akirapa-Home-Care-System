@@ -37,9 +37,9 @@ export async function GET(request: Request) {
 
     // ─── FAMILY MEMBER: restrict to admins + assigned caregiver(s) ───
     if (sessionUser.role === 'FAMILY_MEMBER') {
-      // 1. Get all system admins and care coordinators
+      // 1. Get all system admins
       const admins = await prisma.user.findMany({
-        where: { role: { in: ['ADMIN', 'CARE_COORDINATOR'] } },
+        where: { role: 'ADMIN' },
         select: { id: true, name: true, role: true },
         orderBy: { name: 'asc' },
       });
@@ -155,7 +155,7 @@ export async function GET(request: Request) {
     // ─── CAREGIVER: admins + clients in their pod + family members of those clients ───
     if (sessionUser.role === 'CAREGIVER') {
       const admins = await prisma.user.findMany({
-        where: { role: { in: ['ADMIN', 'CARE_COORDINATOR'] } },
+        where: { role: 'ADMIN' },
         select: { id: true, name: true, role: true },
         orderBy: { name: 'asc' },
       });
@@ -230,7 +230,6 @@ export async function GET(request: Request) {
     for (const u of allUsers) {
       let roleLabel = 'User';
       if (u.role === 'ADMIN') roleLabel = 'System Administrator';
-      else if (u.role === 'CARE_COORDINATOR') roleLabel = 'Care Coordinator';
       else if (u.role === 'CAREGIVER') roleLabel = 'Caregiver';
       else if (u.role === 'FAMILY_MEMBER') roleLabel = 'Family Member';
 

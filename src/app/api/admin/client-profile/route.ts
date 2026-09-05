@@ -6,7 +6,7 @@ import { getSessionUser } from '@/lib/session';
 export async function POST(request: Request) {
   try {
     const sessionUser = await getSessionUser();
-    if (!sessionUser || (sessionUser.role !== 'ADMIN' && sessionUser.role !== 'CARE_COORDINATOR')) {
+    if (!sessionUser || sessionUser.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Client profile updates are restricted to administrators' }, { status: 403 });
     }
 

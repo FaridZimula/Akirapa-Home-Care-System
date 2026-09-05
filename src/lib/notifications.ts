@@ -96,7 +96,7 @@ export async function notifyAdmins({
   try {
     const adminUsers = await prisma.user.findMany({
       where: {
-        role: { in: ['ADMIN', 'CARE_COORDINATOR'] },
+        role: 'ADMIN',
         ...(excludeUserId ? { id: { not: excludeUserId } } : {}),
       },
       select: { id: true },

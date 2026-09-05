@@ -327,33 +327,57 @@ export async function POST(request: Request) {
       outcome: 'SUCCESS',
     });
 
-    // ── Default Secondary Caregiver: Stuart Sssemwogerere ────────────────────
+    // ── Default Secondary Caregiver: Stuart Ssemwogerere ────────────────────
     // Every new client gets Stuart auto-assigned as their default SECONDARY
-    // caregiver pod member. This runs silently and never blocks provisioning.
+    // caregiver pod member (immediate backup caregiver if primary fails to show up).
     try {
       const DEFAULT_SECONDARY_EMAIL = 'sstuart@akirapahomecareus.com';
-      const defaultSecondary = await prisma.user.findUnique({
+      let defaultSecondary = await prisma.user.findUnique({
         where: { email: DEFAULT_SECONDARY_EMAIL },
       });
 
-      if (defaultSecondary && defaultSecondary.role === 'CAREGIVER') {
-        await prisma.caregiverPod.create({
+      if (!defaultSecondary) {
+        const defaultPasswordHash = await hashPassword('Akirapa2026!');
+        defaultSecondary = await prisma.user.create({
           data: {
-            clientId: client.id,
-            caregiverId: defaultSecondary.id,
-            role: 'SECONDARY_1',
+            email: DEFAULT_SECONDARY_EMAIL,
+            passwordHash: defaultPasswordHash,
+            name: 'Stuart Ssemwogerere',
+            role: UserRole.CAREGIVER,
+            phoneNumber: '+13399701214',
+            payRate: 28.0,
+            profileMetadata: JSON.stringify({
+              title: 'Default Secondary & Immediate Backup Caregiver',
+              initialPassword: 'Akirapa2026!',
+            }),
           },
         });
-
-        await logAudit({
-          userId: sessionUser.id,
-          action: 'AUTO_POD_ASSIGN',
-          details: `Default secondary caregiver ${defaultSecondary.name} (${defaultSecondary.email}) auto-assigned to new client ${name} (${client.id})`,
-          outcome: 'SUCCESS',
-        });
       }
+
+      await prisma.caregiverPod.upsert({
+        where: {
+          clientId_role: {
+            clientId: client.id,
+            role: 'SECONDARY_1',
+          },
+        },
+        create: {
+          clientId: client.id,
+          caregiverId: defaultSecondary.id,
+          role: 'SECONDARY_1',
+        },
+        update: {
+          caregiverId: defaultSecondary.id,
+        },
+      });
+
+      await logAudit({
+        userId: sessionUser.id,
+        action: 'AUTO_POD_ASSIGN',
+        details: `Default secondary caregiver ${defaultSecondary.name} (${defaultSecondary.email}) auto-assigned to new client ${name} (${client.id})`,
+        outcome: 'SUCCESS',
+      });
     } catch (podErr) {
-      // Non-fatal: log but don't fail the overall provisioning
       console.warn('Default secondary caregiver auto-assign failed:', podErr);
     }
     // ─────────────────────────────────────────────────────────────────────────

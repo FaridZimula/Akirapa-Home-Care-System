@@ -15,7 +15,7 @@ export async function POST(request: Request) {
 
     // Only family members (or admins acting on family's behalf) can approve/decline visits
     const isFamilyMember = sessionUser.role === 'FAMILY_MEMBER';
-    const isSupervisor = sessionUser.role === 'ADMIN' || sessionUser.role === 'CARE_COORDINATOR';
+    const isSupervisor = sessionUser.role === 'ADMIN';
     if (!isFamilyMember && !isSupervisor) {
       return NextResponse.json(
         { error: 'Only family members or administrators can approve or decline caregiver visits' },

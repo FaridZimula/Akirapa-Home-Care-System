@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     }
 
     const isAssignedCaregiver = shift.caregiverId === sessionUser.id;
-    const isSupervisor = sessionUser.role === 'ADMIN' || sessionUser.role === 'CARE_COORDINATOR';
+    const isSupervisor = sessionUser.role === 'ADMIN';
     if (!isAssignedCaregiver && !isSupervisor) {
       return NextResponse.json({ error: 'You are not authorized to act on this shift' }, { status: 403 });
     }

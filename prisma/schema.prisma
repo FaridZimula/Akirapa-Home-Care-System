@@ -10,7 +10,6 @@ generator client {
 
 enum UserRole {
   ADMIN
-  CARE_COORDINATOR
   CAREGIVER
   FAMILY_MEMBER
 }

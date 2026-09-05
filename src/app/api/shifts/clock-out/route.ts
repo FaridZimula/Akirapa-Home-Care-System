@@ -43,7 +43,7 @@ export async function POST(request: Request) {
     }
 
     const isAssignedCaregiver = shift.caregiverId === sessionUser.id;
-    const isSupervisor = sessionUser.role === 'ADMIN' || sessionUser.role === 'CARE_COORDINATOR';
+    const isSupervisor = sessionUser.role === 'ADMIN';
     if (!isAssignedCaregiver && !isSupervisor) {
       await logAudit({
         userId: sessionUser.id,
