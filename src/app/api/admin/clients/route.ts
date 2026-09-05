@@ -156,7 +156,7 @@ export async function POST(request: Request) {
         address: fullAddress,
         latitude: parsedLat,
         longitude: parsedLng,
-        geofenceRadiusMeter: 200,
+        geofenceRadiusMeter: 100,
         billingRatePerHour: parsedBillingRate,
         profileMetadata: JSON.stringify({
           careTier: careTier || 'Standard',

@@ -75,7 +75,7 @@ model Client {
   address             String
   latitude            Float
   longitude           Float
-  geofenceRadiusMeter Int           @default(150) // Default 150m radius
+  geofenceRadiusMeter Int           @default(100) // Default 100m radius
   createdAt           DateTime      @default(now())
   profileMetadata     String?       // JSON-serialized string of additional patient details
 

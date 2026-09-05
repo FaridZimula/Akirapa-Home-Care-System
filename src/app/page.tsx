@@ -108,6 +108,7 @@ export default function Home() {
   const [overrideReason, setOverrideReason] = useState('');
   const [showOverrideInput, setShowOverrideInput] = useState(false);
   const [clockInError, setClockInError] = useState<string | null>(null);
+  const [clockInTargetShiftId, setClockInTargetShiftId] = useState<string | null>(null);
   const [clockOutError, setClockOutError] = useState<string | null>(null);
   const [showClockOutOverrideInput, setShowClockOutOverrideInput] = useState(false);
   const [clockOutOverrideReason, setClockOutOverrideReason] = useState('');
@@ -2309,6 +2310,7 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
   // ============================================================
 
   const handleClockIn = async (shiftId: string, isOverride = false) => {
+    setClockInTargetShiftId(shiftId);
     setClockInError(null);
     const activeShift = shifts.find(s => s.id === shiftId);
     if (!activeShift) return;
@@ -2326,6 +2328,7 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
           lng = position.coords.longitude;
         } catch (err: any) {
           setClockInError(`GPS Error: ${err.message || 'Could not retrieve device location.'}`);
+          setShowOverrideInput(true);
           return;
         }
       } else {
@@ -2351,12 +2354,16 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
         showNotification(isOverride ? 'Manual Override Submitted' : 'Clock-In Validated!');
         setShowOverrideInput(false);
         setOverrideReason('');
+        setClockInTargetShiftId(null);
         loadData();
       } else {
         setClockInError(data.error);
         if (data.allowOverride) setShowOverrideInput(true);
       }
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      console.error(err);
+      setClockInError('Network error attempting to clock in.');
+    }
   };
 
   // Whether the given shift is currently past its scheduled end time (overtime).
@@ -2619,7 +2626,7 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
 
   const handleOpenClientProfileEditor = (client: any) => {
     setTargetClientEditor(client);
-    setClientGeofenceRadiusInput(client.geofenceRadiusMeter || 150);
+    setClientGeofenceRadiusInput(client.geofenceRadiusMeter || 100);
     setClientBillingRateInput(client.billingRatePerHour != null ? String(client.billingRatePerHour) : '');
 
     let meta: any = {};
@@ -5224,7 +5231,7 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
                       <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping shrink-0 aspect-square"></span> Live Tracking Stream Active
                     </span>
                     <span className="bg-slate-800/90 border border-slate-700 px-3 py-1 rounded-lg text-slate-300 font-mono text-[11px]">
-                      Geofence Radius: {gpsMapShiftDetails?.client?.geofenceRadiusMeter || 150}m
+                      Geofence Radius: {gpsMapShiftDetails?.client?.geofenceRadiusMeter || 100}m
                     </span>
                   </div>
 
@@ -6065,6 +6072,71 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
             <div className="flex items-center justify-center h-64"><div className="w-10 h-10 border-4 border-purple-600 border-t-transparent rounded-full animate-spin shrink-0 aspect-square" /></div>
           ) : (
             <>
+              {/* CAREGIVER ACTIVE SHIFT BANNER */}
+              {user.role === 'CAREGIVER' && (() => {
+                const activeShift = shifts.find(s => s.caregiverId === user.id && s.status === 'IN_PROGRESS');
+                if (!activeShift) return null;
+                const clientFull = clients.find(c => c.id === activeShift.clientId) || activeShift.client;
+                const startMs = activeShift.actualStart ? new Date(activeShift.actualStart).getTime() : Date.now();
+                const elapsedMinutes = Math.floor((Date.now() - startMs) / (1000 * 60));
+                const elapsedHours = Math.floor(elapsedMinutes / 60);
+                const remainingMins = elapsedMinutes % 60;
+                const timeFormatted = `${elapsedHours > 0 ? `${elapsedHours}h ` : ''}${remainingMins}m`;
+
+                return (
+                  <div className="mb-6 bg-gradient-to-r from-[#77248c] via-[#5a1a6b] to-[#4cdbd5] rounded-3xl p-5 md:p-6 text-white shadow-xl border border-purple-300 relative overflow-hidden animate-fade-up">
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative z-10">
+                      <div className="space-y-1.5">
+                        <div className="flex items-center gap-2.5">
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/90 text-white font-extrabold text-xs uppercase tracking-wider shadow-xs">
+                            <span className="w-2 h-2 rounded-full bg-white animate-ping"></span>
+                            Care Visit Active
+                          </span>
+                          <span className="text-xs font-semibold text-purple-100 flex items-center gap-1">
+                            <i className="fa-solid fa-satellite-dish text-teal-200 animate-pulse"></i>
+                            Live Geofence Active
+                          </span>
+                        </div>
+                        <h3 className="text-xl md:text-2xl font-black tracking-tight text-white flex items-center gap-2">
+                          <span>{clientFull.name}</span>
+                        </h3>
+                        <p className="text-xs text-purple-100 flex items-center gap-2 flex-wrap">
+                          <span><i className="fa-solid fa-location-dot text-teal-300 mr-1"></i>{clientFull.address}</span>
+                          <a
+                            href={`https://www.google.com/maps/search/?api=1&query=${clientFull.latitude},${clientFull.longitude}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-teal-200 hover:text-white font-bold underline text-xs ml-1"
+                          >
+                            Google Maps
+                          </a>
+                        </p>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-3">
+                        <div className="px-4 py-2 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 text-center min-w-[120px]">
+                          <div className="text-[10px] uppercase font-bold text-purple-200 tracking-wider">Elapsed Time</div>
+                          <div className="text-lg font-black font-mono text-white">{timeFormatted}</div>
+                        </div>
+
+                        <button
+                          onClick={() => handleOpenShiftUpdate(activeShift)}
+                          className="px-4 py-2.5 bg-white/20 hover:bg-white/30 text-white font-bold text-xs rounded-2xl flex items-center gap-2 transition-all cursor-pointer border border-white/30 shadow-xs"
+                        >
+                          <i className="fa-solid fa-camera"></i> Family Update
+                        </button>
+
+                        <button
+                          onClick={() => openClockOutModal(activeShift.id, false)}
+                          className="px-5 py-2.5 bg-red-500 hover:bg-red-600 text-white font-black text-xs rounded-2xl flex items-center gap-2 transition-all cursor-pointer shadow-md hover:scale-105"
+                        >
+                          <i className="fa-solid fa-right-from-bracket"></i> Clock Out Visit
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
               {/* ===== DASHBOARD VIEW ===== */}
               {currentView === 'dashboard' && (
                 <div className="space-y-6">
@@ -7560,7 +7632,7 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
                                     </button>
                                   )}
 
-                                  {user.role === 'CAREGIVER' && shift.status === 'CONFIRMED' && (
+                                  {user.role === 'CAREGIVER' && (shift.status === 'CONFIRMED' || shift.status === 'CAREGIVER_CONFIRMED') && (
                                     <button onClick={(e) => { e.stopPropagation(); handleClockIn(shift.id, false); }} className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white font-bold text-xs rounded-lg cursor-pointer shadow-2xs">Clock In</button>
                                   )}
 
@@ -7583,6 +7655,58 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
                                   )}
                                 </div>
                               </div>
+
+                              {/* Clock In Exception / Geofence Error & Override Input Form */}
+                              {clockInError && clockInTargetShiftId === shift.id && (
+                                <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 space-y-2 animate-fade-up" onClick={(e) => e.stopPropagation()}>
+                                  <div className="font-bold flex items-center gap-1.5">
+                                    <i className="fa-solid fa-circle-exclamation text-red-600 text-sm"></i>
+                                    <span>{clockInError}</span>
+                                  </div>
+                                  {showOverrideInput ? (
+                                    <div className="space-y-2 pt-1.5 border-t border-red-200/60">
+                                      <label className="block text-[11px] font-bold text-gray-700">Reason for Manual Clock-In Override:</label>
+                                      <input
+                                        type="text"
+                                        value={overrideReason}
+                                        onChange={(e) => setOverrideReason(e.target.value)}
+                                        placeholder="e.g. Weak GPS signal at patient entrance / On-site"
+                                        className="w-full px-3 py-2 bg-white border border-red-200 rounded-lg text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                      />
+                                      <div className="flex gap-2">
+                                        <button
+                                          onClick={(e) => { e.stopPropagation(); handleClockIn(shift.id, true); }}
+                                          disabled={!overrideReason.trim()}
+                                          className="px-3 py-1 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white font-bold text-xs rounded-lg cursor-pointer transition-colors shadow-2xs"
+                                        >
+                                          Submit Override
+                                        </button>
+                                        <button
+                                          onClick={(e) => { e.stopPropagation(); setClockInError(null); setShowOverrideInput(false); setOverrideReason(''); setClockInTargetShiftId(null); }}
+                                          className="px-3 py-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-xs rounded-lg cursor-pointer transition-colors"
+                                        >
+                                          Cancel
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div className="flex gap-2 pt-1 border-t border-red-200/60">
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); handleClockIn(shift.id, false); }}
+                                        className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-lg cursor-pointer transition-colors shadow-2xs"
+                                      >
+                                        Retry Geofence Check
+                                      </button>
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); setShowOverrideInput(true); }}
+                                        className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-lg cursor-pointer transition-colors shadow-2xs"
+                                      >
+                                        Request Manual Override
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
 
                               {/* Client Details - unlocked once the caregiver has confirmed the shift */}
                               {user.role === 'CAREGIVER' && (

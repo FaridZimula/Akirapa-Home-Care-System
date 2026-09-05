@@ -15,7 +15,8 @@ export type NotificationType =
   | 'SYSTEM_ALERT'
   | 'NEW_MESSAGE'
   | 'SHIFT_CONFIRMATION_MISSED'
-  | 'FAMILY_APPROVAL_PENDING';
+  | 'FAMILY_APPROVAL_PENDING'
+  | 'LATE_ARRIVAL';
 
 export interface CreateNotificationPayload {
   userId: string;

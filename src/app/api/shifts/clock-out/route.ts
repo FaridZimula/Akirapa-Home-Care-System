@@ -224,7 +224,7 @@ export async function POST(request: Request) {
       shift.client.longitude
     );
 
-    const radius = shift.client.geofenceRadiusMeter;
+    const radius = shift.client.geofenceRadiusMeter || 100;
 
     if (distance > radius) {
       await logAudit({

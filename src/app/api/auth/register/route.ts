@@ -264,7 +264,7 @@ export async function POST(request: Request) {
             address: patientAddress,
             latitude: parseFloat(patientLatitude) || 49.2827,
             longitude: parseFloat(patientLongitude) || -123.1207,
-            geofenceRadiusMeter: 150,
+            geofenceRadiusMeter: 100,
             profileMetadata: clientMetadata,
           },
         });
