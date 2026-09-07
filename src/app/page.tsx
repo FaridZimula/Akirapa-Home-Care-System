@@ -224,6 +224,8 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
   const [clientEmergencyContact, setClientEmergencyContact] = useState<string>('');
   const [clientAllergiesNotes, setClientAllergiesNotes] = useState<string>('');
   const [clientBillingRateInput, setClientBillingRateInput] = useState<string>('');
+  const [clientReferralTypeInput, setClientReferralTypeInput] = useState<'Private Client' | 'Government Client' | ''>('');
+  const [clientGovernmentProgramInput, setClientGovernmentProgramInput] = useState<'DDS' | 'ABI/MPF' | 'MassAbility' | ''>('');
   const [clientFullMetaSnapshot, setClientFullMetaSnapshot] = useState<any>({});
   const [isSavingClientProfile, setIsSavingClientProfile] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -278,6 +280,9 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
   const [newClientEmergencyLastName, setNewClientEmergencyLastName] = useState('');
   const [newClientEmergencyPhone, setNewClientEmergencyPhone] = useState('');
   const [newClientEmergencyRelationship, setNewClientEmergencyRelationship] = useState('Family Contact');
+  // Client Referral Type & Government Sponsoring Agency
+  const [newClientReferralType, setNewClientReferralType] = useState<'Private Client' | 'Government Client' | ''>('');
+  const [newClientGovernmentProgram, setNewClientGovernmentProgram] = useState<'DDS' | 'ABI/MPF' | 'MassAbility' | ''>('');
   const [isProvisioningClient, setIsProvisioningClient] = useState(false);
   const [addClientError, setAddClientError] = useState<string | null>(null);
   // Client Intake — Fill Later Toggle
@@ -954,6 +959,8 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
           dailyRoutine: newClientDailyRoutine || null,
           preferredCaregiverType: newClientPreferredCaregiverType || null,
           additionalObservations: newClientAdditionalObservations || null,
+          referralType: newClientReferralType || null,
+          governmentProgram: newClientReferralType === 'Government Client' ? (newClientGovernmentProgram || null) : null,
           emergency2Name: newClientEmergency2Name || null,
           emergency2Phone: newClientEmergency2Phone || null,
           emergency2Relationship: newClientEmergency2Relationship || null,
@@ -994,6 +1001,7 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
       setNewClientMood([]); setNewClientAlertness([]); setNewClientAppetite(''); setNewClientHydration(''); setNewClientSleep('');
       setNewClientCarePreferences([]); setNewClientPersonality(''); setNewClientDailyRoutine('');
       setNewClientPreferredCaregiverType(''); setNewClientAdditionalObservations('');
+      setNewClientReferralType(''); setNewClientGovernmentProgram('');
       setNewClientEmergency2FirstName(''); setNewClientEmergency2LastName(''); setNewClientEmergency2Phone(''); setNewClientEmergency2Relationship('');
       setClientFillDetailsLater(false);
       await loadData();
@@ -2728,6 +2736,8 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
     setClientMedicalConditions(meta.medicalConditions || 'Hypertension, Mild Arthritis');
     setClientEmergencyContact(meta.emergencyContact || 'Family Representative (+1-604-555-0199)');
     setClientAllergiesNotes(meta.allergiesNotes || 'No known drug allergies (NKDA)');
+    setClientReferralTypeInput(meta.referralType || '');
+    setClientGovernmentProgramInput(meta.governmentProgram || '');
     setShowClientProfileModal(true);
   };
 
@@ -2742,6 +2752,8 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
         medicalConditions: clientMedicalConditions,
         emergencyContact: clientEmergencyContact,
         allergiesNotes: clientAllergiesNotes,
+        referralType: clientReferralTypeInput || null,
+        governmentProgram: clientReferralTypeInput === 'Government Client' ? (clientGovernmentProgramInput || null) : null,
         updatedAt: new Date().toISOString(),
       };
 
@@ -5481,6 +5493,90 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
                 <p className="text-[10px] text-gray-400 mt-1.5">Used to auto-calculate invoices from this client's logged shift hours.</p>
               </div>
 
+              {/* Client Referral Type & Government Program */}
+              <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
+                <div className="flex justify-between items-center">
+                  <label className="font-bold text-gray-700 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                    <i className="fa-solid fa-handshake-angle text-[#77248c]"></i> Client Referral Type
+                  </label>
+                  <span className="text-[10px] text-gray-400 font-semibold uppercase">Select One</span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <label
+                    onClick={() => {
+                      setClientReferralTypeInput('Private Client');
+                      setClientGovernmentProgramInput('');
+                    }}
+                    className={`flex items-center gap-2 p-2.5 rounded-xl border-2 cursor-pointer transition-all ${
+                      clientReferralTypeInput === 'Private Client'
+                        ? 'bg-purple-50 border-[#77248c] text-purple-950 font-bold'
+                        : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="modalReferralType"
+                      checked={clientReferralTypeInput === 'Private Client'}
+                      onChange={() => {
+                        setClientReferralTypeInput('Private Client');
+                        setClientGovernmentProgramInput('');
+                      }}
+                      className="text-[#77248c] focus:ring-[#77248c] cursor-pointer"
+                    />
+                    <span className="text-xs">Private Client</span>
+                  </label>
+
+                  <label
+                    onClick={() => setClientReferralTypeInput('Government Client')}
+                    className={`flex items-center gap-2 p-2.5 rounded-xl border-2 cursor-pointer transition-all ${
+                      clientReferralTypeInput === 'Government Client'
+                        ? 'bg-purple-50 border-[#77248c] text-purple-950 font-bold'
+                        : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="modalReferralType"
+                      checked={clientReferralTypeInput === 'Government Client'}
+                      onChange={() => setClientReferralTypeInput('Government Client')}
+                      className="text-[#77248c] focus:ring-[#77248c] cursor-pointer"
+                    />
+                    <span className="text-xs">Government Client</span>
+                  </label>
+                </div>
+
+                {clientReferralTypeInput === 'Government Client' && (
+                  <div className="pt-2 border-t border-purple-100 space-y-1.5 animate-fade-up">
+                    <label className="font-bold text-[#77248c] uppercase tracking-wider text-[10px] block">
+                      Government Program / Agency (Select One)
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {['DDS', 'ABI/MPF', 'MassAbility'].map((prog) => (
+                        <label
+                          key={prog}
+                          onClick={() => setClientGovernmentProgramInput(prog as any)}
+                          className={`flex items-center justify-center gap-1.5 p-2 rounded-lg border cursor-pointer text-xs font-bold transition-all text-center ${
+                            clientGovernmentProgramInput === prog
+                              ? 'bg-[#77248c] text-white border-[#77248c] shadow-2xs'
+                              : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="modalGovProg"
+                            checked={clientGovernmentProgramInput === prog}
+                            onChange={() => setClientGovernmentProgramInput(prog as any)}
+                            className="sr-only"
+                          />
+                          <span>{prog}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* Medical Conditions */}
               <div>
                 <label className="font-semibold text-gray-600 uppercase block mb-1">Medical Conditions & Diagnosis</label>
@@ -6584,6 +6680,21 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
                                       </div>
                                     )}
                                   </div>
+
+                                  {meta.referralType && (
+                                    <div className="flex items-center justify-between pt-1 text-xs">
+                                      <span className="text-[10px] text-gray-400 font-semibold uppercase">Referral Type:</span>
+                                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold inline-flex items-center gap-1 ${
+                                        meta.referralType === 'Government Client'
+                                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                          : 'bg-purple-50 text-purple-700 border border-purple-200'
+                                      }`}>
+                                        <i className={`fa-solid ${meta.referralType === 'Government Client' ? 'fa-building-columns' : 'fa-user-shield'} text-[9px]`}></i>
+                                        {meta.referralType}
+                                        {meta.referralType === 'Government Client' && meta.governmentProgram ? ` (${meta.governmentProgram})` : ''}
+                                      </span>
+                                    </div>
+                                  )}
                                 </div>
                               );
                             })
@@ -7823,6 +7934,16 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
                                           >Get Directions</a>
                                         </div>
                                       </div>
+
+                                      {meta.referralType && (
+                                        <div className="flex items-start gap-2">
+                                          <i className={`fa-solid ${meta.referralType === 'Government Client' ? 'fa-building-columns' : 'fa-id-card-clip'} text-purple-400 w-3.5 mt-0.5`}></i>
+                                          <div className="text-gray-700">
+                                            <span className="font-semibold text-gray-800">Referral / Care Type:</span> {meta.referralType}
+                                            {meta.referralType === 'Government Client' && meta.governmentProgram ? ` (${meta.governmentProgram})` : ''}
+                                          </div>
+                                        </div>
+                                      )}
 
                                       {(meta.medicalConditions || meta.allergiesNotes) && (
                                         <div className="flex items-start gap-2">
@@ -9485,7 +9606,147 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
                             )}
                           </div>
 
-                          {/* Section G: Secondary Emergency Contact (Optional) */}
+                          {/* Section G: Client Referral Type */}
+                          <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-4 shadow-xs">
+                            <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+                              <h4 className="font-bold text-sm text-[#77248c] flex items-center gap-2">
+                                <i className="fa-solid fa-handshake-angle text-[#77248c]"></i> Client Referral Type
+                              </h4>
+                              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Select One</span>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              {/* Option 1: Private Client */}
+                              <label
+                                onClick={() => {
+                                  setNewClientReferralType('Private Client');
+                                  setNewClientGovernmentProgram('');
+                                }}
+                                className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                                  newClientReferralType === 'Private Client'
+                                    ? 'bg-purple-50/70 border-[#77248c] text-purple-950 shadow-xs ring-1 ring-[#77248c]'
+                                    : 'bg-gray-50/80 border-gray-200 text-gray-700 hover:bg-gray-100/80 hover:border-gray-300'
+                                }`}
+                              >
+                                <input
+                                  type="radio"
+                                  name="clientReferralType"
+                                  value="Private Client"
+                                  checked={newClientReferralType === 'Private Client'}
+                                  onChange={() => {
+                                    setNewClientReferralType('Private Client');
+                                    setNewClientGovernmentProgram('');
+                                  }}
+                                  className="mt-0.5 text-[#77248c] focus:ring-[#77248c] cursor-pointer"
+                                />
+                                <div className="space-y-0.5">
+                                  <div className="font-bold text-xs flex items-center gap-1.5 text-gray-900">
+                                    <i className="fa-solid fa-user-shield text-[#77248c]"></i>
+                                    <span>Private Client</span>
+                                  </div>
+                                  <p className="text-[11px] text-gray-500 leading-normal">
+                                    Direct private-pay, family-funded, or long-term care insurance (LTCI).
+                                  </p>
+                                </div>
+                              </label>
+
+                              {/* Option 2: Government Client */}
+                              <label
+                                onClick={() => setNewClientReferralType('Government Client')}
+                                className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                                  newClientReferralType === 'Government Client'
+                                    ? 'bg-purple-50/70 border-[#77248c] text-purple-950 shadow-xs ring-1 ring-[#77248c]'
+                                    : 'bg-gray-50/80 border-gray-200 text-gray-700 hover:bg-gray-100/80 hover:border-gray-300'
+                                }`}
+                              >
+                                <input
+                                  type="radio"
+                                  name="clientReferralType"
+                                  value="Government Client"
+                                  checked={newClientReferralType === 'Government Client'}
+                                  onChange={() => setNewClientReferralType('Government Client')}
+                                  className="mt-0.5 text-[#77248c] focus:ring-[#77248c] cursor-pointer"
+                                />
+                                <div className="space-y-0.5">
+                                  <div className="font-bold text-xs flex items-center gap-1.5 text-gray-900">
+                                    <i className="fa-solid fa-building-columns text-[#77248c]"></i>
+                                    <span>Government Client</span>
+                                  </div>
+                                  <p className="text-[11px] text-gray-500 leading-normal">
+                                    State or government agency sponsored care program.
+                                  </p>
+                                </div>
+                              </label>
+                            </div>
+
+                            {/* Conditional Sponsoring Agency selection (only visible when Government Client is selected) */}
+                            {newClientReferralType === 'Government Client' && (
+                              <div className="mt-4 pt-4 border-t border-purple-100 bg-purple-50/50 rounded-xl p-4 space-y-3 animate-fade-up">
+                                <div className="flex items-center justify-between">
+                                  <label className="font-bold text-[#77248c] uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                                    <i className="fa-solid fa-sitemap"></i> Sponsoring Government Program / Agency <span className="text-red-500">*</span>
+                                  </label>
+                                  <span className="text-[10px] bg-purple-100 text-[#77248c] font-bold px-2 py-0.5 rounded-full">Select One</span>
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                                  {[
+                                    {
+                                      id: 'DDS',
+                                      name: 'DDS',
+                                      desc: 'Dept. of Developmental Services',
+                                      icon: 'fa-hands-holding-child'
+                                    },
+                                    {
+                                      id: 'ABI/MPF',
+                                      name: 'ABI/MPF',
+                                      desc: 'Acquired Brain Injury / Moving Forward Plan',
+                                      icon: 'fa-brain'
+                                    },
+                                    {
+                                      id: 'MassAbility',
+                                      name: 'MassAbility',
+                                      desc: 'Vocational Rehab & Community Living',
+                                      icon: 'fa-universal-access'
+                                    },
+                                  ].map((prog) => {
+                                    const isSelected = newClientGovernmentProgram === prog.id;
+                                    return (
+                                      <label
+                                        key={prog.id}
+                                        onClick={() => setNewClientGovernmentProgram(prog.id as any)}
+                                        className={`flex items-start gap-2.5 p-3 rounded-xl border-2 cursor-pointer transition-all ${
+                                          isSelected
+                                            ? 'bg-[#77248c] text-white border-[#77248c] shadow-xs'
+                                            : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-purple-200'
+                                        }`}
+                                      >
+                                        <input
+                                          type="radio"
+                                          name="governmentProgram"
+                                          value={prog.id}
+                                          checked={isSelected}
+                                          onChange={() => setNewClientGovernmentProgram(prog.id as any)}
+                                          className={`mt-0.5 ${isSelected ? 'text-white' : 'text-[#77248c]'} focus:ring-[#77248c] cursor-pointer`}
+                                        />
+                                        <div className="space-y-0.5 flex-1">
+                                          <div className="font-extrabold text-xs flex items-center gap-1.5">
+                                            <i className={`fa-solid ${prog.icon} ${isSelected ? 'text-white' : 'text-[#77248c]'}`}></i>
+                                            <span>{prog.name}</span>
+                                          </div>
+                                          <p className={`text-[10px] leading-tight ${isSelected ? 'text-purple-100' : 'text-gray-500'}`}>
+                                            {prog.desc}
+                                          </p>
+                                        </div>
+                                      </label>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Section H: Secondary Emergency Contact (Optional) */}
                           <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-4 shadow-xs">
                             <h4 className="font-bold text-sm text-[#77248c] flex items-center gap-2 border-b border-gray-100 pb-2">
                               <i className="fa-solid fa-address-book text-[#77248c]"></i> Secondary Emergency Contact (Optional)
@@ -9578,12 +9839,16 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
                               <th className="pb-3 px-2">Address</th>
                               <th className="pb-3 px-2">First-Time Password</th>
                               <th className="pb-3 px-2">Care Tier</th>
+                              <th className="pb-3 px-2">Referral Type</th>
                               <th className="pb-3 px-2">Billing Rate</th>
                               <th className="pb-3 px-2 text-right">Actions</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-50">
                             {clients.map((cl: any) => {
+                              const meta = (() => {
+                                try { return cl.profileMetadata ? (typeof cl.profileMetadata === 'string' ? JSON.parse(cl.profileMetadata) : cl.profileMetadata) : {}; } catch { return {}; }
+                              })();
                               const linkedFamilyUser = cl.familyMembers?.[0]?.user || cl.linkedUser || null;
                               const initialPass = getInitialPassword(linkedFamilyUser || cl);
                               const isPassVisible = Boolean(visiblePasswords[cl.id]);
@@ -9644,9 +9909,38 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
                                     )}
                                   </td>
                                   <td className="py-3.5 px-2 font-semibold text-purple-700">{cl.careTier || 'Standard'}</td>
+                                  <td className="py-3.5 px-2">
+                                    {meta.referralType ? (
+                                      <div className="flex flex-col gap-0.5 items-start">
+                                        <span className={`inline-flex items-center gap-1 font-bold text-[10px] px-2.5 py-0.5 rounded-full ${
+                                          meta.referralType === 'Government Client'
+                                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                            : 'bg-purple-50 text-purple-700 border border-purple-200'
+                                        }`}>
+                                          <i className={`fa-solid ${meta.referralType === 'Government Client' ? 'fa-building-columns' : 'fa-user-shield'} text-[9px]`}></i>
+                                          {meta.referralType}
+                                        </span>
+                                        {meta.referralType === 'Government Client' && meta.governmentProgram && (
+                                          <span className="text-[10px] font-extrabold text-emerald-800 bg-emerald-100/60 px-2 py-0.5 rounded-md border border-emerald-200/60">
+                                            Agency: {meta.governmentProgram}
+                                          </span>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      <span className="text-gray-400 italic text-[11px]">—</span>
+                                    )}
+                                  </td>
                                   <td className="py-3.5 px-2 font-semibold text-emerald-600">${cl.billingRatePerHour ? cl.billingRatePerHour.toFixed(2) : '45.00'}/hr</td>
                                   <td className="py-3.5 px-2 text-right">
                                     <div className="flex items-center justify-end gap-2">
+                                      <button
+                                        type="button"
+                                        onClick={() => handleOpenClientProfileEditor(cl)}
+                                        className="px-3 py-1.5 bg-purple-50 hover:bg-purple-100 text-[#77248c] border border-purple-200 font-bold text-xs rounded-xl shadow-2xs hover:shadow-xs transition-all flex items-center gap-1 cursor-pointer active:scale-95"
+                                        title="View & Edit Client Info & Profile"
+                                      >
+                                        <i className="fa-solid fa-pen-to-square text-[#77248c] text-xs"></i> Edit Profile
+                                      </button>
                                       <button
                                         onClick={() => {
                                           if (!linkedFamilyUser) {
@@ -11679,6 +11973,15 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
                     {viewingBillingRecord.client.email && <div><span className="text-gray-400">Email:</span> <span className="text-gray-700">{viewingBillingRecord.client.email}</span></div>}
                     <div><span className="text-gray-400">Address:</span> <span className="text-gray-700">{viewingBillingRecord.client.address}</span></div>
                     <div><span className="text-gray-400">Client Since:</span> <span className="text-gray-700">{formatDate(viewingBillingRecord.client.clientSince)}</span></div>
+                    {viewingBillingRecord.client.referralType && (
+                      <div>
+                        <span className="text-gray-400">Referral Type:</span>{' '}
+                        <span className="font-semibold text-gray-800">
+                          {viewingBillingRecord.client.referralType}
+                          {viewingBillingRecord.client.governmentProgram ? ` (${viewingBillingRecord.client.governmentProgram})` : ''}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="bg-teal-50 rounded-xl p-4 grid grid-cols-2 gap-3">

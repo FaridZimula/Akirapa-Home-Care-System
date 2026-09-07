@@ -78,6 +78,10 @@ export async function POST(request: Request) {
       emergency2Phone,
       emergency2Relationship,
 
+      // Client Referral Type & Government Sponsoring Agency
+      referralType,
+      governmentProgram,
+
       // Section 1: Demographics & Emergency Logistics
       preferredPronouns,
       preferredLanguage,
@@ -193,6 +197,8 @@ export async function POST(request: Request) {
         billingRatePerHour: parsedBillingRate,
         profileMetadata: JSON.stringify({
           careTier: careTier || 'Standard',
+          referralType: referralType || null,
+          governmentProgram: referralType === 'Government Client' ? (governmentProgram || null) : null,
           familySponsor: {
             name: familyMemberName ? familyMemberName.trim() : (emergencyContactName || 'Family Representative'),
             relationship: familyMemberRelationship || emergencyContactRelationship || 'Family Member',

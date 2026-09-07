@@ -75,6 +75,8 @@ export async function GET(
         phone: meta.phone || null,
         email: meta.email || null,
         clientSince: client.createdAt,
+        referralType: meta.referralType || null,
+        governmentProgram: meta.governmentProgram || null,
       },
       accountNumber: `HCA-AC-${client.id.slice(0, 8).toUpperCase()}`,
       totalCharges,
