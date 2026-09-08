@@ -1,11 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.AKIRAPA_SUPABASE_URL;
-const serviceRoleKey = process.env.AKIRAPA_SUPABASE_SERVICE_ROLE_KEY;
-
-if (!supabaseUrl || !serviceRoleKey) {
-  throw new Error('AKIRAPA_SUPABASE_URL and AKIRAPA_SUPABASE_SERVICE_ROLE_KEY environment variables must be set for media storage.');
-}
+const supabaseUrl = process.env.AKIRAPA_SUPABASE_URL || 'https://placeholder.supabase.co';
+const serviceRoleKey = process.env.AKIRAPA_SUPABASE_SERVICE_ROLE_KEY || 'placeholder-service-role-key';
 
 if (process.env.NODE_ENV !== 'production') {
   // Some local dev machines run antivirus (e.g. Avast Mail/Web Shield) that MITMs

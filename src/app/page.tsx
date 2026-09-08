@@ -7,6 +7,7 @@ import { isCaregiverProvisioningAuthorized, isBusinessHubAuthorized } from '@/li
 import { cleanUSPhoneDigits, formatUSPhoneWithCountryCode, formatUSPhoneDisplay } from '@/lib/phone';
 import PhoneInput from '@/components/PhoneInput';
 import { LocationAutocompleteInput } from '@/components/LocationAutocompleteInput';
+import AdminDirectoryAndAudits from '@/components/AdminDirectoryAndAudits';
 
 // Structured client welfare check, asked every shift. Polarity is explicit per
 // question (some are "good = YES", others "bad = YES") so the computed
@@ -62,7 +63,7 @@ export default function Home() {
   const { user, loading: authLoading, login, logout } = useAuth();
   
   // Navigation state
-  const [currentView, setCurrentView] = useState<'dashboard' | 'profile' | 'listings' | 'create' | 'add_caregiver' | 'add_client' | 'purchases' | 'business' | 'interested' | 'settings' | 'audit' | 'financials' | 'billing' | 'messages' | 'caregiverReviews' | 'messageOversight' | 'care_updates'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'profile' | 'listings' | 'create' | 'add_caregiver' | 'add_client' | 'purchases' | 'business' | 'interested' | 'settings' | 'audit' | 'financials' | 'billing' | 'messages' | 'caregiverReviews' | 'messageOversight' | 'care_updates' | 'directory_audits'>('dashboard');
   
   // Auth flow states
   const [viewState, setViewState] = useState<'splash' | 'login' | 'signup' | 'forgot_password' | 'dashboard'>('login');
@@ -6034,6 +6035,9 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
               <button onClick={() => { setCurrentView('audit'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${currentView === 'audit' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
                 <i className="fa-solid fa-shield-halved w-4 text-center"></i> Audit Logs
               </button>
+              <button onClick={() => { setCurrentView('directory_audits'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${currentView === 'directory_audits' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
+                <i className="fa-solid fa-shoe-prints w-4 text-center"></i> Activity & Footprint Audits
+              </button>
             </>
           )}
 
@@ -6153,6 +6157,7 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
               {currentView === 'messages' && 'Messages'}
               {currentView === 'care_updates' && 'Care Updates'}
               {currentView === 'messageOversight' && 'Message Oversight'}
+              {currentView === 'directory_audits' && 'Client & Caregiver Activity & Footprint Audits'}
             </h2>
             <div className="relative flex-1 max-w-md ml-2 md:ml-4 hidden sm:block">
               <i className="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
@@ -11486,8 +11491,19 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
               {currentView === 'audit' && user.role === 'ADMIN' && (
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                   <div className="flex justify-between items-center border-b border-gray-100 pb-4 mb-4">
-                    <h3 className="font-semibold text-gray-800">Audit Logs</h3>
-                    <span className="text-xs font-bold text-white bg-[#77248c] px-3.5 py-1 rounded-full shadow-xs">HIPAA Compliant</span>
+                    <div>
+                      <h3 className="font-semibold text-gray-800">Audit Logs</h3>
+                      <p className="text-xs text-gray-400 mt-0.5">Quick view of recent system actions.</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setCurrentView('directory_audits')}
+                        className="text-xs font-bold text-[#77248c] bg-purple-50 hover:bg-purple-100 px-3 py-1.5 rounded-xl border border-purple-200 transition-colors flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <i className="fa-solid fa-address-book"></i> Full Directory & Audits
+                      </button>
+                      <span className="text-xs font-bold text-white bg-[#77248c] px-3.5 py-1 rounded-full shadow-xs">HIPAA Compliant</span>
+                    </div>
                   </div>
                   {auditLogs.length === 0 ? (
                     <p className="text-gray-400 text-sm text-center py-8">No logs recorded</p>
@@ -11510,6 +11526,11 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
                     </div>
                   )}
                 </div>
+              )}
+
+              {/* ===== DIRECTORY & AUDITS VIEW ===== */}
+              {currentView === 'directory_audits' && user.role === 'ADMIN' && (
+                <AdminDirectoryAndAudits adminEmail={user?.email} />
               )}
 
               {/* ===== PURCHASES / DOCUMENTS VIEW ===== */}
