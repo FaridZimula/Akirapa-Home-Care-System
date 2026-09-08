@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { logAudit } from '@/lib/audit';
 import { hashPassword } from '@/lib/password';
-import { isCompanyDomainEmail, isCaregiverProvisioningAuthorized, OFFICIAL_DOMAIN } from '@/lib/adminAllowlist';
+import { isCompanyDomainEmail, isAdminEmailAllowed, emailDomain, OFFICIAL_DOMAIN } from '@/lib/adminAllowlist';
 import { getSessionUser } from '@/lib/session';
 import { UserRole } from '@prisma/client';
 import { formatUSPhoneWithCountryCode } from '@/lib/phone';
@@ -25,16 +25,33 @@ export async function POST(request: Request) {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    if (!isCompanyDomainEmail(normalizedEmail)) {
+    if (!Object.values(UserRole).includes(role)) {
+      return NextResponse.json({ error: 'Invalid user role' }, { status: 400 });
+    }
+
+    if (!emailDomain(normalizedEmail)) {
+      return NextResponse.json({ error: 'Please enter a valid email address.' }, { status: 400 });
+    }
+
+    // Staff accounts stay pinned to the official domain even when an admin is the
+    // one creating them; admin accounts must additionally be on the code-held
+    // allowlist, otherwise the account would be created and then refused at login.
+    if (role === UserRole.ADMIN && !isAdminEmailAllowed(normalizedEmail)) {
+      return NextResponse.json(
+        { error: `Admin accounts must use an allowlisted @${OFFICIAL_DOMAIN} address. Add the address to DEFAULT_ALLOWED_ADMINS and redeploy first.` },
+        { status: 403 }
+      );
+    }
+
+    if (role === UserRole.CAREGIVER && !isCompanyDomainEmail(normalizedEmail)) {
       return NextResponse.json(
         { error: `All staff and caregiver accounts must use an official @${OFFICIAL_DOMAIN} email address.` },
         { status: 403 }
       );
     }
-
-    if (!Object.values(UserRole).includes(role)) {
-      return NextResponse.json({ error: 'Invalid user role' }, { status: 400 });
-    }
+    // FAMILY_MEMBER accounts are the deliberate exception: a super admin may issue
+    // one on any domain, which is how corporate client contacts get portal access
+    // without opening self-registration to every email address.
 
     const existingUser = await prisma.user.findUnique({
       where: { email: normalizedEmail },
@@ -68,13 +85,15 @@ export async function POST(request: Request) {
         // Opt-in per account: when set, login diverts to a set-your-own-password
         // step so the admin-issued temporary password stops working immediately.
         mustChangePassword: mustChangePassword === true,
+        // Exempts the account from the self-signup email-domain policy.
+        isAdminProvisioned: true,
       },
     });
 
     await logAudit({
       userId: sessionUser.id,
       action: 'ADMIN_CREATE_USER',
-      details: `Admin ${sessionUser.email} created user account for ${user.email} with role ${user.role}`,
+      details: `Admin ${sessionUser.email} created user account for ${user.email} with role ${user.role}${isCompanyDomainEmail(user.email) ? '' : ' (off-domain address, admin-provisioned exemption)'}`,
       outcome: 'SUCCESS',
     });
 

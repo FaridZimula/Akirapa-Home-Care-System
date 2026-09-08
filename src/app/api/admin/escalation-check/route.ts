@@ -1,10 +1,16 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { logAudit } from '@/lib/audit';
-import { createNotification } from '@/lib/notifications';
+import { createNotification, notifyAdmins, notifyClientFamily } from '@/lib/notifications';
 import { getSessionUser } from '@/lib/session';
 import { ShiftStatus, PodRole } from '@prisma/client';
 import { formatDate, formatTime, formatDateTime } from '@/lib/dateFormat';
+import { encrypt } from '@/lib/crypto';
+import {
+  MISSED_CLOCK_IN_ALERT_MINUTES,
+  NO_SHOW_MINUTES,
+  minutesLateFrom,
+} from '@/lib/attendance';
 
 export async function POST(request: Request) {
   try {
@@ -171,14 +177,153 @@ export async function POST(request: Request) {
       }
     }
 
+    // ── 2. Missed clock-ins ──────────────────────────────────────────────────
+    // A shift that was confirmed but never clocked into is an attendance failure
+    // in its own right. It is recorded against the client's assessment with the
+    // scheduled time and how long the caregiver has been unaccounted for, so a
+    // no-show leaves the same paper trail a late arrival does.
+    const alertCutoff = new Date(now.getTime() - MISSED_CLOCK_IN_ALERT_MINUTES * 60 * 1000);
+
+    const unclockedShifts = await prisma.shift.findMany({
+      where: {
+        status: { in: [ShiftStatus.CONFIRMED, ShiftStatus.CAREGIVER_CONFIRMED] },
+        actualStart: null,
+        scheduledStart: { lte: alertCutoff },
+      },
+      include: { client: true, caregiver: true },
+    });
+
+    const missedClockIns: {
+      shiftId: string;
+      clientName: string;
+      caregiverName: string;
+      scheduledStart: string;
+      minutesOverdue: number;
+      outcome: 'NO_SHOW' | 'ALERTED';
+    }[] = [];
+
+    for (const shift of unclockedShifts) {
+      const minutesOverdue = minutesLateFrom(shift.scheduledStart, now);
+      const isNoShow = minutesOverdue >= NO_SHOW_MINUTES;
+
+      // Below the no-show line, alert once and leave the shift open so the
+      // caregiver can still turn up and clock in late with a reason.
+      if (!isNoShow && shift.missedClockInAlertAt) continue;
+
+      if (isNoShow) {
+        await prisma.shift.update({
+          where: { id: shift.id },
+          data: {
+            status: ShiftStatus.NO_SHOW,
+            minutesLate: minutesOverdue,
+            missedClockInAlertAt: shift.missedClockInAlertAt ?? now,
+          },
+        });
+
+        // Auto-record the failure on the client's assessment, same as a clock-in.
+        await prisma.activityLog.create({
+          data: {
+            clientId: shift.clientId,
+            shiftId: shift.id,
+            encryptedLog: encrypt(JSON.stringify({
+              type: 'MISSED_CLOCK_IN',
+              caregiverName: shift.caregiver.name,
+              clientName: shift.client.name,
+              siteAddress: shift.client.address,
+              scheduledStart: shift.scheduledStart.toISOString(),
+              scheduledEnd: shift.scheduledEnd.toISOString(),
+              detectedAt: now.toISOString(),
+              minutesOverdue,
+              clockInTime: null,
+              lateReason: null,
+              outcome: 'NO_SHOW',
+              notes: `Caregiver ${shift.caregiver.name} did not clock in for ${shift.client.name}'s visit scheduled at ${formatTime(shift.scheduledStart)} on ${formatDate(shift.scheduledStart)}. Marked as a no-show after ${minutesOverdue} minutes with no arrival and no reason given.`,
+            })),
+            mediaUrls: JSON.stringify([]),
+          },
+        });
+
+        await logAudit({
+          userId: 'SYSTEM',
+          action: 'SHIFT_NO_SHOW',
+          details: `Caregiver ${shift.caregiver.name} never clocked in for client ${shift.client.name} (scheduled ${shift.scheduledStart.toISOString()}). Auto-marked NO_SHOW after ${minutesOverdue} minutes.`,
+          outcome: 'FAILURE',
+        });
+
+        await notifyAdmins({
+          title: `🚨 No-Show — ${shift.client.name}`,
+          message: `${shift.caregiver.name} never clocked in for ${shift.client.name}'s ${formatTime(shift.scheduledStart)} visit and is now ${minutesOverdue} minutes overdue. The shift has been marked NO_SHOW and needs cover.`,
+          type: 'SYSTEM_ALERT',
+        });
+
+        await createNotification({
+          userId: shift.caregiverId,
+          title: '🚨 Shift Marked No-Show',
+          message: `You did not clock in for ${shift.client.name}'s visit scheduled at ${formatTime(shift.scheduledStart)} on ${formatDate(shift.scheduledStart)}. It has been recorded as a no-show after ${minutesOverdue} minutes. Contact your coordinator immediately.`,
+          type: 'SYSTEM_ALERT',
+        });
+
+        await notifyClientFamily({
+          clientId: shift.clientId,
+          title: 'Visit Not Started',
+          message: `The caregiver scheduled for ${shift.client.name} at ${formatTime(shift.scheduledStart)} has not arrived. Our coordinators have been alerted and are arranging cover.`,
+          type: 'SYSTEM_ALERT',
+        });
+      } else {
+        await prisma.shift.update({
+          where: { id: shift.id },
+          data: { minutesLate: minutesOverdue, missedClockInAlertAt: now },
+        });
+
+        await logAudit({
+          userId: 'SYSTEM',
+          action: 'CLOCK_IN_MISSED',
+          details: `Caregiver ${shift.caregiver.name} has not clocked in for client ${shift.client.name} (scheduled ${shift.scheduledStart.toISOString()}); ${minutesOverdue} minutes overdue.`,
+          outcome: 'FAILURE',
+        });
+
+        await notifyAdmins({
+          title: `⚠️ Missed Clock-In — ${shift.client.name}`,
+          message: `${shift.caregiver.name} has not clocked in for ${shift.client.name}'s ${formatTime(shift.scheduledStart)} visit and is ${minutesOverdue} minutes overdue. It will be marked a no-show at ${NO_SHOW_MINUTES} minutes.`,
+          type: 'LATE_ARRIVAL',
+        });
+
+        await createNotification({
+          userId: shift.caregiverId,
+          title: '⚠️ You Have Not Clocked In',
+          message: `Your visit for ${shift.client.name} was scheduled to start at ${formatTime(shift.scheduledStart)} and you are ${minutesOverdue} minutes overdue. Clock in on site as soon as you arrive — you will be asked for the reason for the delay.`,
+          type: 'LATE_ARRIVAL',
+        });
+      }
+
+      missedClockIns.push({
+        shiftId: shift.id,
+        clientName: shift.client.name,
+        caregiverName: shift.caregiver.name,
+        scheduledStart: shift.scheduledStart.toISOString(),
+        minutesOverdue,
+        outcome: isNoShow ? 'NO_SHOW' : 'ALERTED',
+      });
+    }
+
     return NextResponse.json({
       processedCount: missedShifts.length,
       escalatedCount: escalations.filter(e => !e.error).length,
       failedCount: escalations.filter(e => e.error).length,
       escalations,
+      missedClockInCount: missedClockIns.length,
+      noShowCount: missedClockIns.filter(m => m.outcome === 'NO_SHOW').length,
+      missedClockIns,
     });
   } catch (error) {
     console.error('Failed running auto-escalation check:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
+}
+
+// Vercel Cron invokes scheduled paths with GET, so the sweep is exposed under
+// both verbs: GET for the scheduler (Bearer CRON_SECRET), POST for the
+// "Run Escalation Check" button in the Business Hub.
+export async function GET(request: Request) {
+  return POST(request);
 }

@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { logAudit } from '@/lib/audit';
 import { hashPassword } from '@/lib/password';
 import { createSessionCookie, sessionCookieOptions } from '@/lib/session';
-import { isAdminEmailAllowed, isCompanyDomainEmail } from '@/lib/adminAllowlist';
+import { isAdminEmailAllowed, isEmailAllowedForRole } from '@/lib/adminAllowlist';
 import crypto from 'crypto';
 
 export async function GET(request: Request) {
@@ -91,8 +91,8 @@ export async function GET(request: Request) {
     let user = await prisma.user.findUnique({ where: { email } });
 
     if (!user) {
-      // Auto-create admin accounts for known company emails
-      if (isCompanyDomainEmail(email) && isAdminEmailAllowed(email)) {
+      // Auto-create admin accounts for allowlisted company emails only
+      if (isAdminEmailAllowed(email)) {
         user = await prisma.user.create({
           data: {
             email,
@@ -112,10 +112,18 @@ export async function GET(request: Request) {
       }
     }
 
-    // Block unauthorized admin logins via Google
-    if (user.role === 'ADMIN' && !isAdminEmailAllowed(email)) {
-      logAudit({ userId: user.id, action: 'ADMIN_LOGIN_DENIED', details: `Blocked Google OAuth: ${email}`, outcome: 'FAILURE' }).catch(() => {});
-      return NextResponse.redirect(new URL('/?error=admin_not_authorized', requestUrl.origin));
+    // Apply the same email-domain policy as password login
+    const policy = isEmailAllowedForRole(user.role, email, user.isAdminProvisioned);
+    if (!policy.ok) {
+      logAudit({
+        userId: user.id,
+        action: user.role === 'ADMIN' ? 'ADMIN_LOGIN_DENIED' : 'LOGIN_DENIED_EMAIL_POLICY',
+        details: `Blocked Google OAuth for ${email} (role ${user.role}): email not permitted by domain policy.`,
+        outcome: 'FAILURE',
+      }).catch(() => {});
+      return NextResponse.redirect(
+        new URL(`/?error=${encodeURIComponent(policy.error || 'not_authorized')}`, requestUrl.origin)
+      );
     }
 
     // Log success (non-blocking)

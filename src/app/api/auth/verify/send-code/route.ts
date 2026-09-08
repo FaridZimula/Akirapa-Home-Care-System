@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { sendEmail } from '@/lib/email';
-import { isCompanyDomainEmail, OFFICIAL_DOMAIN } from '@/lib/adminAllowlist';
+import { isSelfSignupAllowed, PolicyRole } from '@/lib/adminAllowlist';
 
 export async function POST(request: Request) {
   try {
-    const { email, purpose } = await request.json();
+    const { email, purpose, role } = await request.json();
 
     if (!email || !purpose) {
       return NextResponse.json({ error: 'Email and purpose are required' }, { status: 400 });
@@ -19,8 +19,12 @@ export async function POST(request: Request) {
     });
 
     if (purpose === 'SIGNUP') {
-      if (!isCompanyDomainEmail(normalizedEmail)) {
-        return NextResponse.json({ error: `Verification codes can only be sent to official @${OFFICIAL_DOMAIN} email addresses.` }, { status: 403 });
+      // Enforce the email-domain policy before spending an email send, so an
+      // ineligible address is told why up front rather than at the final step.
+      const requestedRole: PolicyRole = role === 'CAREGIVER' ? 'CAREGIVER' : 'FAMILY_MEMBER';
+      const policy = isSelfSignupAllowed(requestedRole, normalizedEmail);
+      if (!policy.ok) {
+        return NextResponse.json({ error: policy.error }, { status: 403 });
       }
       if (user) {
         return NextResponse.json({ error: 'An account with this email already exists' }, { status: 400 });

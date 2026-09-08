@@ -102,12 +102,13 @@ export default function Home() {
   const [selectedPodCaregiver, setSelectedPodCaregiver] = useState('');
 
   // Caregiver Shift Execution
-  const [distanceOffset, setDistanceOffset] = useState<number>(0);
-  const [useRealGPS, setUseRealGPS] = useState<boolean>(false);
   const [overrideReason, setOverrideReason] = useState('');
   const [showOverrideInput, setShowOverrideInput] = useState(false);
   const [clockInError, setClockInError] = useState<string | null>(null);
   const [clockInTargetShiftId, setClockInTargetShiftId] = useState<string | null>(null);
+  // Set when the server refuses a late clock-in until a reason is supplied.
+  const [lateClockInPrompt, setLateClockInPrompt] = useState<{ shiftId: string; minutesLate: number } | null>(null);
+  const [lateClockInReason, setLateClockInReason] = useState('');
   const [clockOutError, setClockOutError] = useState<string | null>(null);
   const [showClockOutOverrideInput, setShowClockOutOverrideInput] = useState(false);
   const [clockOutOverrideReason, setClockOutOverrideReason] = useState('');
@@ -1873,27 +1874,18 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
       }
     };
 
-    const interval = setInterval(async () => {
-      const clientLat = activeShift.client.latitude;
-      const clientLng = activeShift.client.longitude;
-
-      if (useRealGPS) {
-        navigator.geolocation.getCurrentPosition(
-          async (position) => {
-            await sendLocationUpdate(activeShift.id, position.coords.latitude, position.coords.longitude);
-          },
-          (err) => console.warn('[GPS TICK ERROR]', err),
-          { enableHighAccuracy: true }
-        );
-      } else {
-        const mockLat = clientLat + (distanceOffset / 111111);
-        const mockLng = clientLng + (distanceOffset / (111111 * Math.cos(clientLat * Math.PI / 180)));
-        await sendLocationUpdate(activeShift.id, mockLat, mockLng);
-      }
+    const interval = setInterval(() => {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          await sendLocationUpdate(activeShift.id, position.coords.latitude, position.coords.longitude);
+        },
+        (err) => console.warn('[GPS TICK ERROR]', err),
+        { enableHighAccuracy: true }
+      );
     }, 10000);
 
     return () => clearInterval(interval);
-  }, [shifts, distanceOffset, user, useRealGPS]);
+  }, [shifts, user]);
 
   // ============================================================
   // AUTO SIGN-OUT AT SHIFT END
@@ -1952,7 +1944,13 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
       const res = await fetch('/api/auth/verify/send-code', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: signupEmail, purpose: 'SIGNUP' }),
+        body: JSON.stringify({
+          email: signupEmail,
+          purpose: 'SIGNUP',
+          // The email-domain policy differs per portal, so the server needs to know
+          // which one is being applied for before it issues a code.
+          role: signupRole === 'CAREGIVER' ? 'CAREGIVER' : 'FAMILY_MEMBER',
+        }),
       });
       const data = await res.json();
       if (res.ok && data.success) {
@@ -2399,31 +2397,51 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
   // CAREGIVER HANDLERS - Clock In/Out, Drop Shift
   // ============================================================
 
-  const handleClockIn = async (shiftId: string, isOverride = false) => {
+  // Reads the device's real position. There is no simulated fallback: a clock-in
+  // that cannot prove where the caregiver is has no business being accepted.
+  const readDevicePosition = async (): Promise<GeolocationPosition> => {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      throw new Error('This device or browser cannot report your location.');
+    }
+    return new Promise<GeolocationPosition>((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, reject, {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0,
+      });
+    });
+  };
+
+  const geolocationErrorMessage = (err: any): string => {
+    if (err && typeof err.code === 'number') {
+      if (err.code === 1) return 'Location permission is blocked. Allow location access for this site in your browser settings, then try again.';
+      if (err.code === 2) return 'Your device could not get a location fix. Move outdoors or nearer a window and try again.';
+      if (err.code === 3) return 'Getting your location timed out. Check that GPS is on, then try again.';
+    }
+    return err?.message || 'Could not retrieve your device location.';
+  };
+
+  const handleClockIn = async (shiftId: string, isOverride = false, lateReason?: string) => {
     setClockInTargetShiftId(shiftId);
     setClockInError(null);
     const activeShift = shifts.find(s => s.id === shiftId);
     if (!activeShift) return;
 
-    let lat = activeShift.client.latitude;
-    let lng = activeShift.client.longitude;
+    let lat: number | undefined;
+    let lng: number | undefined;
+    let accuracy: number | undefined;
 
-    if (!isOverride) {
-      if (useRealGPS) {
-        try {
-          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10000 });
-          });
-          lat = position.coords.latitude;
-          lng = position.coords.longitude;
-        } catch (err: any) {
-          setClockInError(`GPS Error: ${err.message || 'Could not retrieve device location.'}`);
-          setShowOverrideInput(true);
-          return;
-        }
-      } else {
-        lat = lat + (distanceOffset / 111111);
-        lng = lng + (distanceOffset / (111111 * Math.cos(lat * Math.PI / 180)));
+    try {
+      const position = await readDevicePosition();
+      lat = position.coords.latitude;
+      lng = position.coords.longitude;
+      accuracy = position.coords.accuracy;
+    } catch (err: any) {
+      // An admin can still push the clock-in through without a fix; a caregiver
+      // cannot, so they are told to fix the permission or call their coordinator.
+      if (!isOverride) {
+        setClockInError(geolocationErrorMessage(err));
+        return;
       }
     }
 
@@ -2435,17 +2453,26 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
           shiftId,
           latitude: lat,
           longitude: lng,
+          accuracy,
           isOverride,
           overrideReason: isOverride ? overrideReason : undefined,
+          lateReason: lateReason || undefined,
         }),
       });
       const data = await res.json();
       if (res.ok) {
-        showNotification(isOverride ? 'Manual Override Submitted' : 'Clock-In Validated!');
+        showNotification(data.message || (isOverride ? 'Manual override recorded' : 'Clock-in validated'));
         setShowOverrideInput(false);
         setOverrideReason('');
         setClockInTargetShiftId(null);
+        setLateClockInPrompt(null);
+        setLateClockInReason('');
         loadData();
+      } else if (data.requiresLateReason) {
+        // On site but late: collect the reason, then resubmit.
+        setLateClockInPrompt({ shiftId, minutesLate: data.minutesLate });
+        setLateClockInReason('');
+        setClockInError(data.error);
       } else {
         setClockInError(data.error);
         if (data.allowOverride) setShowOverrideInput(true);
@@ -2524,24 +2551,19 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
       return;
     }
 
-    let lat = activeShift.client.latitude;
-    let lng = activeShift.client.longitude;
+    let lat: number | undefined;
+    let lng: number | undefined;
+    let accuracy: number | undefined;
 
-    if (!isOverride) {
-      if (useRealGPS) {
-        try {
-          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10000 });
-          });
-          lat = position.coords.latitude;
-          lng = position.coords.longitude;
-        } catch (err: any) {
-          setClockOutError(`GPS Error: ${err.message || 'Could not retrieve device location.'}`);
-          return;
-        }
-      } else {
-        lat = lat + (distanceOffset / 111111);
-        lng = lng + (distanceOffset / (111111 * Math.cos(lat * Math.PI / 180)));
+    try {
+      const position = await readDevicePosition();
+      lat = position.coords.latitude;
+      lng = position.coords.longitude;
+      accuracy = position.coords.accuracy;
+    } catch (err: any) {
+      if (!isOverride) {
+        setClockOutError(geolocationErrorMessage(err));
+        return;
       }
     }
 
@@ -2559,6 +2581,7 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
           notes: shiftNotes,
           latitude: lat,
           longitude: lng,
+          accuracy,
           isOverride,
           overrideReason: isOverride ? clockOutOverrideReason : undefined,
           mediaFiles: selectedMediaFiles.map(f => ({ name: f.name, type: f.type })),
@@ -2588,7 +2611,8 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
         }
       } else {
         setClockOutError(data.error);
-        if (data.allowOverride) setShowClockOutOverrideInput(true);
+        // The geofence is not self-serviceable: only an admin gets the override panel.
+        if (user?.role === 'ADMIN' && typeof data.distance === 'number') setShowClockOutOverrideInput(true);
       }
     } catch (err) {
       console.error(err);
@@ -3459,7 +3483,15 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
           <div>
             <label className="text-xs font-semibold text-gray-500 uppercase">Email <span className="text-red-500 ml-0.5">*</span></label>
             <div className="flex gap-2">
-              <input type="email" required disabled={isSignupCodeSent} placeholder="email@akirapahomecareus.com" value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} className="flex-1 min-w-0 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50" />
+              <input
+                type="email"
+                required
+                disabled={isSignupCodeSent}
+                placeholder={signupRole === 'CAREGIVER' ? 'firstname@akirapahomecareus.com' : 'yourname@gmail.com'}
+                value={signupEmail}
+                onChange={(e) => setSignupEmail(e.target.value)}
+                className="flex-1 min-w-0 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50"
+              />
               <button
                 type="button"
                 onClick={handleSendSignupCode}
@@ -3473,6 +3505,14 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
                 {isSignupCodeSent ? <><i className="fa-solid fa-check text-white"></i> Sent</> : (isSendingSignupCode ? 'Sending...' : 'Send Code')}
               </button>
             </div>
+            {/* States the domain rule up front rather than letting the server reject them at the last step. */}
+            <p className="mt-1.5 text-[11px] text-gray-500 leading-relaxed">
+              {signupRole === 'CAREGIVER' ? (
+                <>Caregiver accounts require your official <span className="font-semibold text-gray-700">@akirapahomecareus.com</span> work email. If you do not have one yet, your coordinator will issue it.</>
+              ) : (
+                <>The client portal accepts personal <span className="font-semibold text-gray-700">@gmail.com</span> addresses. Using a work or company address? Ask your Akirapa administrator to set the account up for you.</>
+              )}
+            </p>
           </div>
           {isSignupCodeSent && (
             <div>
@@ -4954,12 +4994,12 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
                     )}
                   </div>
 
-                  {showClockOutOverrideInput && (
+                  {user.role === 'ADMIN' && showClockOutOverrideInput && (
                     <div className="bg-red-50/60 border border-red-200 rounded-xl p-3">
                       <label className="text-xs font-semibold text-red-800 uppercase">
-                        Outside Patient Boundary — Override Reason <span className="text-red-500">*</span>
+                        Outside Patient Boundary — Administrator Override Reason <span className="text-red-500">*</span>
                       </label>
-                      <p className="text-[10px] text-red-700 mb-1.5">GPS location is outside the client's geofence. Provide a reason to submit a manual override instead.</p>
+                      <p className="text-[10px] text-red-700 mb-1.5">The device is outside the client&apos;s geofence. As an administrator you may close this shift manually; the reason and your name are recorded against the visit.</p>
                       <textarea
                         rows={2}
                         required
@@ -4976,7 +5016,7 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
                   )}
 
                   <div className="flex gap-3 pt-2">
-                    {showClockOutOverrideInput ? (
+                    {user.role === 'ADMIN' && showClockOutOverrideInput ? (
                       <button
                         type="button"
                         disabled={isSubmittingClockOut || !clockOutOverrideReason.trim()}
@@ -7742,21 +7782,54 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
                                 </div>
                               </div>
 
-                              {/* Clock In Exception / Geofence Error & Override Input Form */}
+                              {/* Clock In Exception: geofence refusal, late-arrival reason, admin override */}
                               {clockInError && clockInTargetShiftId === shift.id && (
                                 <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 space-y-2 animate-fade-up" onClick={(e) => e.stopPropagation()}>
                                   <div className="font-bold flex items-center gap-1.5">
                                     <i className="fa-solid fa-circle-exclamation text-red-600 text-sm"></i>
                                     <span>{clockInError}</span>
                                   </div>
-                                  {showOverrideInput ? (
+
+                                  {/* On site but late - the reason is mandatory and lands on the client assessment. */}
+                                  {lateClockInPrompt && lateClockInPrompt.shiftId === shift.id ? (
+                                    <div className="space-y-2 pt-1.5 border-t border-red-200/60">
+                                      <label className="block text-[11px] font-bold text-gray-700">
+                                        Reason for arriving {lateClockInPrompt.minutesLate} minutes late (required):
+                                      </label>
+                                      <input
+                                        type="text"
+                                        value={lateClockInReason}
+                                        onChange={(e) => setLateClockInReason(e.target.value)}
+                                        placeholder="e.g. Traffic on the interstate / Previous visit ran over"
+                                        className="w-full px-3 py-2 bg-white border border-red-200 rounded-lg text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                      />
+                                      <p className="text-[10px] text-gray-500">
+                                        Your arrival time, the delay, and this reason are recorded on {shift.client?.name}&apos;s assessment and sent to your coordinator.
+                                      </p>
+                                      <div className="flex gap-2">
+                                        <button
+                                          onClick={(e) => { e.stopPropagation(); handleClockIn(shift.id, false, lateClockInReason.trim()); }}
+                                          disabled={!lateClockInReason.trim()}
+                                          className="px-3 py-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-bold text-xs rounded-lg cursor-pointer transition-colors shadow-2xs"
+                                        >
+                                          Submit &amp; Clock In
+                                        </button>
+                                        <button
+                                          onClick={(e) => { e.stopPropagation(); setClockInError(null); setLateClockInPrompt(null); setLateClockInReason(''); setClockInTargetShiftId(null); }}
+                                          className="px-3 py-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-xs rounded-lg cursor-pointer transition-colors"
+                                        >
+                                          Cancel
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ) : user.role === 'ADMIN' && showOverrideInput ? (
                                     <div className="space-y-2 pt-1.5 border-t border-red-200/60">
                                       <label className="block text-[11px] font-bold text-gray-700">Reason for Manual Clock-In Override:</label>
                                       <input
                                         type="text"
                                         value={overrideReason}
                                         onChange={(e) => setOverrideReason(e.target.value)}
-                                        placeholder="e.g. Weak GPS signal at patient entrance / On-site"
+                                        placeholder="e.g. Verified arrival by phone / Site GPS blackspot"
                                         className="w-full px-3 py-2 bg-white border border-red-200 rounded-lg text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-500"
                                       />
                                       <div className="flex gap-2">
@@ -7776,19 +7849,28 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
                                       </div>
                                     </div>
                                   ) : (
-                                    <div className="flex gap-2 pt-1 border-t border-red-200/60">
-                                      <button
-                                        onClick={(e) => { e.stopPropagation(); handleClockIn(shift.id, false); }}
-                                        className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-lg cursor-pointer transition-colors shadow-2xs"
-                                      >
-                                        Retry Geofence Check
-                                      </button>
-                                      <button
-                                        onClick={(e) => { e.stopPropagation(); setShowOverrideInput(true); }}
-                                        className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-lg cursor-pointer transition-colors shadow-2xs"
-                                      >
-                                        Request Manual Override
-                                      </button>
+                                    <div className="space-y-2 pt-1 border-t border-red-200/60">
+                                      <div className="flex gap-2">
+                                        <button
+                                          onClick={(e) => { e.stopPropagation(); handleClockIn(shift.id, false); }}
+                                          className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-lg cursor-pointer transition-colors shadow-2xs"
+                                        >
+                                          Retry Location Check
+                                        </button>
+                                        {user.role === 'ADMIN' && (
+                                          <button
+                                            onClick={(e) => { e.stopPropagation(); setShowOverrideInput(true); }}
+                                            className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-lg cursor-pointer transition-colors shadow-2xs"
+                                          >
+                                            Admin Manual Override
+                                          </button>
+                                        )}
+                                      </div>
+                                      {user.role === 'CAREGIVER' && (
+                                        <p className="text-[10px] text-gray-600">
+                                          You must be within {shift.client?.geofenceRadiusMeter || 100}m of the client&apos;s address to clock in. If you are on site and this keeps failing, your coordinator can clock you in manually - they have already been alerted.
+                                        </p>
+                                      )}
                                     </div>
                                   )}
                                 </div>

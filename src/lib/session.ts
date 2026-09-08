@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import { cookies } from 'next/headers';
 import { prisma } from './prisma';
-import { isAdminEmailAllowed } from './adminAllowlist';
+import { isEmailAllowedForRole } from './adminAllowlist';
 
 export const SESSION_COOKIE_NAME = 'akirapa_session';
 
@@ -87,7 +87,9 @@ export async function getSessionUser(): Promise<SessionUser | null> {
   const user = await prisma.user.findUnique({ where: { id: payload.sub } });
   if (!user) return null;
 
-  if (user.role === 'ADMIN' && !isAdminEmailAllowed(user.email)) {
+  // Re-check the email-domain policy on every request, not just at login, so a
+  // session issued before an account fell out of policy stops working at once.
+  if (!isEmailAllowedForRole(user.role, user.email, user.isAdminProvisioned).ok) {
     return null;
   }
 

@@ -6,6 +6,11 @@ import { computeHaversineDistance } from '@/lib/geo';
 import { ShiftStatus } from '@prisma/client';
 import { encrypt } from '@/lib/crypto';
 import { createNotification, notifyAdmins, notifyClientFamily } from '@/lib/notifications';
+import { formatTime } from '@/lib/dateFormat';
+import {
+  GEOFENCE_DEFAULT_RADIUS_METERS,
+  MAX_GPS_ACCURACY_METERS,
+} from '@/lib/attendance';
 
 export async function POST(request: Request) {
   try {
@@ -21,6 +26,7 @@ export async function POST(request: Request) {
       notes,
       latitude,
       longitude,
+      accuracy,
       isOverride,
       overrideReason,
       mediaFiles,
@@ -105,11 +111,31 @@ export async function POST(request: Request) {
 
     const encryptedLog = encrypt(JSON.stringify(logDetails));
 
-    // 1. Manual Override Path
+    // 1. Administrator override. Mirrors clock-in: a caregiver cannot clear their
+    // own geofence exception, so an out-of-area clock-out is closed off by a
+    // coordinator, on the record, with their user id attached.
     if (isOverride) {
+      if (!isSupervisor) {
+        await logAudit({
+          userId: sessionUser.id,
+          action: 'CLOCK_OUT_OVERRIDE_DENIED',
+          details: `Caregiver ${sessionUser.email} attempted to self-override the geofence to clock out of shift ${shiftId}. Override requires an administrator.`,
+          outcome: 'FAILURE',
+        });
+        return NextResponse.json(
+          { error: 'Only an administrator can override the geofence. Contact your coordinator to be clocked out manually.' },
+          { status: 403 }
+        );
+      }
+
       if (!overrideReason) {
         return NextResponse.json({ error: 'Override reason is required' }, { status: 400 });
       }
+
+      const overrideDistance =
+        typeof latitude === 'number' && typeof longitude === 'number'
+          ? computeHaversineDistance(latitude, longitude, shift.client.latitude, shift.client.longitude)
+          : null;
 
       // Mark completed tasks
       if (completedTaskIds && Array.isArray(completedTaskIds)) {
@@ -141,8 +167,12 @@ export async function POST(request: Request) {
         data: {
           status: ShiftStatus.COMPLETED,
           actualEnd: now,
+          clockOutLat: typeof latitude === 'number' ? latitude : null,
+          clockOutLng: typeof longitude === 'number' ? longitude : null,
+          clockOutDistanceMeter: overrideDistance,
           isOverrideException: true,
           overrideReason,
+          overrideApprovedBy: sessionUser.id,
           isOvertime,
           overtimeReason: isOvertime ? overtimeReason : null,
           overtimeEvidenceUrl,
@@ -152,8 +182,8 @@ export async function POST(request: Request) {
       // Audit logs
       await logAudit({
         userId: shift.caregiverId,
-        action: 'CLOCK_OUT_OVERRIDE_REQUEST',
-        details: `Caregiver ${shift.caregiver.name} requested manual override clock-out for client ${shift.client.name}. Reason: ${overrideReason}`,
+        action: 'CLOCK_OUT_ADMIN_OVERRIDE',
+        details: `Admin ${sessionUser.email} manually clocked out caregiver ${shift.caregiver.name} for client ${shift.client.name}.${overrideDistance === null ? ' No GPS fix supplied.' : ` Device was ${Math.round(overrideDistance)}m from site.`} Reason: ${overrideReason}`,
         outcome: 'SUCCESS',
       });
 
@@ -189,8 +219,16 @@ export async function POST(request: Request) {
 
       // Notify Admins of Override & Overtime if applicable
       await notifyAdmins({
-        title: '⚠️ Clock-Out Override & Completion',
-        message: `Caregiver ${shift.caregiver.name} completed visit for ${shift.client.name} via manual override. Reason: "${overrideReason}".${isOvertime ? ` Overtime: ${overtimeReason}` : ''}`,
+        title: 'Clock-Out Geofence Override',
+        message: `${sessionUser.name} manually clocked out ${shift.caregiver.name} from ${shift.client.name}'s visit.${overrideDistance === null ? '' : ` Device was ${Math.round(overrideDistance)}m from site.`} Reason: "${overrideReason}".${isOvertime ? ` Overtime: ${overtimeReason}` : ''}`,
+        type: 'EXCEPTION_OVERRIDE',
+        excludeUserId: sessionUser.id,
+      });
+
+      await createNotification({
+        userId: shift.caregiverId,
+        title: 'Clocked Out By Administrator',
+        message: `${sessionUser.name} clocked you out of ${shift.client.name}'s visit at ${formatTime(now)} via manual override. Reason on file: "${overrideReason}".`,
         type: 'EXCEPTION_OVERRIDE',
       });
 
@@ -212,9 +250,34 @@ export async function POST(request: Request) {
       });
     }
 
-    // 2. Geofenced Validation Path
-    if (latitude === undefined || longitude === undefined) {
-      return NextResponse.json({ error: 'GPS coordinates are required for geofence validation' }, { status: 400 });
+    // 2. Geofenced validation - the caregiver must still be at the client's site.
+    if (typeof latitude !== 'number' || typeof longitude !== 'number') {
+      await logAudit({
+        userId: shift.caregiverId,
+        action: 'CLOCK_OUT_FAILED_NO_GPS',
+        details: `Clock-out refused for ${shift.caregiver.name} at client ${shift.client.name}: device supplied no GPS fix.`,
+        outcome: 'FAILURE',
+      });
+      return NextResponse.json(
+        { error: 'Location access is required to clock out. Enable location for this site and try again.' },
+        { status: 400 }
+      );
+    }
+
+    if (typeof accuracy === 'number' && accuracy > MAX_GPS_ACCURACY_METERS) {
+      await logAudit({
+        userId: shift.caregiverId,
+        action: 'CLOCK_OUT_FAILED_GPS_ACCURACY',
+        details: `Clock-out refused for ${shift.caregiver.name} at client ${shift.client.name}: GPS accuracy +/-${Math.round(accuracy)}m exceeds the +/-${MAX_GPS_ACCURACY_METERS}m limit.`,
+        outcome: 'FAILURE',
+      });
+      return NextResponse.json(
+        {
+          error: `Your GPS signal is too weak to confirm you are still on site (accurate to +/-${Math.round(accuracy)}m). Move outdoors or nearer a window and try again, or ask your coordinator to clock you out.`,
+          accuracy: Math.round(accuracy),
+        },
+        { status: 400 }
+      );
     }
 
     const distance = computeHaversineDistance(
@@ -224,9 +287,13 @@ export async function POST(request: Request) {
       shift.client.longitude
     );
 
-    const radius = shift.client.geofenceRadiusMeter || 100;
+    const radius = shift.client.geofenceRadiusMeter || GEOFENCE_DEFAULT_RADIUS_METERS;
 
     if (distance > radius) {
+      await prisma.caregiverLocationHistory.create({
+        data: { shiftId: shift.id, latitude, longitude, timestamp: now },
+      }).catch(() => {});
+
       await logAudit({
         userId: shift.caregiverId,
         action: 'CLOCK_OUT_FAILED_GEOFENCE',
@@ -234,14 +301,20 @@ export async function POST(request: Request) {
         outcome: 'FAILURE',
       });
 
+      await notifyAdmins({
+        title: `Out-of-Area Clock-Out Attempt - ${shift.client.name}`,
+        message: `${shift.caregiver.name} tried to clock out ${Math.round(distance)}m from ${shift.client.name}'s site at ${formatTime(now)} (limit ${radius}m). The shift is still open - clock them out manually if they have genuinely left.`,
+        type: 'EXCEPTION_OVERRIDE',
+      });
+
       return NextResponse.json(
         {
-          error: 'Outside Patient Boundary',
+          error: `You are ${Math.round(distance)}m from ${shift.client.name}'s address - you must be within ${radius}m to clock out. Your coordinator has been notified.`,
           distance: Math.round(distance),
           radius,
-          allowOverride: true,
+          allowOverride: false,
         },
-        { status: 400 }
+        { status: 403 }
       );
     }
 
@@ -275,6 +348,7 @@ export async function POST(request: Request) {
         actualEnd: now,
         clockOutLat: latitude,
         clockOutLng: longitude,
+        clockOutDistanceMeter: distance,
         isOvertime,
         overtimeReason: isOvertime ? overtimeReason : null,
         overtimeEvidenceUrl,

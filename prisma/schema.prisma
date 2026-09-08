@@ -54,6 +54,12 @@ model User {
   mustChangePassword Boolean   @default(false)
   passwordUpdatedAt  DateTime?
 
+  // Set when a super admin provisions the account from the admin portal. Such
+  // accounts are exempt from the self-signup email-domain policy (staff must be
+  // @akirapahomecareus.com, client self-signup must be a personal Gmail), which
+  // is how corporate client contacts and partner staff are granted access.
+  isAdminProvisioned Boolean   @default(false)
+
   // Relations
   podAssignments CaregiverPod[]
   assignedShifts Shift[]
@@ -131,6 +137,16 @@ model Shift {
   isOverrideException  Boolean       @default(false)
   overrideReason       String?
   overrideApprovedBy   String?       // Reference to Admin User ID
+
+  // Attendance tracking. Distances are metres from the client's site centre at
+  // the moment of the punch; minutesLate/lateReason are captured when a
+  // caregiver clocks in past the punctuality grace period. missedClockInAlertAt
+  // is stamped once so the escalation sweep does not re-alert every run.
+  clockInDistanceMeter  Float?
+  clockOutDistanceMeter Float?
+  minutesLate           Int?
+  lateReason            String?
+  missedClockInAlertAt  DateTime?
 
   // Overtime Justification
   isOvertime           Boolean       @default(false)

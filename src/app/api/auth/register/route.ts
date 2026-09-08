@@ -4,7 +4,7 @@ import { logAudit } from '@/lib/audit';
 import { hashPassword } from '@/lib/password';
 import { createSessionCookie, sessionCookieOptions } from '@/lib/session';
 import { UserRole, PodRole, ShiftStatus } from '@prisma/client';
-import { isCompanyDomainEmail, OFFICIAL_DOMAIN } from '@/lib/adminAllowlist';
+import { isSelfSignupAllowed } from '@/lib/adminAllowlist';
 import { formatUSPhoneWithCountryCode } from '@/lib/phone';
 
 export async function POST(request: Request) {
@@ -69,14 +69,23 @@ export async function POST(request: Request) {
       );
     }
 
-    // Note: Clients and caregivers can register with their personal or assigned emails.
     const normalizedEmail = email.trim().toLowerCase();
 
-    if (role === 'ADMIN') {
-      return NextResponse.json(
-        { error: 'Admin portal accounts cannot be created via registration.' },
-        { status: 403 }
-      );
+    // Determine role (default to CAREGIVER, no signup for ADMIN)
+    let finalRole: UserRole = UserRole.CAREGIVER;
+    if (role === 'CLIENT' || role === 'FAMILY_MEMBER') {
+      finalRole = UserRole.FAMILY_MEMBER;
+    }
+
+    // Email-domain policy: caregivers must be on the official company domain;
+    // the client portal self-registers personal Gmail addresses only. Anything
+    // else has to be provisioned by a super admin from the admin portal.
+    const policy = isSelfSignupAllowed(
+      role === 'ADMIN' ? 'ADMIN' : finalRole,
+      normalizedEmail
+    );
+    if (!policy.ok) {
+      return NextResponse.json({ error: policy.error }, { status: 403 });
     }
 
     // Validate OTP verification code
@@ -112,12 +121,6 @@ export async function POST(request: Request) {
         { error: 'An account with this email already exists' },
         { status: 400 }
       );
-    }
-
-    // Determine role (default to CAREGIVER, no signup for ADMIN)
-    let finalRole: UserRole = UserRole.CAREGIVER;
-    if (role === 'CLIENT' || role === 'FAMILY_MEMBER') {
-      finalRole = UserRole.FAMILY_MEMBER;
     }
 
     // Package extra caregiver job details into metadata field

@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { hashPassword } from '@/lib/password';
-import { isCompanyDomainEmail, OFFICIAL_DOMAIN } from '@/lib/adminAllowlist';
 
 export async function POST(request: Request) {
   try {

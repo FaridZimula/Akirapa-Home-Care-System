@@ -7,6 +7,12 @@ import { ShiftStatus } from '@prisma/client';
 import { createNotification, notifyAdmins, notifyClientFamily } from '@/lib/notifications';
 import { formatTime } from '@/lib/dateFormat';
 import { encrypt } from '@/lib/crypto';
+import {
+  GEOFENCE_DEFAULT_RADIUS_METERS,
+  MAX_GPS_ACCURACY_METERS,
+  LATE_GRACE_MINUTES,
+  minutesLateFrom,
+} from '@/lib/attendance';
 
 // Grace period added past the shift's scheduled end so the caregiver's session
 // survives long enough to complete the mandatory clock-out questionnaire even
@@ -29,7 +35,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    const { shiftId, latitude, longitude, isOverride, overrideReason, lateReason } = await request.json();
+    const { shiftId, latitude, longitude, accuracy, isOverride, overrideReason, lateReason } =
+      await request.json();
 
     if (!shiftId) {
       return NextResponse.json({ error: 'Shift ID is required' }, { status: 400 });
@@ -92,25 +99,50 @@ export async function POST(request: Request) {
     }
 
     const now = new Date();
+    const minutesLate = minutesLateFrom(shift.scheduledStart, now);
+    const isLate = minutesLate > LATE_GRACE_MINUTES;
+    const radius = shift.client.geofenceRadiusMeter || GEOFENCE_DEFAULT_RADIUS_METERS;
 
-    // Lateness Calculation (Threshold: 5 minutes past scheduled start time)
-    const minutesLate = Math.floor((now.getTime() - new Date(shift.scheduledStart).getTime()) / 60000);
-    const isLate = minutesLate > 5;
-    const finalReason = overrideReason || lateReason || (isLate ? `${minutesLate} minutes late clock-in` : 'Standard Arrival');
-
-    // 1. Manual Override Path
+    // 1. Administrator override.
+    // Only an admin can put a caregiver on the clock from outside the geofence.
+    // A caregiver cannot wave themselves through - that is the whole point of a
+    // geofence; they call their coordinator, who overrides it here on the record.
     if (isOverride) {
-      if (!overrideReason) {
+      if (!isSupervisor) {
+        await logAudit({
+          userId: sessionUser.id,
+          action: 'CLOCK_IN_OVERRIDE_DENIED',
+          details: `Caregiver ${sessionUser.email} attempted to self-override the geofence for shift ${shiftId}. Override requires an administrator.`,
+          outcome: 'FAILURE',
+        });
+        return NextResponse.json(
+          { error: 'Only an administrator can override the geofence. Contact your coordinator to be clocked in manually.' },
+          { status: 403 }
+        );
+      }
+
+      if (!overrideReason || !String(overrideReason).trim()) {
         return NextResponse.json({ error: 'Override reason is required' }, { status: 400 });
       }
+
+      const overrideDistance =
+        typeof latitude === 'number' && typeof longitude === 'number'
+          ? computeHaversineDistance(latitude, longitude, shift.client.latitude, shift.client.longitude)
+          : null;
 
       const updatedShift = await prisma.shift.update({
         where: { id: shiftId },
         data: {
           status: ShiftStatus.IN_PROGRESS,
           actualStart: now,
+          clockInLat: typeof latitude === 'number' ? latitude : null,
+          clockInLng: typeof longitude === 'number' ? longitude : null,
+          clockInDistanceMeter: overrideDistance,
+          minutesLate: isLate ? minutesLate : null,
+          lateReason: isLate ? (lateReason || overrideReason) : null,
           isOverrideException: true,
           overrideReason,
+          overrideApprovedBy: sessionUser.id,
         },
       });
 
@@ -124,10 +156,13 @@ export async function POST(request: Request) {
         clockInTime: now.toISOString(),
         isLate,
         minutesLate: isLate ? minutesLate : 0,
-        geofenceDistanceMeter: null,
+        lateReason: isLate ? (lateReason || overrideReason) : null,
+        geofenceRadiusMeter: radius,
+        geofenceDistanceMeter: overrideDistance === null ? null : Math.round(overrideDistance),
         isOverride: true,
         overrideReason,
-        notes: `Caregiver ${shift.caregiver.name} clocked in via manual override for ${shift.client.name}.${isLate ? ` [LATE ARRIVAL: ${minutesLate} mins past scheduled start]` : ''} Reason: "${overrideReason}".`,
+        overrideApprovedBy: sessionUser.email,
+        notes: `Caregiver ${shift.caregiver.name} was clocked in for ${shift.client.name} by administrator ${sessionUser.name} via manual override.${isLate ? ` [LATE ARRIVAL: ${minutesLate} mins past scheduled start]` : ''} Reason: "${overrideReason}".`,
       };
 
       await prisma.activityLog.create({
@@ -140,24 +175,32 @@ export async function POST(request: Request) {
       });
 
       await logAudit({
-        userId: shift.caregiverId,
-        action: isLate ? 'CLOCK_IN_LATE_ARRIVED' : 'CLOCK_IN_OVERRIDE_REQUEST',
-        details: `Caregiver ${shift.caregiver.name} requested manual override clock-in for client ${shift.client.name}.${isLate ? ` Lateness: ${minutesLate} mins late.` : ''} Reason: ${overrideReason}`,
+        userId: sessionUser.id,
+        action: 'CLOCK_IN_ADMIN_OVERRIDE',
+        details: `Admin ${sessionUser.email} manually clocked in caregiver ${shift.caregiver.name} for client ${shift.client.name}.${isLate ? ` Lateness: ${minutesLate} mins.` : ''}${overrideDistance === null ? ' No GPS fix supplied.' : ` Device was ${Math.round(overrideDistance)}m from site (limit ${radius}m).`} Reason: ${overrideReason}`,
         outcome: 'SUCCESS',
       });
 
-      // Notify Admins of Override & Lateness
+      // Tell the other admins an exception was granted, and by whom.
       await notifyAdmins({
-        title: isLate ? `🚨 Late Clock-In Override — ${shift.client.name}` : '⚠️ Clock-In Exception Override',
-        message: `Caregiver ${shift.caregiver.name} clocked in for client ${shift.client.name} via manual override.${isLate ? ` [${minutesLate} MINS LATE]` : ''} Reason: "${overrideReason}".`,
+        title: isLate ? `Late Clock-In Override - ${shift.client.name}` : 'Clock-In Geofence Override',
+        message: `${sessionUser.name} manually clocked in ${shift.caregiver.name} for ${shift.client.name}.${isLate ? ` [${minutesLate} MINS LATE]` : ''}${overrideDistance === null ? '' : ` Device was ${Math.round(overrideDistance)}m from site.`} Reason: "${overrideReason}".`,
         type: isLate ? 'LATE_ARRIVAL' : 'EXCEPTION_OVERRIDE',
+        excludeUserId: sessionUser.id,
       });
 
-      // Notify Client / Family of Shift Start
+      // Leave the caregiver a record of the exception on their own account.
+      await createNotification({
+        userId: shift.caregiverId,
+        title: 'Clocked In By Administrator',
+        message: `${sessionUser.name} clocked you in for ${shift.client.name} at ${formatTime(now)} via manual override. Reason on file: "${overrideReason}".`,
+        type: 'EXCEPTION_OVERRIDE',
+      });
+
       await notifyClientFamily({
         clientId: shift.clientId,
         title: 'Caregiver Arrived',
-        message: `Caregiver ${shift.caregiver.name} has arrived and started the care visit for ${shift.client.name}.`,
+        message: `Caregiver ${shift.caregiver.name} has started the care visit for ${shift.client.name}.`,
         type: 'SHIFT_STARTED',
       });
 
@@ -166,7 +209,7 @@ export async function POST(request: Request) {
         shift: updatedShift,
         isLate,
         minutesLate: isLate ? minutesLate : 0,
-        message: `Clock-in submitted via administrator manual override request.${isLate ? ` (${minutesLate} mins late logged)` : ''}`,
+        message: `Clock-in recorded via administrator override.${isLate ? ` (${minutesLate} mins late logged)` : ''}`,
       });
       if (sessionUser.id === shift.caregiverId) {
         extendSessionForShift(overrideResponse, sessionUser.id, shift.scheduledEnd);
@@ -174,9 +217,36 @@ export async function POST(request: Request) {
       return overrideResponse;
     }
 
-    // 2. Geofenced Validation Path (Default 100m Radius)
-    if (latitude === undefined || longitude === undefined) {
-      return NextResponse.json({ error: 'GPS coordinates are required for geofence validation' }, { status: 400 });
+    // 2. Geofenced validation - the caregiver must be within the client's radius.
+    if (typeof latitude !== 'number' || typeof longitude !== 'number') {
+      await logAudit({
+        userId: shift.caregiverId,
+        action: 'CLOCK_IN_FAILED_NO_GPS',
+        details: `Clock-in refused for ${shift.caregiver.name} at client ${shift.client.name}: device supplied no GPS fix.`,
+        outcome: 'FAILURE',
+      });
+      return NextResponse.json(
+        { error: 'Location access is required to clock in. Enable location for this site and try again.' },
+        { status: 400 }
+      );
+    }
+
+    // A fix this coarse cannot prove presence inside a 100m boundary, so treat it
+    // as no fix at all rather than letting imprecision stand in for proximity.
+    if (typeof accuracy === 'number' && accuracy > MAX_GPS_ACCURACY_METERS) {
+      await logAudit({
+        userId: shift.caregiverId,
+        action: 'CLOCK_IN_FAILED_GPS_ACCURACY',
+        details: `Clock-in refused for ${shift.caregiver.name} at client ${shift.client.name}: GPS accuracy +/-${Math.round(accuracy)}m exceeds the +/-${MAX_GPS_ACCURACY_METERS}m limit.`,
+        outcome: 'FAILURE',
+      });
+      return NextResponse.json(
+        {
+          error: `Your GPS signal is too weak to confirm you are on site (accurate to +/-${Math.round(accuracy)}m). Move outdoors or nearer a window and try again, or ask your coordinator to clock you in.`,
+          accuracy: Math.round(accuracy),
+        },
+        { status: 400 }
+      );
     }
 
     const distance = computeHaversineDistance(
@@ -186,9 +256,12 @@ export async function POST(request: Request) {
       shift.client.longitude
     );
 
-    const radius = shift.client.geofenceRadiusMeter || 100;
-
     if (distance > radius) {
+      // Keep the evidence: where they actually were, and that they tried.
+      await prisma.caregiverLocationHistory.create({
+        data: { shiftId: shift.id, latitude, longitude, timestamp: now },
+      }).catch(() => {});
+
       await logAudit({
         userId: shift.caregiverId,
         action: 'CLOCK_IN_FAILED_GEOFENCE',
@@ -196,18 +269,40 @@ export async function POST(request: Request) {
         outcome: 'FAILURE',
       });
 
+      await notifyAdmins({
+        title: `Out-of-Area Clock-In Attempt - ${shift.client.name}`,
+        message: `${shift.caregiver.name} tried to clock in ${Math.round(distance)}m from ${shift.client.name}'s site at ${formatTime(now)} (limit ${radius}m). They cannot start the shift until they are on site, or you clock them in manually.`,
+        type: 'EXCEPTION_OVERRIDE',
+      });
+
       return NextResponse.json(
         {
-          error: `Outside Assigned Area (Located ${Math.round(distance)}m away, Limit: ${radius}m)`,
+          error: `You are ${Math.round(distance)}m from ${shift.client.name}'s address - you must be within ${radius}m to clock in. Your coordinator has been notified.`,
           distance: Math.round(distance),
           radius,
-          allowOverride: true,
+          allowOverride: false,
+        },
+        { status: 403 }
+      );
+    }
+
+    // 3. A late arrival must carry a reason.
+    // Asked for only once the caregiver is confirmed on site, so nobody is made
+    // to explain a delay on a clock-in that was going to be refused anyway.
+    const trimmedLateReason = typeof lateReason === 'string' ? lateReason.trim() : '';
+    if (isLate && !trimmedLateReason) {
+      return NextResponse.json(
+        {
+          error: `You are clocking in ${minutesLate} minutes after this shift's scheduled start. Please give a reason for the delay - it is recorded on the client's assessment.`,
+          requiresLateReason: true,
+          minutesLate,
+          scheduledStart: shift.scheduledStart.toISOString(),
+          distance: Math.round(distance),
         },
         { status: 400 }
       );
     }
 
-    // Valid clock-in (within 100m radius)
     const updatedShift = await prisma.shift.update({
       where: { id: shiftId },
       data: {
@@ -215,6 +310,9 @@ export async function POST(request: Request) {
         actualStart: now,
         clockInLat: latitude,
         clockInLng: longitude,
+        clockInDistanceMeter: distance,
+        minutesLate: isLate ? minutesLate : null,
+        lateReason: isLate ? trimmedLateReason : null,
       },
     });
 
@@ -228,11 +326,13 @@ export async function POST(request: Request) {
       clockInTime: now.toISOString(),
       isLate,
       minutesLate: isLate ? minutesLate : 0,
+      lateReason: isLate ? trimmedLateReason : null,
+      geofenceRadiusMeter: radius,
       geofenceDistanceMeter: Math.round(distance),
       isOverride: false,
       notes: isLate
-        ? `Caregiver ${shift.caregiver.name} clocked in ${minutesLate} minutes late for ${shift.client.name} (${Math.round(distance)}m from site center). Reason: ${finalReason}.`
-        : `Caregiver ${shift.caregiver.name} arrived on-site and clocked in for ${shift.client.name} (${Math.round(distance)}m from site center).`,
+        ? `Caregiver ${shift.caregiver.name} clocked in ${minutesLate} minutes late for ${shift.client.name} at ${formatTime(now)} (scheduled ${formatTime(shift.scheduledStart)}), verified ${Math.round(distance)}m from site centre. Reason given: "${trimmedLateReason}".`
+        : `Caregiver ${shift.caregiver.name} arrived on-site and clocked in for ${shift.client.name} at ${formatTime(now)}, verified ${Math.round(distance)}m from site centre.`,
     };
 
     await prisma.activityLog.create({
@@ -247,7 +347,7 @@ export async function POST(request: Request) {
     await logAudit({
       userId: shift.caregiverId,
       action: isLate ? 'CLOCK_IN_LATE_ARRIVED' : 'CLOCK_IN_SUCCESS',
-      details: `Caregiver ${shift.caregiver.name} clocked in successfully for client ${shift.client.name} (${Math.round(distance)}m from site center).${isLate ? ` [LATE: ${minutesLate} mins late]` : ''}`,
+      details: `Caregiver ${shift.caregiver.name} clocked in for client ${shift.client.name} (${Math.round(distance)}m from site centre, limit ${radius}m).${isLate ? ` [LATE: ${minutesLate} mins. Reason: ${trimmedLateReason}]` : ''}`,
       outcome: 'SUCCESS',
     });
 
@@ -272,14 +372,14 @@ export async function POST(request: Request) {
     // Notify Admins with Lateness or Validation Details
     if (isLate) {
       await notifyAdmins({
-        title: `🚨 Late Arrival Alert — ${shift.client.name}`,
-        message: `Caregiver ${shift.caregiver.name} clocked in ${minutesLate} mins late for ${shift.client.name} (Scheduled: ${formatTime(shift.scheduledStart)}, Actual: ${formatTime(now)}). Reason: "${finalReason}".`,
+        title: `Late Arrival - ${shift.client.name}`,
+        message: `${shift.caregiver.name} clocked in ${minutesLate} mins late for ${shift.client.name} (scheduled ${formatTime(shift.scheduledStart)}, actual ${formatTime(now)}). Reason: "${trimmedLateReason}". Recorded on the client assessment.`,
         type: 'LATE_ARRIVAL',
       });
     } else {
       await notifyAdmins({
-        title: '✅ Care Visit Started',
-        message: `Caregiver ${shift.caregiver.name} clocked in for ${shift.client.name} at ${formatTime(now)} (Validated ${Math.round(distance)}m from site center, Limit: ${radius}m).`,
+        title: 'Care Visit Started',
+        message: `${shift.caregiver.name} clocked in for ${shift.client.name} at ${formatTime(now)} (verified ${Math.round(distance)}m from site centre, limit ${radius}m).`,
         type: 'SHIFT_STARTED',
       });
     }
@@ -288,11 +388,12 @@ export async function POST(request: Request) {
       success: true,
       shift: updatedShift,
       distance: Math.round(distance),
+      radius,
       isLate,
       minutesLate: isLate ? minutesLate : 0,
       message: isLate
-        ? `Clock-in validated (${minutesLate} mins late recorded into client assessment).`
-        : 'Clock-in validated successfully within 100m patient boundary.',
+        ? `Clock-in verified ${Math.round(distance)}m from site. ${minutesLate} mins late recorded on the client assessment.`
+        : `Clock-in verified ${Math.round(distance)}m from site (limit ${radius}m).`,
     });
     if (sessionUser.id === shift.caregiverId) {
       extendSessionForShift(response, sessionUser.id, shift.scheduledEnd);

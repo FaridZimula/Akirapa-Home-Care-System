@@ -9,29 +9,9 @@ import { formatUSPhoneWithCountryCode } from '@/lib/phone';
 
 export async function POST(request: Request) {
   try {
-    let sessionUser = await getSessionUser();
-
-    // Fallback authentication check via x-admin-email header if session cookie expired/missing
-    if (!sessionUser || sessionUser.role !== 'ADMIN') {
-      const adminHeaderEmail = request.headers.get('x-admin-email');
-      if (adminHeaderEmail) {
-        const adminDbUser = await prisma.user.findUnique({
-          where: { email: adminHeaderEmail.trim().toLowerCase() },
-        });
-        if (adminDbUser && adminDbUser.role === 'ADMIN') {
-          sessionUser = {
-            id: adminDbUser.id,
-            email: adminDbUser.email,
-            name: adminDbUser.name,
-            role: 'ADMIN',
-            phoneNumber: adminDbUser.phoneNumber,
-            latitude: adminDbUser.latitude,
-            longitude: adminDbUser.longitude,
-            mustChangePassword: adminDbUser.mustChangePassword,
-          };
-        }
-      }
-    }
+    // Identity comes from the signed session cookie only. A caller-supplied
+    // email header is not proof of anything and must never stand in for it.
+    const sessionUser = await getSessionUser();
 
     if (!sessionUser || sessionUser.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Client provisioning is restricted to administrators' }, { status: 403 });
@@ -148,6 +128,9 @@ export async function POST(request: Request) {
             clientName: name,
           }),
           mustChangePassword: true,
+          // Client contacts are provisioned by an admin, so they are exempt from
+          // the Gmail-only rule that governs client-portal self-registration.
+          isAdminProvisioned: true,
         },
       });
     } else {
@@ -166,6 +149,7 @@ export async function POST(request: Request) {
           phoneNumber: formattedPhone || user.phoneNumber,
           profileMetadata: JSON.stringify(existingUserMeta),
           mustChangePassword: true,
+          isAdminProvisioned: true,
         },
       });
     }

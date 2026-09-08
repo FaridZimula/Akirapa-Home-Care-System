@@ -265,27 +265,7 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    let sessionUser = await getSessionUser();
-    if (!sessionUser) {
-      const adminHeaderEmail = request.headers.get('x-admin-email') || request.headers.get('x-user-email');
-      if (adminHeaderEmail) {
-        const adminDbUser = await prisma.user.findUnique({
-          where: { email: adminHeaderEmail.trim().toLowerCase() },
-        });
-        if (adminDbUser) {
-          sessionUser = {
-            id: adminDbUser.id,
-            email: adminDbUser.email,
-            name: adminDbUser.name,
-            role: adminDbUser.role,
-            phoneNumber: adminDbUser.phoneNumber,
-            latitude: adminDbUser.latitude,
-            longitude: adminDbUser.longitude,
-            mustChangePassword: adminDbUser.mustChangePassword,
-          };
-        }
-      }
-    }
+    const sessionUser = await getSessionUser();
 
     if (!sessionUser || sessionUser.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Shift cancellation is restricted to administrators' }, { status: 403 });

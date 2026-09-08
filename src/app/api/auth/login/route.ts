@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { logAudit } from '@/lib/audit';
 import { verifyPassword } from '@/lib/password';
 import { createSessionCookie, sessionCookieOptions } from '@/lib/session';
-import { isAdminEmailAllowed, isCompanyDomainEmail, OFFICIAL_DOMAIN } from '@/lib/adminAllowlist';
+import { isEmailAllowedForRole } from '@/lib/adminAllowlist';
 import { UserRole } from '@prisma/client';
 
 export async function POST(request: Request) {
@@ -43,15 +43,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
     }
 
-    // 4. Admin allowlist check
-    if (user.role === UserRole.ADMIN && !isAdminEmailAllowed(user.email)) {
+    // 4. Email-domain policy: admins must be on the code-held allowlist, caregivers
+    // on the official company domain, and self-registered client accounts on a
+    // personal Gmail. Accounts a super admin provisioned are exempt (non-admin only).
+    const policy = isEmailAllowedForRole(user.role, user.email, user.isAdminProvisioned);
+    if (!policy.ok) {
       await logAudit({
         userId: user.id,
-        action: 'ADMIN_LOGIN_DENIED',
-        details: `Blocked admin login for unauthorized email: ${normalizedEmail}`,
+        action: user.role === UserRole.ADMIN ? 'ADMIN_LOGIN_DENIED' : 'LOGIN_DENIED_EMAIL_POLICY',
+        details: `Blocked login for ${normalizedEmail} (role ${user.role}): email not permitted by domain policy.`,
         outcome: 'FAILURE',
       });
-      return NextResponse.json({ error: 'This email is not authorized for admin access.' }, { status: 403 });
+      return NextResponse.json({ error: policy.error }, { status: 403 });
     }
 
     // 5. Log audit for successful login

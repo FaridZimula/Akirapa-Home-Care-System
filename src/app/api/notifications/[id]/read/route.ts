@@ -8,26 +8,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    let sessionUser = await getSessionUser();
-
-    if (!sessionUser) {
-      const headerEmail = request.headers.get('x-user-email');
-      if (headerEmail) {
-        const dbUser = await prisma.user.findUnique({ where: { email: headerEmail.trim().toLowerCase() } });
-        if (dbUser) {
-          sessionUser = {
-            id: dbUser.id,
-            email: dbUser.email,
-            name: dbUser.name,
-            role: dbUser.role,
-            phoneNumber: dbUser.phoneNumber,
-            latitude: dbUser.latitude,
-            longitude: dbUser.longitude,
-            mustChangePassword: dbUser.mustChangePassword,
-          };
-        }
-      }
-    }
+    const sessionUser = await getSessionUser();
 
     if (!sessionUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

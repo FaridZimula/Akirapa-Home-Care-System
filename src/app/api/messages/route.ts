@@ -26,26 +26,7 @@ async function isDirectParticipant(sessionUser: SessionUser, clientId: string): 
 
 export async function GET(request: Request) {
   try {
-    let sessionUser = await getSessionUser();
-
-    if (!sessionUser) {
-      const headerEmail = request.headers.get('x-user-email') || request.headers.get('x-admin-email');
-      if (headerEmail) {
-        const dbUser = await prisma.user.findUnique({ where: { email: headerEmail.trim().toLowerCase() } });
-        if (dbUser) {
-          sessionUser = {
-            id: dbUser.id,
-            email: dbUser.email,
-            name: dbUser.name,
-            role: dbUser.role,
-            phoneNumber: dbUser.phoneNumber,
-            latitude: dbUser.latitude,
-            longitude: dbUser.longitude,
-            mustChangePassword: dbUser.mustChangePassword,
-          };
-        }
-      }
-    }
+    const sessionUser = await getSessionUser();
 
     if (!sessionUser) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
@@ -141,26 +122,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    let sessionUser = await getSessionUser();
-
-    if (!sessionUser) {
-      const headerEmail = request.headers.get('x-user-email') || request.headers.get('x-admin-email');
-      if (headerEmail) {
-        const dbUser = await prisma.user.findUnique({ where: { email: headerEmail.trim().toLowerCase() } });
-        if (dbUser) {
-          sessionUser = {
-            id: dbUser.id,
-            email: dbUser.email,
-            name: dbUser.name,
-            role: dbUser.role,
-            phoneNumber: dbUser.phoneNumber,
-            latitude: dbUser.latitude,
-            longitude: dbUser.longitude,
-            mustChangePassword: dbUser.mustChangePassword,
-          };
-        }
-      }
-    }
+    const sessionUser = await getSessionUser();
 
     if (!sessionUser) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
