@@ -439,11 +439,11 @@ export default function AdminDirectoryAndAudits({ adminEmail }: { adminEmail?: s
       <div className="bg-white rounded-2xl p-5 sm:p-6 border border-gray-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-50 border border-purple-200 text-purple-700 text-xs font-bold uppercase tracking-wider mb-2">
-            <i className="fa-solid fa-shoe-prints text-purple-600"></i>
-            User & Client Activity Audits
+            <i className="fa-solid fa-user-shield text-purple-600"></i>
+            User & Client Audits
           </div>
           <h2 className="text-xl sm:text-2xl font-extrabold text-gray-900 tracking-tight">
-            Activity Audits & Digital Footprints
+            User Audits
           </h2>
           <p className="text-xs text-gray-500 mt-0.5">
             Select any caregiver or client to view their individual activity history, clock-in/out GPS coordinates, and download their audit file.

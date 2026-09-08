@@ -6036,7 +6036,7 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
                 <i className="fa-solid fa-shield-halved w-4 text-center"></i> Audit Logs
               </button>
               <button onClick={() => { setCurrentView('directory_audits'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${currentView === 'directory_audits' ? 'bg-[#77248c] text-white font-bold shadow-md' : 'text-gray-600 hover:bg-purple-50/70 hover:text-[#77248c]'}`}>
-                <i className="fa-solid fa-shoe-prints w-4 text-center"></i> Activity & Footprint Audits
+                <i className="fa-solid fa-user-shield w-4 text-center"></i> User Audits
               </button>
             </>
           )}
@@ -6157,7 +6157,7 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
               {currentView === 'messages' && 'Messages'}
               {currentView === 'care_updates' && 'Care Updates'}
               {currentView === 'messageOversight' && 'Message Oversight'}
-              {currentView === 'directory_audits' && 'Client & Caregiver Activity & Footprint Audits'}
+              {currentView === 'directory_audits' && 'User Audits'}
             </h2>
             <div className="relative flex-1 max-w-md ml-2 md:ml-4 hidden sm:block">
               <i className="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
@@ -11500,7 +11500,7 @@ const EMPTY_HANDOVER_FORM: HandoverNotesForm = {
                         onClick={() => setCurrentView('directory_audits')}
                         className="text-xs font-bold text-[#77248c] bg-purple-50 hover:bg-purple-100 px-3 py-1.5 rounded-xl border border-purple-200 transition-colors flex items-center gap-1.5 cursor-pointer"
                       >
-                        <i className="fa-solid fa-address-book"></i> Full Directory & Audits
+                        <i className="fa-solid fa-user-shield"></i> User Audits
                       </button>
                       <span className="text-xs font-bold text-white bg-[#77248c] px-3.5 py-1 rounded-full shadow-xs">HIPAA Compliant</span>
                     </div>
